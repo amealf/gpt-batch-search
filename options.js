@@ -138,6 +138,7 @@ let startPending = false;
 let stopPending = false;
 let exportPending = false;
 let exportStopPending = false;
+let deleteProgressPending = false;
 let chatExportRequestToken = 0;
 let currentBatchState = { ...BATCH_STATE_DEFAULT };
 let currentChatExportState = { ...CHAT_EXPORT_STATE_DEFAULT };
@@ -294,10 +295,14 @@ function updateBatchActionButtons() {
   const startButton = document.getElementById("batchStart");
   const stopButton = document.getElementById("batchStop");
   const clearButton = document.getElementById("batchClearInputs");
+  const deleteProgressButton = document.getElementById("deleteProgressChats");
   if (!startButton || !stopButton || !clearButton) return;
   startButton.disabled = startPending || currentBatchState.running;
   stopButton.disabled = stopPending || !currentBatchState.running;
   clearButton.disabled = startPending || stopPending || currentBatchState.running;
+  if (deleteProgressButton) {
+    deleteProgressButton.disabled = deleteProgressPending || currentBatchState.running;
+  }
 }
 
 function updateChatExportActionButtons() {
@@ -1131,6 +1136,79 @@ async function stopBatch() {
   }
 }
 
+async function deleteProgressConversations() {
+  if (deleteProgressPending || currentBatchState.running) return;
+
+  deleteProgressPending = true;
+  updateBatchActionButtons();
+  renderBatchState({
+    ...currentBatchState,
+    message: "正在读取最近 3 页进度标题对话……"
+  });
+
+  try {
+    const listResponse = await sendRuntimeMessage({
+      type: "DELETE_PROGRESS_CONVERSATIONS",
+      payload: { mode: "list" }
+    });
+    if (!listResponse || !listResponse.ok) {
+      throw new Error(listResponse && listResponse.error ? listResponse.error : "读取进度标题对话失败。");
+    }
+
+    const targets = Array.isArray(listResponse.targets) ? listResponse.targets : [];
+    if (!targets.length) {
+      renderBatchState({
+        ...currentBatchState,
+        message: `最近 3 页没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
+      });
+      return;
+    }
+
+    const listText = targets
+      .map((item, index) => `${index + 1}. ${item.title}`)
+      .join("\n");
+    const confirmed = confirm(`将删除以下 ${targets.length} 个进度标题对话：\n\n${listText}\n\n确定删除吗？`);
+    if (!confirmed) {
+      renderBatchState({
+        ...currentBatchState,
+        message: `已取消删除，最近 3 页匹配 ${targets.length} 个进度标题对话。`
+      });
+      return;
+    }
+
+    renderBatchState({
+      ...currentBatchState,
+      message: `已确认删除 ${targets.length} 个进度标题对话，正在执行……`
+    });
+
+    const response = await sendRuntimeMessage({
+      type: "DELETE_PROGRESS_CONVERSATIONS",
+      payload: {
+        mode: "delete",
+        targets,
+        scanned: listResponse.scanned || 0
+      }
+    });
+    if (!response || !response.ok) {
+      throw new Error(response && response.error ? response.error : "删除进度标题对话失败。");
+    }
+
+    const failedText = response.failed ? `，失败 ${response.failed} 个` : "";
+    renderBatchState({
+      ...currentBatchState,
+      message: `已删除 ${response.deleted || 0} 个进度标题对话，确认 ${response.matched || 0} 个${failedText}。`
+    });
+  } catch (error) {
+    renderBatchState({
+      ...currentBatchState,
+      message: error && error.message ? error.message : "删除进度标题对话失败。"
+    });
+  } finally {
+    deleteProgressPending = false;
+    updateBatchActionButtons();
+  }
+}
+
 async function clearBatchInputs() {
   if (currentBatchState.running) return;
 
@@ -1176,6 +1254,9 @@ function bindBatchEvents() {
   delaySeconds.addEventListener("change", () => persistBatchConfig(true));
   document.getElementById("batchStart").addEventListener("click", startBatch);
   document.getElementById("batchStop").addEventListener("click", stopBatch);
+  document.getElementById("deleteProgressChats").addEventListener("click", () => {
+    deleteProgressConversations().catch(() => {});
+  });
   document.getElementById("batchClearInputs").addEventListener("click", () => {
     clearBatchInputs().catch(() => {});
   });

@@ -2289,6 +2289,157 @@
     return normalizeConversationTitle(`当前进度 ${displayIndex}/${originalTotal}`);
   }
 
+  function isProgressConversationTitle(title) {
+    return /^当前进度\s+\d+\s*\/\s*\d+$/u.test(normalizeConversationTitle(title));
+  }
+
+  async function reportDeleteProgress(message, level = "info") {
+    await sendRuntimeMessage("DELETE_PROGRESS_CONVERSATIONS_PROGRESS", { message, level });
+  }
+
+  async function getChatApiHeaders() {
+    const accessToken = await getAccessToken().catch(() => "");
+    const accountId = await getWorkspaceAccountId().catch(() => null);
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    };
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+      headers["X-Authorization"] = `Bearer ${accessToken}`;
+    }
+    if (accountId) {
+      headers["Chatgpt-Account-Id"] = accountId;
+    }
+    return headers;
+  }
+
+  function getConversationListItems(data) {
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.conversations)) return data.conversations;
+    if (Array.isArray(data)) return data;
+    return [];
+  }
+
+  function normalizeConversationListItem(item) {
+    if (!item || typeof item !== "object") return null;
+    const id = String(item.id || item.conversation_id || "").trim();
+    const title = normalizeConversationTitle(item.title || item.name || "");
+    if (!id || !title) return null;
+    return { id, title };
+  }
+
+  async function fetchConversationListPage(offset, limit) {
+    const url = new URL(`${getApiBaseUrl()}/conversations`);
+    url.searchParams.set("offset", String(offset));
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("order", "updated");
+    const response = await fetch(url.toString(), {
+      credentials: "include",
+      headers: await getChatApiHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(`读取会话列表失败：${response.status}`);
+    }
+    return response.json();
+  }
+
+  async function hideConversationById(conversationId) {
+    const response = await fetch(`${getApiBaseUrl()}/conversation/${conversationId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: await getChatApiHeaders(),
+      body: JSON.stringify({ is_visible: false })
+    });
+    if (!response.ok) {
+      throw new Error(`删除会话失败：${response.status}`);
+    }
+  }
+
+  async function findProgressTitleConversations() {
+    const limit = 100;
+    let offset = 0;
+    let scanned = 0;
+    let total = null;
+    const seenIds = new Set();
+    const targets = [];
+
+    await reportDeleteProgress("开始读取最近 3 页 ChatGPT 会话列表。");
+    for (let page = 0; page < 3; page += 1) {
+      await reportDeleteProgress(`正在读取最近会话列表第 ${page + 1}/3 页，offset=${offset}。`);
+      const data = await fetchConversationListPage(offset, limit);
+      const rawItems = getConversationListItems(data);
+      if (Number.isFinite(Number(data?.total))) {
+        total = Number(data.total);
+      }
+
+      for (const rawItem of rawItems) {
+        const item = normalizeConversationListItem(rawItem);
+        if (!item || seenIds.has(item.id)) continue;
+        seenIds.add(item.id);
+        scanned += 1;
+        if (isProgressConversationTitle(item.title)) {
+          targets.push(item);
+        }
+      }
+
+      await reportDeleteProgress(`已读取第 ${page + 1}/3 页，累计扫描 ${scanned} 个，匹配 ${targets.length} 个进度标题对话。`);
+      if (!rawItems.length || rawItems.length < limit) break;
+      offset += rawItems.length;
+      if (total !== null && offset >= total) break;
+    }
+
+    await reportDeleteProgress(`列表读取完成：扫描 ${scanned} 个，匹配 ${targets.length} 个进度标题对话，等待确认。`);
+    return {
+      scanned,
+      matched: targets.length,
+      targets
+    };
+  }
+
+  async function deleteProgressTitleConversations(payload = {}) {
+    const mode = payload.mode === "delete" ? "delete" : "list";
+    if (mode === "list") {
+      const result = await findProgressTitleConversations();
+      return {
+        ok: true,
+        confirmRequired: true,
+        ...result
+      };
+    }
+
+    const targets = Array.isArray(payload.targets)
+      ? payload.targets
+        .map((item) => normalizeConversationListItem(item))
+        .filter((item) => item && isProgressConversationTitle(item.title))
+      : [];
+    const scanned = Number.isFinite(Number(payload.scanned)) ? Math.max(0, Number(payload.scanned)) : 0;
+
+    await reportDeleteProgress(`用户已确认，开始删除 ${targets.length} 个进度标题对话。`);
+    let deleted = 0;
+    let failed = 0;
+    for (let index = 0; index < targets.length; index += 1) {
+      const item = targets[index];
+      try {
+        await reportDeleteProgress(`正在删除第 ${index + 1}/${targets.length} 个：${item.title}`);
+        await hideConversationById(item.id);
+        deleted += 1;
+      } catch {
+        failed += 1;
+        await reportDeleteProgress(`第 ${index + 1}/${targets.length} 个删除失败：${item.title}`, "error");
+      }
+    }
+
+    await reportDeleteProgress(`清理完成：最近 3 页扫描 ${scanned} 个，确认 ${targets.length} 个，删除 ${deleted} 个，失败 ${failed} 个。`);
+    return {
+      ok: true,
+      scanned,
+      matched: targets.length,
+      deleted,
+      failed
+    };
+  }
+
   async function renameCurrentConversationBestEffort(title) {
     const cleanTitle = normalizeConversationTitle(title);
     if (!cleanTitle) return false;
@@ -2788,7 +2939,9 @@
 
     let completed = initialCompleted;
     let failed = initialFailed;
-    const renamedSegments = new Set(isResume && initialRetryAttempt > 0 ? [getBatchConversationSegment(startIndex)] : []);
+    const renamedSegments = new Set(isResume && initialRetryAttempt > 0 && !shouldSendResumeGlobalPrompt
+      ? [getBatchConversationSegment(startIndex)]
+      : []);
     const renameAttemptsBySegment = new Map();
     let retryWatchdogTimer = null;
 
@@ -2955,6 +3108,19 @@
     };
 
     const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, reason }) => {
+      if (retryAttempt >= BATCH_MAX_REFRESH_RETRIES) {
+        clearBatchRetryState();
+        await sendRuntimeMessage("BATCH_FAILED", {
+          batchId,
+          total: originalTotal,
+          completed,
+          failed,
+          error: `第 ${displayIndex}/${originalTotal} 条刷新重试已达到 ${BATCH_MAX_REFRESH_RETRIES} 次，任务已停止。${reason || ""}`.trim()
+        });
+        batchStopRequested = true;
+        return;
+      }
+
       const nextRetryAttempt = retryAttempt + 1;
       const retryMethod = nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER ? "新标签页重试" : "刷新重试";
       const retryPayload = buildResumePayload(index, nextRetryAttempt, false);
@@ -3119,28 +3285,15 @@
       return "failed";
     };
 
+    const isRetryableBatchSetupError = (error) => {
+      const message = String(error && error.message ? error.message : error);
+      return message.includes("没有找到输入框。");
+    };
+
     try {
       throwIfBatchStopped(batchId);
       if (isResume) {
         await until(() => document.readyState === "complete", 20000, 150);
-      }
-      if (shouldNewChat && !isResume) {
-        await sendRuntimeMessage("BATCH_PROGRESS", {
-          batchId,
-          running: true,
-          total: originalTotal,
-          currentIndex: skippedCount,
-          currentText: "",
-          retryAttempt: 0,
-          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
-          message: "正在新建对话……"
-        });
-        await prepareEditor(true, batchId);
-      } else {
-        const editor = await waitEditor({ batchId });
-        if (!editor) {
-          throw new Error("没有找到输入框。");
-        }
       }
 
       let loopStartIndex = startIndex;
@@ -3152,6 +3305,27 @@
         loopStartIndex = Math.min(startIndex + 1, batchItems.length);
       } else if (isResume && initialRetryAttempt > 0) {
         startRetryResumeWatchdog();
+      }
+
+      if (!existingResumeResult) {
+        if (shouldNewChat && !isResume) {
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: skippedCount,
+            currentText: "",
+            retryAttempt: 0,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: "正在新建对话……"
+          });
+          await prepareEditor(true, batchId);
+        } else {
+          const editor = await waitEditor({ batchId });
+          if (!editor) {
+            throw new Error("没有找到输入框。");
+          }
+        }
       }
 
       if (loopStartIndex === startIndex && oneTimePrompt && (!isResume || shouldSendResumeGlobalPrompt)) {
@@ -3273,6 +3447,19 @@
         return;
       }
 
+      if (isRetryableBatchSetupError(error) && startIndex < batchItems.length) {
+        const item = batchItems[startIndex];
+        const displayIndex = getDisplayIndexForBatchItem(startIndex);
+        await scheduleItemRetry({
+          index: startIndex,
+          retryAttempt: initialRetryAttempt,
+          displayIndex,
+          text: item?.text || "",
+          reason: String(error && error.message ? error.message : error)
+        });
+        return;
+      }
+
       clearBatchRetryState();
       await sendRuntimeMessage("BATCH_FAILED", {
         batchId,
@@ -3359,6 +3546,25 @@
           currentExportId = "";
           exportStopRequested = false;
           currentExportAbortController = null;
+        });
+      return true;
+    }
+
+    if (message.type === "EXT_DELETE_PROGRESS_CONVERSATIONS") {
+      if (batchRunning) {
+        sendResponse({ ok: false, error: "批量任务仍在执行中。" });
+        return;
+      }
+
+      deleteProgressTitleConversations(message.payload)
+        .then((result) => sendResponse(result))
+        .catch(async (error) => {
+          const errorMessage = String(error && error.message ? error.message : error);
+          await reportDeleteProgress(`清理进度标题对话失败：${errorMessage}`, "error");
+          sendResponse({
+            ok: false,
+            error: errorMessage
+          });
         });
       return true;
     }

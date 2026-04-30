@@ -398,6 +398,22 @@ async function findChatTab() {
   return activeTab || tabs[0];
 }
 
+function isChatTabUrl(url) {
+  const text = String(url || "");
+  return text.startsWith("https://chatgpt.com/") || text.startsWith("https://chat.openai.com/");
+}
+
+async function closeRetrySourceTab(sourceTabId, retryTabId) {
+  if (!Number.isInteger(sourceTabId) || sourceTabId === retryTabId) return;
+
+  try {
+    const sourceTab = await chrome.tabs.get(sourceTabId);
+    if (sourceTab && isChatTabUrl(sourceTab.url)) {
+      await chrome.tabs.remove(sourceTabId);
+    }
+  } catch {}
+}
+
 async function waitForTabComplete(tabId, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const startedAt = Date.now();
@@ -460,6 +476,12 @@ async function ensureChatTab(newChat) {
 
   const created = await chrome.tabs.create({ url: CHAT_HOME, active: true });
   await waitForTabComplete(created.id);
+  return created;
+}
+
+async function getChatMaintenanceTab() {
+  const created = await chrome.tabs.create({ url: CHAT_HOME, active: false });
+  await waitForTabComplete(created.id, 20000);
   return created;
 }
 
@@ -1883,7 +1905,7 @@ async function handleBatchItemResult(payload) {
   };
 }
 
-async function handleBatchRetryInNewTab(payload) {
+async function handleBatchRetryInNewTab(payload, sourceTabId) {
   const batchId = typeof payload?.batchId === "string" ? payload.batchId : "";
   const retryPayload = payload?.retryPayload && typeof payload.retryPayload === "object"
     ? { ...payload.retryPayload }
@@ -1931,7 +1953,52 @@ async function handleBatchRetryInNewTab(payload) {
     resumeNeedsGlobalPrompt: true
   });
   await appendBatchLogIfCurrent(batchId, `第 ${index}/${total} 条已在新标签页继续重试。`);
+  closeRetrySourceTab(sourceTabId, chatTab.id).catch(() => {});
   return { ok: true, state: await getBatchState(), tabId: chatTab.id };
+}
+
+async function handleDeleteProgressConversationsProgress(payload) {
+  const message = typeof payload?.message === "string" ? payload.message.trim() : "";
+  if (!message) return await getBatchState();
+
+  const level = typeof payload?.level === "string" ? payload.level : "info";
+  const current = await getBatchState();
+  const logs = current.logs.concat({
+    time: new Date().toISOString(),
+    level,
+    message
+  }).slice(-60);
+
+  return saveBatchState({
+    ...current,
+    message,
+    logs
+  });
+}
+
+async function handleDeleteProgressConversations(payload) {
+  let maintenanceTab = null;
+  const current = await getBatchState();
+  if (current.running) {
+    return { ok: false, error: "批量任务仍在执行中。" };
+  }
+
+  const mode = payload?.mode === "delete" ? "delete" : "list";
+  const actionText = mode === "delete" ? "删除已确认的进度标题对话" : "读取进度标题对话列表";
+
+  try {
+    await handleDeleteProgressConversationsProgress({ message: `正在打开新的 ChatGPT 标签页，用于${actionText}……` });
+    maintenanceTab = await getChatMaintenanceTab();
+    await handleDeleteProgressConversationsProgress({ message: "新的 ChatGPT 标签页已打开，正在注入脚本……" });
+    await ensureChatContentScript(maintenanceTab.id);
+    await handleDeleteProgressConversationsProgress({ message: `脚本已注入，正在${actionText}……` });
+    const result = await sendMessageToChatTabSafely(maintenanceTab.id, "EXT_DELETE_PROGRESS_CONVERSATIONS", payload || {});
+    return result;
+  } finally {
+    if (maintenanceTab?.id) {
+      chrome.tabs.remove(maintenanceTab.id).catch(() => {});
+    }
+  }
 }
 
 async function handleBatchFinished(payload) {
@@ -2095,6 +2162,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "DELETE_PROGRESS_CONVERSATIONS_PROGRESS") {
+    handleDeleteProgressConversationsProgress(message.payload)
+      .then((state) => sendResponse({ ok: true, state }))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
   if (message.type === "BATCH_ITEM_RESULT") {
     handleBatchItemResult(message.payload)
       .then((result) => sendResponse(result))
@@ -2103,7 +2177,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "BATCH_RETRY_IN_NEW_TAB") {
-    handleBatchRetryInNewTab(message.payload)
+    handleBatchRetryInNewTab(message.payload, _sender?.tab?.id)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "DELETE_PROGRESS_CONVERSATIONS") {
+    handleDeleteProgressConversations(message.payload)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;

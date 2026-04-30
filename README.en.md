@@ -6,7 +6,6 @@ GPT Quick Search is a Chrome extension for submitting items in batches, formatti
 
 ## Main Features
 
-- Quick messages: Send selected text to ChatGPT with a preset prompt.
 - Batch tasks: Paste multiple titles or a tree-style list, then submit them to ChatGPT in order.
 - Directory saving: Choose a local folder and save Markdown files according to the task tree.
 - Existing-file skipping: Detect saved titles before running to avoid duplicate submissions.
@@ -14,6 +13,11 @@ GPT Quick Search is a Chrome extension for submitting items in batches, formatti
 - Failure retry: Refresh and retry when saving fails, the answer is empty, or ChatGPT returns a temporary error. After repeated failures, the extension can continue in a new tab.
 - Answer cleanup: Clean Markdown links, bold text, italic text, and trailing reference links before saving.
 - Chat export: Automatically read the current ChatGPT conversation and save question-answer pairs as Markdown.
+
+## Other Features
+
+- Quick messages: Select text on another page and send it to ChatGPT with a keyboard shortcut.
+- Save every message from a specific GPT conversation window to local files, one by one.
 
 ## Installation
 
@@ -33,26 +37,6 @@ Batch tasks usually follow this workflow:
 5. Click Start to run the batch task.
 
 While a task is running, the bottom of the page shows the current progress, successful items, skipped items, failed items, and logs.
-
-## Save Format
-
-Each answer is saved as a Markdown file. The file name comes from the current item title.
-
-The extension applies these cleanup rules while saving:
-
-- `**bold**` is converted to `<strong>bold</strong>`.
-- `*italic*` and `_italic_` are converted to `<em>italic</em>`.
-- Links in the body are converted to numbered references, such as `[1]` and `[2]`.
-- Reference links are collected at the end:
-
-```md
-## Footnotes
-
-References
-
-[1] https://example.com
-[2] https://example.org
-```
 
 ## TBD
 
