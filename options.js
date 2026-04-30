@@ -7,7 +7,7 @@ const PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户下面将�
 2 结尾不要有延展问题、编辑建议等等。全篇都要与该文本相关
 
 3 使用最常见的中文书面写法。遵循用户的记忆和默认prompt`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+const RECENT_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
 
 1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明信息来源，添加脚注即可。
 
@@ -16,6 +16,47 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
 
 4 不要使用「不是..而是..」和类似的否定先行的句子结构。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。`;
+const CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明网站信息来源（可以注明书的来源），添加脚注即可。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 加粗人名、关键术语、关键地名`;
+const PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明网站信息来源（可以注明书的来源）。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 在需要使用脚注的时候，使用obsidian能识别的上下文跳转的格式`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求：考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 不要使用脚注，可以在段末附带链接
+
+7 在文章开头写一个总结性质的标题`;
 const BATCH_DEFAULT_PROMPT = "请介绍：";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
@@ -23,6 +64,7 @@ const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
 const BATCH_DEFAULT_DELAY_SECONDS = 3;
 const BATCH_CONVERSATION_MODE_NEW = "new";
 const BATCH_CONVERSATION_MODE_CURRENT = "current";
+const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
 const HOTKEY_DEFAULTS = {
   prefix1: HOTKEY_DEFAULT_PREFIX,
   prefix2: HOTKEY_DEFAULT_PREFIX,
@@ -63,7 +105,9 @@ const BATCH_STATE_DEFAULT = {
   startedAt: "",
   finishedAt: "",
   logs: [],
-  failedItems: []
+  failedItems: [],
+  retryAttempt: 0,
+  maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES
 };
 const CHAT_EXPORT_STATE_DEFAULT = {
   running: false,
@@ -196,6 +240,10 @@ function createBatchState(state) {
   const next = { ...BATCH_STATE_DEFAULT, ...(state || {}) };
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
+  next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
+  next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
+    ? Math.max(0, Number(next.maxRefreshRetries))
+    : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
   return next;
 }
 
@@ -568,6 +616,9 @@ function renderBatchState(state) {
   if (currentBatchState.total) {
     lines.push(`当前进度：${currentBatchState.currentIndex}/${currentBatchState.total}`);
   }
+  if (currentBatchState.running && currentBatchState.retryAttempt > 0) {
+    lines.push(`刷新重试：${currentBatchState.retryAttempt}/${currentBatchState.maxRefreshRetries || BATCH_DEFAULT_MAX_REFRESH_RETRIES}`);
+  }
   if (currentBatchState.currentText) {
     lines.push(`当前文本：${currentBatchState.currentText}`);
   }
@@ -789,6 +840,9 @@ async function loadBatchConfig() {
   const config = await getLocal(BATCH_CONFIG_DEFAULTS);
   const batchGlobalPrompt = !config.batchGlobalPrompt ||
     config.batchGlobalPrompt === LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT ||
+    config.batchGlobalPrompt === PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT ||
+    config.batchGlobalPrompt === CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT ||
+    config.batchGlobalPrompt === RECENT_BATCH_DEFAULT_GLOBAL_PROMPT ||
     config.batchGlobalPrompt === PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT
     ? BATCH_DEFAULT_GLOBAL_PROMPT
     : config.batchGlobalPrompt;

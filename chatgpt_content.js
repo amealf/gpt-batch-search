@@ -18,8 +18,13 @@
   let batchStopRequested = false;
   const BATCH_STOPPED_ERROR = "__BATCH_STOPPED__";
   const BATCH_RETRY_STORAGE_KEY = "__GPT_QUICK_SEARCH_BATCH_RETRY__";
-  const BATCH_MAX_RETRIES = 1;
-  const BATCH_CONVERSATION_ITEM_LIMIT = 50;
+  const BATCH_MAX_REFRESH_RETRIES = 5;
+  const BATCH_NEW_TAB_RETRY_AFTER = 2;
+  const BATCH_REPLY_TIMEOUT_MS = 120000;
+  const BATCH_REPLY_STABLE_MS = 5000;
+  const BATCH_REPLY_CONFIRM_MS = 1500;
+  const BATCH_RETRY_WATCHDOG_MS = 90000;
+  const BATCH_CONVERSATION_ITEM_LIMIT = 30;
   let exportRunning = false;
   let currentExportId = "";
   let exportStopRequested = false;
@@ -37,21 +42,27 @@
     return false;
   }
 
-  function takeBatchRetryState() {
+  function readBatchRetryState() {
     try {
       const raw = sessionStorage.getItem(BATCH_RETRY_STORAGE_KEY);
-      sessionStorage.removeItem(BATCH_RETRY_STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch {
-      try {
-        sessionStorage.removeItem(BATCH_RETRY_STORAGE_KEY);
-      } catch {}
+      clearBatchRetryState();
       return null;
     }
   }
 
+  function clearBatchRetryState() {
+    try {
+      sessionStorage.removeItem(BATCH_RETRY_STORAGE_KEY);
+    } catch {}
+  }
+
   function isElementVisible(element) {
-    return Boolean(element && element.offsetParent !== null);
+    if (!element) return false;
+    const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    if (style && (style.display === "none" || style.visibility === "hidden")) return false;
+    return element.offsetParent !== null || element.getClientRects().length > 0;
   }
 
   function composeFullText(text, prefix) {
@@ -700,6 +711,17 @@
       .replace(/[`*_#>\-|()[\]{}.,;:!?，。！？、；：（）【】《》“”‘’·]/g, " ")
       .replace(/\s+/g, "");
     return signal.length >= 5 && /[\p{L}\p{N}]/u.test(signal);
+  }
+
+  function getShortAssistantReplyText(text, minSignalLength = 1) {
+    const cleaned = cleanAssistantText(text);
+    const signal = stripMarkdownLinksForSignal(cleaned)
+      .replace(/[`*_#>\-|()[\]{}.,;:!?，。！？、；：（）【】《》“”‘’·]/g, " ")
+      .replace(/\s+/g, "");
+    if (signal.length < minSignalLength || !/[\p{L}\p{N}]/u.test(signal)) {
+      return "";
+    }
+    return cleaned;
   }
 
   function formatExportReferenceLines(text, references) {
@@ -1989,18 +2011,176 @@
     return result;
   }
 
+  function getButtonLabel(button) {
+    return [
+      button.getAttribute("aria-label") || "",
+      button.getAttribute("title") || "",
+      button.getAttribute("data-testid") || "",
+      button.textContent || ""
+    ].join(" ").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function hasStopIcon(button) {
+    if (!button) return false;
+    if (button.querySelector("svg rect")) return true;
+    const pathText = Array.from(button.querySelectorAll("svg path"))
+      .map((path) => path.getAttribute("d") || "")
+      .join(" ");
+    return /h\s*1[0-9](?:\.\d+)?\s*v\s*1[0-9](?:\.\d+)?/i.test(pathText) ||
+      /v\s*1[0-9](?:\.\d+)?\s*h\s*-1[0-9](?:\.\d+)?/i.test(pathText);
+  }
+
+  function isComposerSubmitButton(button) {
+    if (!button) return false;
+    const label = getButtonLabel(button);
+    const testId = String(button.getAttribute("data-testid") || "").toLowerCase();
+    const id = String(button.id || "").toLowerCase();
+    const type = String(button.getAttribute("type") || "").toLowerCase();
+    return id === "composer-submit-button" ||
+      type === "submit" ||
+      testId.includes("send") ||
+      testId.includes("submit") ||
+      label.includes("send") ||
+      label.includes("发送");
+  }
+
+  function hasEmptyComposerNearButton(button) {
+    const form = button?.closest?.("form");
+    const editor = form
+      ? findVisibleComposerInRoot(form)
+      : findVisibleComposer();
+    return Boolean(editor && !getEditorValue(editor.element).trim());
+  }
+
+  function isStreamingStopButton(button) {
+    if (!button || !isElementVisible(button) || button.disabled) return false;
+    const label = getButtonLabel(button);
+    const testId = String(button.getAttribute("data-testid") || "").toLowerCase();
+    const id = String(button.id || "").toLowerCase();
+    if (testId === "stop-button") return true;
+    if (id === "composer-submit-button" && (label.includes("stop") || hasStopIcon(button))) return true;
+    if (isComposerSubmitButton(button) && hasStopIcon(button)) return true;
+    if (isComposerSubmitButton(button) && hasEmptyComposerNearButton(button) && button.querySelector("svg")) return true;
+    return label.includes("stop streaming") ||
+      label.includes("stop generating") ||
+      label.includes("stop") ||
+      label.includes("interrupt") ||
+      label.includes("cancel response") ||
+      label.includes("cancel") ||
+      label.includes("停止生成") ||
+      label.includes("停止") ||
+      label === "stop" ||
+      label === "停止";
+  }
+
   function isGenerating() {
-    return Array.from(document.querySelectorAll("button")).some((button) => {
-      if (button.offsetParent === null) return false;
-      const label = [
-        button.getAttribute("aria-label") || "",
-        button.textContent || ""
-      ].join(" ").toLowerCase();
-      return label.includes("stop generating") ||
-        label.includes("stop") ||
-        label.includes("停止生成") ||
-        label.includes("停止");
-    });
+    if (Array.from(document.querySelectorAll("button")).some((button) => isStreamingStopButton(button))) {
+      return true;
+    }
+
+    return Array.from(document.querySelectorAll("[aria-busy='true'], [data-message-streaming='true'], [data-is-streaming='true'], [data-testid*='streaming']"))
+      .some((element) => isElementVisible(element));
+  }
+
+  function getReplyTextFromSnapshot(snapshot, allowShortReply, minShortReplySignalLength) {
+    const rawText = snapshot.rawText || "";
+    const shortReplyText = allowShortReply
+      ? getShortAssistantReplyText(rawText, minShortReplySignalLength)
+      : "";
+    return snapshot.text || shortReplyText || rawText;
+  }
+
+  function hasUsableAssistantReply(text, allowShortReply, minShortReplySignalLength) {
+    return allowShortReply
+      ? Boolean(getShortAssistantReplyText(text, minShortReplySignalLength))
+      : hasAssistantBodyText(text);
+  }
+
+  async function confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength) {
+    const firstSnapshot = getAssistantSnapshot();
+    const firstText = getReplyTextFromSnapshot(firstSnapshot, allowShortReply, minShortReplySignalLength);
+    if (!hasUsableAssistantReply(firstText, allowShortReply, minShortReplySignalLength) || isGenerating()) return "";
+
+    await sleepWithStopCheck(BATCH_REPLY_CONFIRM_MS, batchId);
+    if (isGenerating()) return "";
+
+    const secondSnapshot = getAssistantSnapshot();
+    const secondText = getReplyTextFromSnapshot(secondSnapshot, allowShortReply, minShortReplySignalLength);
+    if (!hasUsableAssistantReply(secondText, allowShortReply, minShortReplySignalLength)) return "";
+    if (secondSnapshot.text !== firstSnapshot.text) return "";
+    if ((secondSnapshot.rawText || "") !== (firstSnapshot.rawText || "")) return "";
+    return secondText;
+  }
+
+  async function clickStopGeneratingIfVisible() {
+    const stopButton = Array.from(document.querySelectorAll("button")).find((button) => isStreamingStopButton(button));
+
+    if (!stopButton) return false;
+    stopButton.click();
+    await sleep(120);
+    return true;
+  }
+
+  async function sleepWithStopCheck(ms, batchId) {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < ms) {
+      throwIfBatchStopped(batchId);
+      await sleep(Math.min(200, ms - (Date.now() - startedAt)));
+    }
+  }
+
+  async function waitForAssistantReply(previousAssistantSnapshot, batchId, timeout = BATCH_REPLY_TIMEOUT_MS, options = {}) {
+    const startedAt = Date.now();
+    let lastText = "";
+    let lastRawText = "";
+    let stableSince = Date.now();
+    const allowShortReply = Boolean(options.allowShortReply);
+    const minShortReplySignalLength = Number.isFinite(Number(options.minShortReplySignalLength))
+      ? Math.max(1, Number(options.minShortReplySignalLength))
+      : 1;
+
+    while (true) {
+      throwIfBatchStopped(batchId);
+      const currentSnapshot = getAssistantSnapshot();
+      const latestText = currentSnapshot.text;
+      const latestRawText = currentSnapshot.rawText || "";
+      const shortReplyText = allowShortReply
+        ? getShortAssistantReplyText(latestRawText, minShortReplySignalLength)
+        : "";
+      const replyText = getReplyTextFromSnapshot(currentSnapshot, allowShortReply, minShortReplySignalLength);
+
+      if (latestText !== lastText || latestRawText !== lastRawText) {
+        lastText = latestText;
+        lastRawText = latestRawText;
+        stableSince = Date.now();
+      }
+
+      const hasNewElement = (
+        currentSnapshot.count > previousAssistantSnapshot.count ||
+        (currentSnapshot.key && currentSnapshot.key !== previousAssistantSnapshot.key)
+      );
+      const hasNewText = Boolean(latestText) && latestText !== previousAssistantSnapshot.text;
+      const hasNewRawText = Boolean(latestRawText) && latestRawText !== (previousAssistantSnapshot.rawText || "");
+      const hasShortReply = allowShortReply && Boolean(shortReplyText) && (hasNewRawText || hasNewElement);
+      const hasNewReply = hasNewText || (hasNewElement && hasNewRawText) || hasShortReply;
+      const hasUsableReply = hasNewReply && hasUsableAssistantReply(replyText, allowShortReply, minShortReplySignalLength);
+      const stableEnough = Date.now() - stableSince >= BATCH_REPLY_STABLE_MS;
+      const timedOut = Date.now() - startedAt >= timeout;
+
+      if (hasUsableReply && !isGenerating() && stableEnough) {
+        const confirmedReply = await confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength);
+        if (confirmedReply) {
+          return confirmedReply;
+        }
+        stableSince = Date.now();
+      }
+
+      if (timedOut && !isGenerating() && stableEnough && !hasUsableReply) {
+        return "";
+      }
+
+      await sleepWithStopCheck(500, batchId);
+    }
   }
 
   function createBatchStoppedError() {
@@ -2039,79 +2219,6 @@
     return String(error && error.message ? error.message : error) === CHAT_EXPORT_STOPPED_ERROR;
   }
 
-  async function clickStopGeneratingIfVisible() {
-    const stopButton = Array.from(document.querySelectorAll("button")).find((button) => {
-      if (button.offsetParent === null || button.disabled) return false;
-      const label = [
-        button.getAttribute("aria-label") || "",
-        button.textContent || ""
-      ].join(" ").toLowerCase();
-      return label.includes("stop generating") ||
-        label.includes("停止生成") ||
-        label === "stop" ||
-        label === "停止";
-    });
-
-    if (!stopButton) return false;
-    stopButton.click();
-    await sleep(120);
-    return true;
-  }
-
-  async function sleepWithStopCheck(ms, batchId) {
-    const startedAt = Date.now();
-    while (Date.now() - startedAt < ms) {
-      throwIfBatchStopped(batchId);
-      await sleep(Math.min(200, ms - (Date.now() - startedAt)));
-    }
-  }
-
-  async function waitForAssistantReply(previousAssistantSnapshot, batchId, timeout = 180000) {
-    const startedAt = Date.now();
-    let lastText = "";
-    let lastRawText = "";
-    let stableSince = Date.now();
-
-    while (Date.now() - startedAt < timeout) {
-      throwIfBatchStopped(batchId);
-      const currentSnapshot = getAssistantSnapshot();
-      const latestText = currentSnapshot.text;
-      const latestRawText = currentSnapshot.rawText || "";
-
-      if (latestText !== lastText || latestRawText !== lastRawText) {
-        lastText = latestText;
-        lastRawText = latestRawText;
-        stableSince = Date.now();
-      }
-
-      const hasNewElement = (
-        currentSnapshot.count > previousAssistantSnapshot.count ||
-        (currentSnapshot.key && currentSnapshot.key !== previousAssistantSnapshot.key)
-      );
-      const hasNewText = Boolean(latestText) && latestText !== previousAssistantSnapshot.text;
-      const hasNewRawText = Boolean(latestRawText) && latestRawText !== (previousAssistantSnapshot.rawText || "");
-      const hasNewReply = hasNewText || (hasNewElement && hasNewRawText);
-
-      if (hasNewReply && !isGenerating() && Date.now() - stableSince >= 1500) {
-        return latestText || latestRawText;
-      }
-
-      await sleepWithStopCheck(500, batchId);
-    }
-
-    throwIfBatchStopped(batchId);
-    const finalSnapshot = getAssistantSnapshot();
-    const hasNewElement = (
-      finalSnapshot.count > previousAssistantSnapshot.count ||
-      (finalSnapshot.key && finalSnapshot.key !== previousAssistantSnapshot.key)
-    );
-    const finalRawText = finalSnapshot.rawText || "";
-    const hasNewText = Boolean(finalSnapshot.text) && finalSnapshot.text !== previousAssistantSnapshot.text;
-    const hasNewRawText = Boolean(finalRawText) && finalRawText !== (previousAssistantSnapshot.rawText || "");
-    const hasNewReply = hasNewText || (hasNewElement && hasNewRawText);
-    return hasNewReply ? (finalSnapshot.text || finalRawText) : "";
-  }
-
   async function sendRuntimeMessage(type, payload) {
     return new Promise((resolve) => {
       try {
@@ -2140,13 +2247,46 @@
     return Math.floor(Math.max(0, Number(index) || 0) / BATCH_CONVERSATION_ITEM_LIMIT);
   }
 
-  function buildBatchConversationTitle(batchItems, index) {
+  function cleanBatchSubjectCandidate(value) {
+    return normalizeConversationTitle(value)
+      .replace(/^#+\s*/u, "")
+      .replace(/^(?:\d+(?:[._]\d+)*|[IVXLC]+)[\s._-]+/iu, "")
+      .replace(/\s*(?:思想地图|学科地图|地图)\s*$/u, "")
+      .trim();
+  }
+
+  function isLikelyBatchSubjectName(value) {
+    const text = cleanBatchSubjectCandidate(value);
+    return Boolean(text && text.length <= 24 && /学/u.test(text) && !/地图/u.test(text));
+  }
+
+  function getBatchSubjectTitle(batchItems, index, directoryName) {
     const item = batchItems[index] || {};
     const path = Array.isArray(item.directoryPath) ? item.directoryPath.filter(Boolean) : [];
-    const baseTitle = normalizeConversationTitle(path[path.length - 1] || item.text || "批量消息");
-    const totalSegments = Math.ceil(batchItems.length / BATCH_CONVERSATION_ITEM_LIMIT);
-    if (totalSegments <= 1) return baseTitle;
-    return normalizeConversationTitle(`${baseTitle} ${getBatchConversationSegment(index) + 1}/${totalSegments}`);
+    const allPaths = batchItems.flatMap((batchItem) => (
+      Array.isArray(batchItem && batchItem.directoryPath) ? batchItem.directoryPath.filter(Boolean) : []
+    ));
+    const candidates = [
+      ...path.slice().reverse(),
+      ...allPaths.slice().reverse(),
+      directoryName
+    ];
+    const subject = candidates.find((candidate) => isLikelyBatchSubjectName(candidate));
+    if (subject) {
+      return `${cleanBatchSubjectCandidate(subject)}学科地图`;
+    }
+
+    return normalizeConversationTitle(path[path.length - 1] || directoryName || item.text || "批量消息");
+  }
+
+  function buildBatchConversationTitle(batchItems, index, options = {}) {
+    const originalTotal = Number.isFinite(Number(options.originalTotal)) && Number(options.originalTotal) > 0
+      ? Number(options.originalTotal)
+      : batchItems.length;
+    const displayIndex = Number.isFinite(Number(options.displayIndex)) && Number(options.displayIndex) > 0
+      ? Number(options.displayIndex)
+      : index + 1;
+    return normalizeConversationTitle(`当前进度 ${displayIndex}/${originalTotal}`);
   }
 
   async function renameCurrentConversationBestEffort(title) {
@@ -2201,7 +2341,8 @@
     return true;
   }
 
-  function findVisibleComposer() {
+  function findVisibleComposerInRoot(root) {
+    const searchRoot = root || document;
     const explicitSelectors = [
       "#prompt-textarea",
       'form textarea',
@@ -2214,7 +2355,7 @@
     ];
 
     for (const selector of explicitSelectors) {
-      const elements = Array.from(document.querySelectorAll(selector));
+      const elements = Array.from(searchRoot.querySelectorAll(selector));
       const match = elements.find((element) => {
         if (!isElementVisible(element)) return false;
         if (element.getAttribute("role") === "presentation") return false;
@@ -2228,7 +2369,7 @@
       }
     }
 
-    const forms = Array.from(document.querySelectorAll("form"));
+    const forms = Array.from(searchRoot.querySelectorAll("form"));
     for (const form of forms) {
       if (!isElementVisible(form)) continue;
 
@@ -2248,8 +2389,44 @@
     return null;
   }
 
-  async function waitEditor() {
-    return until(() => findVisibleComposer(), 20000, 150);
+  function findVisibleComposer() {
+    return findVisibleComposerInRoot(document);
+  }
+
+  async function waitEditor(options = {}) {
+    const timeout = Number.isFinite(Number(options.timeout)) ? Math.max(0, Number(options.timeout)) : 20000;
+    const batchId = typeof options.batchId === "string" ? options.batchId : "";
+    const startedAt = Date.now();
+    let lastAssistantRawText = getAssistantSnapshot().rawText || "";
+    let assistantChangedAt = lastAssistantRawText ? Date.now() : 0;
+
+    while (true) {
+      if (batchId) {
+        throwIfBatchStopped(batchId);
+      }
+
+      const currentAssistantRawText = getAssistantSnapshot().rawText || "";
+      if (currentAssistantRawText !== lastAssistantRawText) {
+        lastAssistantRawText = currentAssistantRawText;
+        assistantChangedAt = currentAssistantRawText ? Date.now() : 0;
+      }
+      const assistantRecentlyChanged = Boolean(currentAssistantRawText) &&
+        assistantChangedAt > 0 &&
+        Date.now() - assistantChangedAt < BATCH_REPLY_STABLE_MS + 1000;
+      const pageBusy = isGenerating() || assistantRecentlyChanged;
+      const editor = findVisibleComposer();
+      if (editor && !pageBusy) return editor;
+
+      if (Date.now() - startedAt >= timeout && !pageBusy) {
+        return null;
+      }
+
+      if (batchId) {
+        await sleepWithStopCheck(150, batchId);
+      } else {
+        await sleep(150);
+      }
+    }
   }
 
   function triggerInput(element) {
@@ -2405,8 +2582,10 @@
     return Boolean(sendAccepted);
   }
 
-  async function fillEditorAndSend({ text, prefix, fullText, autoSend, newChat, replaceExisting }) {
-    const editor = await prepareEditor(newChat);
+  async function fillEditorAndSend({ text, prefix, fullText, autoSend, newChat, replaceExisting, batchId }) {
+    throwIfBatchStopped(batchId);
+    const editor = await prepareEditor(newChat, batchId);
+    throwIfBatchStopped(batchId);
     if (replaceExisting && getEditorValue(editor.element).trim()) {
       clearEditorValue(editor.element);
       await sleep(80);
@@ -2423,6 +2602,7 @@
     }
 
     if (autoSend) {
+      throwIfBatchStopped(batchId);
       const previousUserCount = getUserMessages().length;
       const sent = await pressSend(editor.element, previousUserCount);
       if (!sent) {
@@ -2442,7 +2622,27 @@
     );
   }
 
-  async function prepareEditor(newChat) {
+  async function prepareEditor(newChat, batchId = "") {
+    throwIfBatchStopped(batchId);
+    if (newChat) {
+      const previousConversationId = getConversationIdFromLocation();
+      const clicked = await clickNewChatIfVisible();
+      if (clicked) {
+        const changed = await until(() => {
+          const currentConversationId = getConversationIdFromLocation();
+          return !previousConversationId ||
+            !currentConversationId ||
+            currentConversationId !== previousConversationId ||
+            getUserMessages().length === 0;
+        }, 5000, 150);
+        if (changed) {
+          await sleep(200);
+          const editor = await waitEditor({ batchId });
+          if (editor) return editor;
+        }
+      }
+    }
+
     await ensureHomeIfNeeded(newChat);
 
     if (newChat) {
@@ -2450,7 +2650,7 @@
       await sleep(200);
     }
 
-    const editor = await waitEditor();
+    const editor = await waitEditor({ batchId });
     if (!editor) {
       throw new Error("没有找到输入框。");
     }
@@ -2479,20 +2679,30 @@
   }
 
   async function sendGlobalPromptAndReadReply({ globalPrompt, newChat, batchId }) {
-    return sendSingleMessageAndReadReply({ fullText: globalPrompt, newChat, batchId });
+    return sendSingleMessageAndReadReply({
+      fullText: globalPrompt,
+      newChat,
+      batchId,
+      allowShortReply: true,
+      minShortReplySignalLength: 1
+    });
   }
 
-  async function sendSingleMessageAndReadReply({ fullText, newChat, batchId }) {
+  async function sendSingleMessageAndReadReply({ fullText, newChat, batchId, allowShortReply, minShortReplySignalLength }) {
     const previousAssistantSnapshot = getAssistantSnapshot();
     throwIfBatchStopped(batchId);
     await fillEditorAndSend({
       fullText,
       autoSend: true,
       newChat,
-      replaceExisting: true
+      replaceExisting: true,
+      batchId
     });
 
-    const reply = await waitForAssistantReply(previousAssistantSnapshot, batchId);
+    const reply = await waitForAssistantReply(previousAssistantSnapshot, batchId, BATCH_REPLY_TIMEOUT_MS, {
+      allowShortReply,
+      minShortReplySignalLength
+    });
     if (!reply) {
       throw new Error("没有提取到回答内容。");
     }
@@ -2511,10 +2721,12 @@
       completedOffset,
       newChat,
       delaySeconds,
+      directoryName,
       resumeIndex,
       resumeCompleted,
       resumeFailed,
-      resumeRetryAttempt
+      resumeRetryAttempt,
+      resumeNeedsGlobalPrompt
     } = payload || {};
     const oneTimePrompt = typeof globalPrompt === "string" ? globalPrompt.trim() : "";
     const batchItems = Array.isArray(items)
@@ -2539,9 +2751,14 @@
     const initialFailed = Number.isFinite(Number(resumeFailed)) ? Math.max(0, Number(resumeFailed)) : 0;
     const initialRetryAttempt = Number.isFinite(Number(resumeRetryAttempt)) ? Math.max(0, Number(resumeRetryAttempt)) : 0;
     const isResume = startIndex > 0 || initialRetryAttempt > 0;
-    const resumeDisplayIndex = Number.isFinite(Number(originalIndexes[startIndex])) && Number(originalIndexes[startIndex]) > 0
-      ? Number(originalIndexes[startIndex])
-      : startIndex + skippedCount + 1;
+    const shouldSendResumeGlobalPrompt = Boolean(resumeNeedsGlobalPrompt);
+    const getDisplayIndexForBatchItem = (index) => {
+      const rawIndex = Number(originalIndexes[index]);
+      return Number.isFinite(rawIndex) && rawIndex > 0
+        ? rawIndex
+        : skippedCount + index + 1;
+    };
+    const resumeDisplayIndex = getDisplayIndexForBatchItem(startIndex);
 
     if (!batchItems.length) {
       await sendRuntimeMessage("BATCH_FAILED", { error: "批量任务没有可执行的文本。" });
@@ -2557,8 +2774,12 @@
       total: originalTotal,
       currentIndex: skippedCount,
       currentText: "",
+      retryAttempt: isResume ? initialRetryAttempt : 0,
+      maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
       message: isResume
-        ? `页面已刷新，正在重试第 ${resumeDisplayIndex}/${originalTotal} 条……`
+        ? initialRetryAttempt > 0
+          ? `页面已刷新，正在第 ${initialRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次重试第 ${resumeDisplayIndex}/${originalTotal} 条……`
+          : `页面已刷新，正在继续第 ${resumeDisplayIndex}/${originalTotal} 条……`
         : skippedCount
         ? `批量任务开始执行，共 ${originalTotal} 条，已跳过 ${skippedCount} 条。`
         : `批量任务开始执行，共 ${originalTotal} 条。`,
@@ -2567,8 +2788,114 @@
 
     let completed = initialCompleted;
     let failed = initialFailed;
-    const renamedSegments = new Set(isResume ? [getBatchConversationSegment(startIndex)] : []);
+    const renamedSegments = new Set(isResume && initialRetryAttempt > 0 ? [getBatchConversationSegment(startIndex)] : []);
     const renameAttemptsBySegment = new Map();
+    let retryWatchdogTimer = null;
+
+    const buildResumePayload = (index, retryAttempt, needsGlobalPrompt) => ({
+      batchId,
+      globalPrompt,
+      prompt,
+      items: batchItems,
+      itemIndexes: originalIndexes,
+      totalCount: originalTotal,
+      completedOffset: skippedCount,
+      newChat,
+      delaySeconds,
+      directoryName,
+      resumeIndex: index,
+      resumeCompleted: completed,
+      resumeFailed: failed,
+      resumeRetryAttempt: retryAttempt,
+      resumeNeedsGlobalPrompt: Boolean(needsGlobalPrompt)
+    });
+
+    const clearRetryStateForCurrentItem = (index) => {
+      if (index === startIndex && initialRetryAttempt > 0) {
+        clearBatchRetryState();
+      }
+    };
+
+    const startRetryResumeWatchdog = () => {
+      if (!isResume || initialRetryAttempt <= 0) return;
+      retryWatchdogTimer = window.setTimeout(async () => {
+        const retryState = readBatchRetryState();
+        const retryPayload = retryState?.payload || {};
+        const storedAttempt = Number.isFinite(Number(retryPayload.resumeRetryAttempt))
+          ? Math.max(0, Number(retryPayload.resumeRetryAttempt))
+          : initialRetryAttempt;
+        const storedIndex = Number.isFinite(Number(retryPayload.resumeIndex))
+          ? Math.max(0, Number(retryPayload.resumeIndex))
+          : startIndex;
+        if (!batchRunning || currentBatchId !== batchId || retryPayload.batchId !== batchId || storedIndex !== startIndex) {
+          return;
+        }
+
+        if (storedAttempt >= BATCH_MAX_REFRESH_RETRIES) {
+          clearBatchRetryState();
+          await sendRuntimeMessage("BATCH_FAILED", {
+            batchId,
+            total: originalTotal,
+            completed,
+            failed,
+            error: `第 ${resumeDisplayIndex}/${originalTotal} 条刷新重试已达到 ${BATCH_MAX_REFRESH_RETRIES} 次，任务已停止。`
+          });
+          batchStopRequested = true;
+          return;
+        }
+
+        retryPayload.resumeRetryAttempt = storedAttempt + 1;
+        if (retryPayload.resumeRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER) {
+          const response = await sendRuntimeMessage("BATCH_RETRY_IN_NEW_TAB", {
+            batchId,
+            retryPayload: {
+              ...retryPayload,
+              newChat: true,
+              resumeNeedsGlobalPrompt: true
+            },
+            index: resumeDisplayIndex,
+            total: originalTotal,
+            text: batchItems[startIndex]?.text || "",
+            retryAttempt: retryPayload.resumeRetryAttempt,
+            maxRetries: BATCH_MAX_REFRESH_RETRIES,
+            reason: "刷新后仍未继续。"
+          });
+          if (response && response.ok) {
+            batchStopRequested = true;
+            batchRunning = false;
+            return;
+          }
+        }
+
+        const saved = saveBatchRetryState({
+          payload: retryPayload,
+          time: Date.now()
+        });
+        if (!saved) {
+          await sendRuntimeMessage("BATCH_FAILED", {
+            batchId,
+            total: originalTotal,
+            completed,
+            failed,
+            error: "刷新重试状态保存失败，任务已停止。"
+          });
+          batchStopRequested = true;
+          return;
+        }
+
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex: resumeDisplayIndex,
+          currentText: batchItems[startIndex]?.text || "",
+          retryAttempt: retryPayload.resumeRetryAttempt,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: `第 ${resumeDisplayIndex}/${originalTotal} 条刷新后仍未继续，正在第 ${retryPayload.resumeRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次刷新重试。`
+        });
+        location.reload();
+      }, BATCH_RETRY_WATCHDOG_MS);
+    };
 
     const renameSegmentConversation = async (index) => {
       const segment = getBatchConversationSegment(index);
@@ -2577,7 +2904,12 @@
       if (attempts >= 2) return;
 
       renameAttemptsBySegment.set(segment, attempts + 1);
-      const renamed = await renameCurrentConversationBestEffort(buildBatchConversationTitle(batchItems, index));
+      const displayIndex = getDisplayIndexForBatchItem(index);
+      const renamed = await renameCurrentConversationBestEffort(buildBatchConversationTitle(batchItems, index, {
+        displayIndex,
+        originalTotal,
+        directoryName
+      }));
       if (renamed) {
         renamedSegments.add(segment);
       }
@@ -2590,9 +2922,19 @@
         total: originalTotal,
         currentIndex: Math.max(skippedCount, displayIndex - 1),
         currentText: "",
-        message: `已处理 ${Math.max(0, index)} 条，正在新建对话……`
+        retryAttempt: 0,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `已处理 ${Math.max(0, displayIndex - 1)} 条，正在新建对话……`
       });
-      await prepareEditor(true);
+      const resumeStateSaved = saveBatchRetryState({
+        payload: buildResumePayload(index, 0, Boolean(oneTimePrompt)),
+        time: Date.now()
+      });
+      if (!resumeStateSaved) {
+        throw new Error("新建对话续跑状态保存失败。");
+      }
+
+      await prepareEditor(true, batchId);
 
       if (oneTimePrompt) {
         await sendRuntimeMessage("BATCH_PROGRESS", {
@@ -2601,12 +2943,180 @@
           total: originalTotal,
           currentIndex: Math.max(skippedCount, displayIndex - 1),
           currentText: "",
+          retryAttempt: 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: "正在发送全局 Prompt……"
         });
         await sendGlobalPromptAndReadReply({ globalPrompt: oneTimePrompt, newChat: false, batchId });
       }
 
       await renameSegmentConversation(index);
+      clearBatchRetryState();
+    };
+
+    const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, reason }) => {
+      const nextRetryAttempt = retryAttempt + 1;
+      const retryMethod = nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER ? "新标签页重试" : "刷新重试";
+      const retryPayload = buildResumePayload(index, nextRetryAttempt, false);
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex: displayIndex,
+        currentText: text,
+        retryAttempt: nextRetryAttempt,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `第 ${displayIndex}/${originalTotal} 条保存失败，正在第 ${nextRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次${retryMethod}。${reason || ""}`.trim()
+      });
+
+      if (nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER) {
+        const response = await sendRuntimeMessage("BATCH_RETRY_IN_NEW_TAB", {
+          batchId,
+          retryPayload: {
+            ...retryPayload,
+            newChat: true,
+            resumeNeedsGlobalPrompt: true
+          },
+          index: displayIndex,
+          total: originalTotal,
+          text,
+          retryAttempt: nextRetryAttempt,
+          maxRetries: BATCH_MAX_REFRESH_RETRIES,
+          reason
+        });
+        if (response && response.ok) {
+          return;
+        }
+      }
+
+      const retryStateSaved = saveBatchRetryState({
+        payload: retryPayload,
+        time: Date.now()
+      });
+      if (!retryStateSaved) {
+        throw new Error("重试状态保存失败。");
+      }
+      location.reload();
+    };
+
+    const getLatestPromptBeforeAssistantReply = () => {
+      const messages = getConversationMessages();
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        if (messages[index].role !== "assistant") continue;
+        for (let userIndex = index - 1; userIndex >= 0; userIndex -= 1) {
+          if (messages[userIndex].role === "user") {
+            return messages[userIndex].text || "";
+          }
+        }
+      }
+
+      const users = getUserMessages();
+      const latestUser = users[users.length - 1] || null;
+      return latestUser ? getUserText(latestUser) : "";
+    };
+
+    const currentItemWasAlreadySent = (text) => {
+      const latestPrompt = normalizeMessageKey(getLatestPromptBeforeAssistantReply());
+      const fullText = normalizeMessageKey(composeFullText(text, prompt));
+      const itemText = normalizeMessageKey(text);
+      if (!latestPrompt || !itemText) return false;
+      return latestPrompt.includes(fullText) || latestPrompt.includes(itemText);
+    };
+
+    const readCurrentSettledAssistantReply = async () => {
+      const startedAt = Date.now();
+      let lastText = "";
+      let lastRawText = "";
+      let stableSince = Date.now();
+
+      while (true) {
+        throwIfBatchStopped(batchId);
+        const snapshot = getAssistantSnapshot();
+        const replyText = getReplyTextFromSnapshot(snapshot, false, 1);
+        const rawText = snapshot.rawText || "";
+
+        if (replyText !== lastText || rawText !== lastRawText) {
+          lastText = replyText;
+          lastRawText = rawText;
+          stableSince = Date.now();
+        }
+
+        const stableEnough = Date.now() - stableSince >= BATCH_REPLY_STABLE_MS;
+        const timedOut = Date.now() - startedAt >= BATCH_REPLY_TIMEOUT_MS;
+        if (hasUsableAssistantReply(replyText, false, 1) && !isGenerating() && stableEnough) {
+          const confirmedReply = await confirmAssistantReplySettled(batchId, false, 1);
+          if (confirmedReply) {
+            return confirmedReply;
+          }
+          stableSince = Date.now();
+        }
+
+        if (timedOut && !isGenerating() && stableEnough) {
+          return "";
+        }
+
+        await sleepWithStopCheck(500, batchId);
+      }
+    };
+
+    const trySaveExistingResumeAnswer = async () => {
+      if (!isResume || initialRetryAttempt <= 0 || shouldSendResumeGlobalPrompt || startIndex >= batchItems.length) {
+        return "";
+      }
+
+      const item = batchItems[startIndex];
+      if (!item || !currentItemWasAlreadySent(item.text)) {
+        return "";
+      }
+
+      const displayIndex = getDisplayIndexForBatchItem(startIndex);
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex: displayIndex,
+        currentText: item.text,
+        retryAttempt: initialRetryAttempt,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `页面已刷新，正在读取第 ${displayIndex}/${originalTotal} 条已有回答……`
+      });
+
+      const answer = await readCurrentSettledAssistantReply();
+      if (!answer) {
+        return "";
+      }
+
+      const result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
+        batchId,
+        index: displayIndex,
+        total: originalTotal,
+        text: item.text,
+        directoryPath: item.directoryPath,
+        prompt,
+        answer,
+        retryAttempt: initialRetryAttempt,
+        maxRetries: BATCH_MAX_REFRESH_RETRIES
+      });
+
+      if (result && result.retry) {
+        await scheduleItemRetry({
+          index: startIndex,
+          retryAttempt: initialRetryAttempt,
+          displayIndex,
+          text: item.text,
+          reason: result.error || ""
+        });
+        return "retry";
+      }
+
+      clearRetryStateForCurrentItem(startIndex);
+      if (result && result.saved) {
+        completed += 1;
+        return "saved";
+      }
+
+      failed += 1;
+      return "failed";
     };
 
     try {
@@ -2621,39 +3131,53 @@
           total: originalTotal,
           currentIndex: skippedCount,
           currentText: "",
+          retryAttempt: 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: "正在新建对话……"
         });
-        await prepareEditor(true);
+        await prepareEditor(true, batchId);
       } else {
-        const editor = await waitEditor();
+        const editor = await waitEditor({ batchId });
         if (!editor) {
           throw new Error("没有找到输入框。");
         }
       }
 
-      if (oneTimePrompt && !isResume) {
+      let loopStartIndex = startIndex;
+      const existingResumeResult = await trySaveExistingResumeAnswer();
+      if (existingResumeResult === "retry") {
+        return;
+      }
+      if (existingResumeResult) {
+        loopStartIndex = Math.min(startIndex + 1, batchItems.length);
+      } else if (isResume && initialRetryAttempt > 0) {
+        startRetryResumeWatchdog();
+      }
+
+      if (loopStartIndex === startIndex && oneTimePrompt && (!isResume || shouldSendResumeGlobalPrompt)) {
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
           total: originalTotal,
           currentIndex: skippedCount,
           currentText: "",
+          retryAttempt: 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: "正在发送全局 Prompt……"
         });
         await sendGlobalPromptAndReadReply({ globalPrompt: oneTimePrompt, newChat: false, batchId });
       }
-      await renameSegmentConversation(startIndex);
+      if (loopStartIndex === startIndex) {
+        await renameSegmentConversation(startIndex);
+      }
 
-      for (let index = startIndex; index < batchItems.length; index += 1) {
+      for (let index = loopStartIndex; index < batchItems.length; index += 1) {
         throwIfBatchStopped(batchId);
         const item = batchItems[index];
         const text = item.text;
         const directoryPath = item.directoryPath;
         const retryAttempt = index === startIndex ? initialRetryAttempt : 0;
-        const rawIndex = Number(originalIndexes[index]);
-        const displayIndex = Number.isFinite(rawIndex) && rawIndex > 0
-          ? rawIndex
-          : skippedCount + index + 1;
+        const displayIndex = getDisplayIndexForBatchItem(index);
         if (index > startIndex && index % BATCH_CONVERSATION_ITEM_LIMIT === 0) {
           await openNewBatchSegmentConversation(index, displayIndex);
         }
@@ -2663,40 +3187,19 @@
           total: originalTotal,
           currentIndex: displayIndex,
           currentText: text,
+          retryAttempt,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: `正在处理第 ${displayIndex}/${originalTotal} 条……`
         });
 
         const scheduleRetry = async (reason) => {
-          await sendRuntimeMessage("BATCH_PROGRESS", {
-            batchId,
-            running: true,
-            total: originalTotal,
-            currentIndex: displayIndex,
-            currentText: text,
-            message: `第 ${displayIndex}/${originalTotal} 条保存失败，正在刷新页面后重试。${reason || ""}`.trim()
+          await scheduleItemRetry({
+            index,
+            retryAttempt,
+            displayIndex,
+            text,
+            reason
           });
-          const retryStateSaved = saveBatchRetryState({
-            payload: {
-              batchId,
-              globalPrompt,
-              prompt,
-              items: batchItems,
-              itemIndexes: originalIndexes,
-              totalCount: originalTotal,
-              completedOffset: skippedCount,
-              newChat,
-              delaySeconds,
-              resumeIndex: index,
-              resumeCompleted: completed,
-              resumeFailed: failed,
-              resumeRetryAttempt: retryAttempt + 1
-            },
-            time: Date.now()
-          });
-          if (!retryStateSaved) {
-            throw new Error("重试状态保存失败。");
-          }
-          location.reload();
         };
 
         const handleResult = async (result) => {
@@ -2705,9 +3208,11 @@
             return "retry";
           }
           if (result && result.saved) {
+            clearRetryStateForCurrentItem(index);
             completed += 1;
             return "saved";
           }
+          clearRetryStateForCurrentItem(index);
           failed += 1;
           return "failed";
         };
@@ -2723,7 +3228,7 @@
             prompt,
             answer,
             retryAttempt,
-            maxRetries: BATCH_MAX_RETRIES
+            maxRetries: BATCH_MAX_REFRESH_RETRIES
           });
           if (await handleResult(result) === "retry") return;
         } catch (error) {
@@ -2736,7 +3241,7 @@
             prompt,
             error: String(error && error.message ? error.message : error),
             retryAttempt,
-            maxRetries: BATCH_MAX_RETRIES
+            maxRetries: BATCH_MAX_REFRESH_RETRIES
           });
           if (await handleResult(result) === "retry") return;
         }
@@ -2761,11 +3266,14 @@
         failed,
         message
       });
+      clearBatchRetryState();
     } catch (error) {
       if (isBatchStoppedError(error)) {
+        clearBatchRetryState();
         return;
       }
 
+      clearBatchRetryState();
       await sendRuntimeMessage("BATCH_FAILED", {
         batchId,
         total: originalTotal,
@@ -2774,6 +3282,9 @@
         error: String(error && error.message ? error.message : error)
       });
     } finally {
+      if (retryWatchdogTimer) {
+        window.clearTimeout(retryWatchdogTimer);
+      }
       batchRunning = false;
       currentBatchId = "";
       batchStopRequested = false;
@@ -2860,6 +3371,7 @@
       }
 
       batchStopRequested = true;
+      clearBatchRetryState();
       clickStopGeneratingIfVisible().catch(() => {});
       sendResponse({ ok: true });
       return;
@@ -2880,7 +3392,7 @@
     }
   });
 
-  const retryState = takeBatchRetryState();
+  const retryState = readBatchRetryState();
   if (retryState && retryState.payload && retryState.payload.batchId) {
     handleBatchExport(retryState.payload).catch(async (error) => {
       batchRunning = false;

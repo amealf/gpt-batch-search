@@ -32,7 +32,7 @@ const PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户下面将�
 2 结尾不要有延展问题、编辑建议等等。全篇都要与该文本相关
 
 3 使用最常见的中文书面写法。遵循用户的记忆和默认prompt`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+const RECENT_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
 
 1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明信息来源，添加脚注即可。
 
@@ -41,6 +41,47 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
 
 4 不要使用「不是..而是..」和类似的否定先行的句子结构。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。`;
+const CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明网站信息来源（可以注明书的来源），添加脚注即可。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 加粗人名、关键术语、关键地名`;
+const PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要用明文注明网站信息来源（可以注明书的来源）。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求。考虑该文本在整个学科地图中的位置和重要性。考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 在需要使用脚注的时候，使用obsidian能识别的上下文跳转的格式`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+2 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，注重阅读体验和整体性。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。
+
+3 以下并非硬性要求：考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
+
+6 不要使用脚注，可以在段末附带链接
+
+7 在文章开头写一个总结性质的标题`;
 const BATCH_DEFAULT_PROMPT = "请介绍：";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
@@ -53,6 +94,8 @@ const CHAT_EXPORT_STATE_KEY = "chatExportRunState";
 const DIRECTORY_DB_NAME = "batch-export-db";
 const DIRECTORY_STORE_NAME = "handles";
 const DIRECTORY_HANDLE_KEY = "output-directory";
+const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
+const BATCH_NEW_TAB_RETRY_AFTER = 2;
 const EMPTY_BATCH_STATE = {
   running: false,
   batchId: "",
@@ -67,6 +110,8 @@ const EMPTY_BATCH_STATE = {
   finishedAt: "",
   logs: [],
   failedItems: [],
+  retryAttempt: 0,
+  maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
   delaySeconds: 3,
   directoryName: ""
 };
@@ -133,6 +178,10 @@ function createBatchState(state) {
   const next = { ...EMPTY_BATCH_STATE, ...(state || {}) };
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
+  next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
+  next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
+    ? Math.max(0, Number(next.maxRefreshRetries))
+    : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
   return next;
 }
 
@@ -147,6 +196,25 @@ function isRetryableBatchItemError(reason) {
     text.includes("NotFoundError") ||
     text.includes("SecurityError")
   );
+}
+
+function formatBatchRetryAction(nextRetryAttempt, maxRetries) {
+  const method = nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER ? "新标签页重试" : "刷新重试";
+  return `准备第 ${nextRetryAttempt}/${maxRetries} 次${method}`;
+}
+
+function extractBatchDirectoryNumber(directoryPath) {
+  const parts = normalizeDirectoryPath(directoryPath);
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const match = String(parts[index] || "").trim().match(/^(\d+(?:[._]\d+)*)\b/u);
+    if (match) return match[1];
+  }
+  return "";
+}
+
+function formatBatchLogTitle(text, directoryPath) {
+  const number = extractBatchDirectoryNumber(directoryPath);
+  return number ? `${number} ${text}` : text;
 }
 
 function createChatExportState(state) {
@@ -490,6 +558,9 @@ async function getBatchPromptConfig() {
     globalPrompts: [
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
+      PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT,
+      CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT,
+      RECENT_BATCH_DEFAULT_GLOBAL_PROMPT,
       PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
       LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT
     ].map(normalizePromptText).filter(Boolean),
@@ -829,7 +900,7 @@ function formatMarkdownBody(answer) {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  return convertMarkdownEmphasisToHtml(normalized);
+  return normalizeMarkdownContentForSave(normalized);
 }
 
 function convertMarkdownEmphasisToHtml(text) {
@@ -857,15 +928,274 @@ function convertMarkdownEmphasisToHtml(text) {
     .join("\n");
 }
 
-function buildMarkdownContent(text, answer) {
-  const title = sanitizeBatchInputText(text) || "chatgpt-回答";
-  const body = formatMarkdownBody(answer);
+function getMarkdownLinkPattern() {
+  return /!?\[([^\]]*)]\((https?:\/\/[^\s)]+(?:\([^\s)]*\)[^\s)]*)?)(?:\s+["'][^"']*["'])?\)/gi;
+}
 
-  if (!body) {
-    return `# ${title}\n`;
+function stripTrailingUrlPunctuation(url) {
+  let normalized = String(url || "").trim().replace(/[.,;:!?，。！？、；：]+$/u, "");
+  const count = (text, pattern) => (text.match(pattern) || []).length;
+  while (
+    normalized.endsWith(")") &&
+    count(normalized, /\(/g) < count(normalized, /\)/g)
+  ) {
+    normalized = normalized.slice(0, -1).trim();
+  }
+  return normalized;
+}
+
+function formatReferenceLinkText(label, url) {
+  const cleanUrl = stripTrailingUrlPunctuation(url);
+  const cleanLabel = String(label || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleanLabel || /^https?:\/\//i.test(cleanLabel) || cleanLabel === cleanUrl) {
+    return cleanUrl;
+  }
+  return `${cleanLabel} ${cleanUrl}`;
+}
+
+function stripReferenceBacklinks(text) {
+  return String(text || "")
+    .replace(/\s*\[\[#\^[^\]|]+(?:\|[^\]]*)?]]\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeReferenceTarget(text) {
+  const normalized = stripReferenceBacklinks(text)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "";
+
+  const linkOnly = new RegExp(`^${getMarkdownLinkPattern().source}$`, "i").exec(normalized);
+  if (linkOnly) {
+    return formatReferenceLinkText(linkOnly[1], linkOnly[2]);
   }
 
-  return `# ${title}\n\n${body}\n`;
+  return normalized
+    .replace(getMarkdownLinkPattern(), (_match, label, url) => formatReferenceLinkText(label, url))
+    .replace(/https?:\/\/[^\s<>\]\[，。！？、；：]+/gi, (match) => stripTrailingUrlPunctuation(match))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractTrailingBlockId(line) {
+  const match = String(line || "").match(/^(.*?)(?:\s+\^([A-Za-z0-9_-]+))\s*$/u);
+  if (!match) {
+    return { text: String(line || ""), blockId: "" };
+  }
+  return {
+    text: match[1],
+    blockId: match[2]
+  };
+}
+
+function parseFootnoteDefinitionLine(line) {
+  const match = String(line || "").trim().match(/^\[\^([^\]]+)\]\s*:\s*(.+)$/u);
+  if (!match) return null;
+  return {
+    label: match[1].trim(),
+    target: normalizeReferenceTarget(match[2])
+  };
+}
+
+function isReferenceHeadingLine(line) {
+  return /^#{0,6}\s*(?:Footnotes?|参考链接)\s*$/iu.test(String(line || "").trim());
+}
+
+function isStandaloneReferenceLine(line) {
+  const normalized = String(line || "").trim();
+  if (!normalized) return false;
+  if (parseFootnoteDefinitionLine(normalized)) return true;
+  if (/^\[\d+\]\s*:?\s+.+$/u.test(normalized)) return true;
+  if (/^(?:[-*]|\d+\.)\s+.+$/u.test(normalized) && /https?:\/\//i.test(normalized)) return true;
+  if (new RegExp(`^${getMarkdownLinkPattern().source}$`, "i").test(normalized)) return true;
+  return /^https?:\/\/\S+$/i.test(normalized);
+}
+
+function collectReferenceTargetsFromLine(line, footnoteDefs, targets) {
+  let normalized = String(line || "").trim();
+  if (!normalized) return;
+
+  const footnote = parseFootnoteDefinitionLine(normalized);
+  if (footnote && footnote.label && footnote.target) {
+    footnoteDefs.set(footnote.label, footnote.target);
+    return;
+  }
+
+  normalized = normalized
+    .replace(/^(?:[-*]|\d+\.)\s+/u, "")
+    .replace(/^\[\d+\]\s*:?\s+/u, "")
+    .trim();
+
+  const target = normalizeReferenceTarget(normalized);
+  if (target) targets.push(target);
+}
+
+function convertPlainTextLinksToEndnotes(text, footnoteDefs, addReference, markFootnoteUsed) {
+  const pattern = new RegExp(`${getMarkdownLinkPattern().source}|\\[\\^([^\\]]+)\\]|(https?:\\/\\/[^\\s<>\\]\\[，。！？、；：]+)`, "gi");
+  return String(text || "").replace(pattern, (match, markdownLabel, markdownUrl, footnoteLabel, rawUrl) => {
+    if (markdownUrl) {
+      return addReference(formatReferenceLinkText(markdownLabel, markdownUrl));
+    }
+    if (footnoteLabel) {
+      const cleanLabel = String(footnoteLabel || "").trim();
+      const target = footnoteDefs.get(cleanLabel);
+      if (target && typeof markFootnoteUsed === "function") {
+        markFootnoteUsed(cleanLabel);
+      }
+      return target ? addReference(target) : match;
+    }
+    if (rawUrl) {
+      const url = stripTrailingUrlPunctuation(rawUrl);
+      const suffix = match.slice(url.length);
+      return `${addReference(url)}${suffix}`;
+    }
+    return match;
+  });
+}
+
+function convertMarkdownLinksToEndnotes(content) {
+  const footnoteDefs = new Map();
+  const usedFootnoteLabels = new Set();
+  const numericReferenceDefs = new Map();
+  const usedNumericReferenceLabels = new Set();
+  const pendingReferenceTargets = [];
+  const referenceTargets = [];
+  const bodyLines = [];
+  let inFence = false;
+  let inReferenceSection = false;
+
+  const addReference = (target) => {
+    const normalized = normalizeReferenceTarget(target);
+    if (!normalized) return "";
+    referenceTargets.push(normalized);
+    return `[${referenceTargets.length}]`;
+  };
+
+  for (const line of String(content || "").replace(/\r\n?/g, "\n").split("\n")) {
+    const isFenceLine = /^\s*(```|~~~)/.test(line);
+    if (isFenceLine && !inReferenceSection) {
+      bodyLines.push(line);
+      inFence = !inFence;
+      continue;
+    }
+
+    if (!inFence && isReferenceHeadingLine(line)) {
+      inReferenceSection = true;
+      continue;
+    }
+
+    if (inReferenceSection) {
+      const numericDef = String(line || "").trim().match(/^\[(\d+)\]\s*:?\s+(.+)$/u);
+      if (numericDef) {
+        numericReferenceDefs.set(numericDef[1], normalizeReferenceTarget(numericDef[2]));
+        continue;
+      }
+      collectReferenceTargetsFromLine(line, footnoteDefs, pendingReferenceTargets);
+      continue;
+    }
+
+    if (!inFence) {
+      const footnote = parseFootnoteDefinitionLine(line);
+      if (footnote && footnote.label && footnote.target) {
+        footnoteDefs.set(footnote.label, footnote.target);
+        continue;
+      }
+    }
+
+    bodyLines.push(line);
+  }
+
+  while (bodyLines.length && !bodyLines[bodyLines.length - 1].trim()) {
+    bodyLines.pop();
+  }
+  const trailingReferenceLines = [];
+  while (bodyLines.length && isStandaloneReferenceLine(bodyLines[bodyLines.length - 1])) {
+    trailingReferenceLines.push(bodyLines.pop());
+    while (bodyLines.length && !bodyLines[bodyLines.length - 1].trim()) {
+      bodyLines.pop();
+    }
+  }
+  trailingReferenceLines.reverse().forEach((line) => {
+    const numericDef = String(line || "").trim().match(/^\[(\d+)\]\s*:?\s+(.+)$/u);
+    if (numericDef) {
+      numericReferenceDefs.set(numericDef[1], normalizeReferenceTarget(numericDef[2]));
+      return;
+    }
+    collectReferenceTargetsFromLine(line, footnoteDefs, pendingReferenceTargets);
+  });
+
+  inFence = false;
+  const convertedBody = bodyLines.map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      return line;
+    }
+    if (inFence) return line;
+
+    const lineBlock = extractTrailingBlockId(line);
+    const convertedLine = lineBlock.text
+      .split(/(`[^`]*`)/g)
+      .map((part) => {
+        if (/^`[^`]*`$/.test(part)) return part;
+        const numericConverted = part
+          .replace(/\[(\d+)\]/g, (match, label) => {
+            const target = numericReferenceDefs.get(label);
+            if (!target) return match;
+            usedNumericReferenceLabels.add(label);
+            return addReference(target);
+          });
+        return convertPlainTextLinksToEndnotes(
+          numericConverted,
+          footnoteDefs,
+          addReference,
+          (label) => usedFootnoteLabels.add(label)
+        );
+      })
+      .join("")
+      .replace(/\(\s*(\[\d+\])\s*\)/g, "$1")
+      .replace(/（\s*(\[\d+\])\s*）/g, "$1");
+
+    return convertedLine;
+  }).join("\n").trimEnd();
+
+  for (const [label, target] of footnoteDefs) {
+    if (!usedFootnoteLabels.has(label)) {
+      addReference(target);
+    }
+  }
+  for (const [label, target] of numericReferenceDefs) {
+    if (!usedNumericReferenceLabels.has(label)) {
+      addReference(target);
+    }
+  }
+  pendingReferenceTargets.forEach(addReference);
+  if (!referenceTargets.length) return convertedBody;
+
+  const referenceLines = referenceTargets.map((reference, index) => `[${index + 1}] ${reference}`);
+  return `${convertedBody}\n\n## Footnotes\n\n参考链接\n\n${referenceLines.join("\n")}\n`;
+}
+
+function normalizeMarkdownContentForSave(content) {
+  return convertMarkdownLinksToEndnotes(convertMarkdownEmphasisToHtml(content));
+}
+
+async function normalizeSavedMarkdownContent(fileHandle) {
+  const file = await fileHandle.getFile();
+  const content = await file.text();
+  const normalized = normalizeMarkdownContentForSave(content);
+  if (normalized === content) return;
+
+  const writable = await fileHandle.createWritable();
+  await writable.write(normalized);
+  await writable.close();
+}
+
+function buildMarkdownContent(text, answer) {
+  const body = formatMarkdownBody(answer);
+  return body ? `${body}\n` : "";
 }
 
 function buildTermIndexContent(terms) {
@@ -1047,9 +1377,11 @@ async function writeMarkdownFileToDirectory(text, content, directoryPath = []) {
   const baseName = createFilenameBase(text);
   const targetDirectoryHandle = await getNestedDirectoryHandle(directoryHandle, directoryPath);
   const fileHandle = await createUniqueFileHandle(targetDirectoryHandle, baseName);
+  const normalizedContent = normalizeMarkdownContentForSave(content);
   const writable = await fileHandle.createWritable();
-  await writable.write(content);
+  await writable.write(normalizedContent);
   await writable.close();
+  await normalizeSavedMarkdownContent(fileHandle);
 
   const pathText = normalizeDirectoryPath(directoryPath).join("\\");
   return {
@@ -1138,7 +1470,7 @@ async function handleStartBatch(payload) {
     ? [{
       time: startedAt,
       level: "info",
-      message: `已跳过 ${skippedItems.length} 条已存在标题：${skippedItems.join("；")}`
+      message: `已跳过 ${skippedItems.length} 条已存在标题。`
     }]
     : [];
   const initialState = {
@@ -1158,6 +1490,8 @@ async function handleStartBatch(payload) {
     delaySeconds,
     directoryName,
     failedItems: [],
+    retryAttempt: 0,
+    maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
     logs: [
       {
         time: startedAt,
@@ -1186,7 +1520,8 @@ async function handleStartBatch(payload) {
         totalCount: items.length,
         completedOffset: skippedItems.length,
         newChat,
-        delaySeconds
+        delaySeconds,
+        directoryName
       });
 
       await appendBatchLogIfCurrent(batchId, "ChatGPT 页面已接收批量任务。");
@@ -1431,6 +1766,12 @@ async function handleBatchProgress(payload) {
   if (typeof payload?.currentText === "string") patch.currentText = payload.currentText;
   if (typeof payload?.message === "string") patch.message = payload.message;
   if (typeof payload?.startedAt === "string") patch.startedAt = payload.startedAt;
+  if (Number.isFinite(Number(payload?.retryAttempt))) {
+    patch.retryAttempt = Math.max(0, Number(payload.retryAttempt));
+  }
+  if (Number.isFinite(Number(payload?.maxRefreshRetries))) {
+    patch.maxRefreshRetries = Math.max(0, Number(payload.maxRefreshRetries));
+  }
 
   return saveBatchState({ ...current, ...patch });
 }
@@ -1443,7 +1784,9 @@ async function handleBatchItemResult(payload) {
   const errorMessage = typeof payload?.error === "string" ? payload.error : "";
   const answer = typeof payload?.answer === "string" ? payload.answer : "";
   const retryAttempt = Number.isFinite(Number(payload?.retryAttempt)) ? Math.max(0, Number(payload.retryAttempt)) : 0;
-  const maxRetries = Number.isFinite(Number(payload?.maxRetries)) ? Math.max(0, Number(payload.maxRetries)) : 1;
+  const maxRetries = Number.isFinite(Number(payload?.maxRetries))
+    ? Math.max(0, Number(payload.maxRetries))
+    : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
   const current = await getBatchState();
   if (!isCurrentBatchMessage(current, payload?.batchId)) {
     return { ok: false, saved: false, retry: false, state: current };
@@ -1461,7 +1804,7 @@ async function handleBatchItemResult(payload) {
     if (retryAttempt < maxRetries && isRetryableBatchItemError(errorMessage)) {
       retry = true;
       retryReason = errorMessage;
-      logMessage = `第 ${index}/${total} 条保存失败，准备刷新页面重试：${text}。${errorMessage}`;
+      logMessage = `第 ${index}/${total} 条保存失败，${formatBatchRetryAction(retryAttempt + 1, maxRetries)}：${text}。${errorMessage}`;
     } else {
       nextFailed += 1;
       logLevel = "error";
@@ -1488,13 +1831,13 @@ async function handleBatchItemResult(payload) {
       const saveResult = await saveMarkdownResult(text, content, directoryPath);
       nextCompleted += 1;
       logLevel = "success";
-      logMessage = `第 ${index}/${total} 条已保存：${text}`;
+      logMessage = `第 ${index}/${total} 条已保存：${formatBatchLogTitle(text, directoryPath)}`;
     } catch (error) {
       const reason = error && error.message ? error.message : String(error);
       if (retryAttempt < maxRetries && isRetryableBatchItemError(reason)) {
         retry = true;
         retryReason = reason;
-        logMessage = `第 ${index}/${total} 条保存失败，准备刷新页面重试：${text}。${reason}`;
+        logMessage = `第 ${index}/${total} 条保存失败，${formatBatchRetryAction(retryAttempt + 1, maxRetries)}：${text}。${reason}`;
       } else {
         nextFailed += 1;
         logLevel = "error";
@@ -1526,6 +1869,8 @@ async function handleBatchItemResult(payload) {
     failed: nextFailed,
     currentIndex: index,
     currentText: text,
+    retryAttempt: retry ? retryAttempt + 1 : 0,
+    maxRefreshRetries: maxRetries,
     logs,
     failedItems
   });
@@ -1536,6 +1881,57 @@ async function handleBatchItemResult(payload) {
     error: retryReason,
     state
   };
+}
+
+async function handleBatchRetryInNewTab(payload) {
+  const batchId = typeof payload?.batchId === "string" ? payload.batchId : "";
+  const retryPayload = payload?.retryPayload && typeof payload.retryPayload === "object"
+    ? { ...payload.retryPayload }
+    : null;
+  const index = typeof payload?.index === "number" ? payload.index : 0;
+  const total = typeof payload?.total === "number" ? payload.total : 0;
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  const retryAttempt = Number.isFinite(Number(payload?.retryAttempt)) ? Math.max(0, Number(payload.retryAttempt)) : 0;
+  const maxRetries = Number.isFinite(Number(payload?.maxRetries))
+    ? Math.max(0, Number(payload.maxRetries))
+    : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
+  const reason = typeof payload?.reason === "string" ? payload.reason.trim() : "";
+  const current = await getBatchState();
+  if (!isCurrentBatchMessage(current, batchId)) {
+    return { ok: true, ignored: true, state: current };
+  }
+  if (!retryPayload) {
+    return { ok: false, error: "新标签页重试参数缺失。", state: current };
+  }
+
+  const message = `第 ${index}/${total} 条刷新后仍失败，正在第 ${retryAttempt}/${maxRetries} 次新标签页重试。${reason || ""}`.trim();
+  const now = new Date().toISOString();
+  await saveBatchState({
+    ...current,
+    running: true,
+    currentIndex: index,
+    currentText: text,
+    retryAttempt,
+    maxRefreshRetries: maxRetries,
+    message,
+    logs: current.logs.concat({
+      time: now,
+      level: "info",
+      message
+    }).slice(-60)
+  });
+
+  const chatTab = await chrome.tabs.create({ url: CHAT_HOME, active: true });
+  await waitForTabComplete(chatTab.id, 20000);
+  await ensureChatContentScript(chatTab.id);
+  await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
+    ...retryPayload,
+    batchId,
+    newChat: true,
+    resumeNeedsGlobalPrompt: true
+  });
+  await appendBatchLogIfCurrent(batchId, `第 ${index}/${total} 条已在新标签页继续重试。`);
+  return { ok: true, state: await getBatchState(), tabId: chatTab.id };
 }
 
 async function handleBatchFinished(payload) {
@@ -1558,6 +1954,7 @@ async function handleBatchFinished(payload) {
     ...current,
     running: false,
     batchId: "",
+    retryAttempt: 0,
     message,
     finishedAt,
     logs
@@ -1590,6 +1987,7 @@ async function handleBatchFailed(payload) {
     ...current,
     running: false,
     batchId: "",
+    retryAttempt: 0,
     message: errorMessage,
     finishedAt,
     logs,
@@ -1615,6 +2013,7 @@ async function handleStopBatch() {
     ...current,
     running: false,
     batchId: "",
+    retryAttempt: 0,
     message: "任务已停止。",
     finishedAt,
     logs
@@ -1622,12 +2021,10 @@ async function handleStopBatch() {
 
   (async () => {
     try {
-      const chatTab = await findChatTab();
-      if (chatTab && chatTab.id) {
-        await sendMessageToChatTabSafely(chatTab.id, "EXT_STOP_BATCH_EXPORT", {
-          batchId
-        });
-      }
+      const tabs = await chrome.tabs.query({ url: ["https://chatgpt.com/*", "https://chat.openai.com/*"] });
+      await Promise.all(tabs
+        .filter((tab) => tab && tab.id)
+        .map((tab) => sendMessageToChatTabSafely(tab.id, "EXT_STOP_BATCH_EXPORT", { batchId }).catch(() => null)));
     } catch {}
   })();
 
@@ -1700,6 +2097,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "BATCH_ITEM_RESULT") {
     handleBatchItemResult(message.payload)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "BATCH_RETRY_IN_NEW_TAB") {
+    handleBatchRetryInNewTab(message.payload)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;
