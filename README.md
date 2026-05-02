@@ -1,8 +1,8 @@
-# GPT Quick Search
+# GPT Batch Search
 
 简体中文 | [English](README.en.md)
 
-GPT Quick Search 是一个 Chrome 扩展，用于批量提交条目，并将内容整理成 Markdown 文件、保存到本地。
+GPT Batch Search 是一个 Chrome 扩展，用于批量提交条目，并将内容整理成 Markdown 文件、保存到本地。
 
 ## 主要功能
 

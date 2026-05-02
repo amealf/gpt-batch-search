@@ -1,8 +1,8 @@
-# GPT Quick Search
+# GPT Batch Search
 
 [简体中文](README.md) | English
 
-GPT Quick Search is a Chrome extension for submitting items in batches, formatting the results as Markdown files, and saving them locally.
+GPT Batch Search is a Chrome extension for submitting items in batches, formatting the results as Markdown files, and saving them locally.
 
 ## Main Features
 

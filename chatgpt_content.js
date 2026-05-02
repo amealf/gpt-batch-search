@@ -20,10 +20,10 @@
   const BATCH_RETRY_STORAGE_KEY = "__GPT_QUICK_SEARCH_BATCH_RETRY__";
   const BATCH_MAX_REFRESH_RETRIES = 5;
   const BATCH_NEW_TAB_RETRY_AFTER = 2;
-  const BATCH_REPLY_TIMEOUT_MS = 120000;
+  const BATCH_REPLY_TIMEOUT_MS = 600000;
   const BATCH_REPLY_STABLE_MS = 5000;
   const BATCH_REPLY_CONFIRM_MS = 1500;
-  const BATCH_RETRY_WATCHDOG_MS = 90000;
+  const BATCH_RETRY_WATCHDOG_MS = 300000;
   const BATCH_CONVERSATION_ITEM_LIMIT = 30;
   let exportRunning = false;
   let currentExportId = "";
@@ -86,12 +86,18 @@
     return "";
   }
 
+  function normalizeContentBatchItemNumber(value) {
+    const match = String(value || "").trim().match(/^(\d+(?:[._]\d+)*)$/u);
+    return match ? match[1].replace(/\./g, "_") : "";
+  }
+
   function normalizeContentBatchItem(item) {
     if (item && typeof item === "object") {
       const text = extractContentBatchText(item);
       if (!text) return null;
       return {
         text,
+        itemNumber: normalizeContentBatchItemNumber(item.itemNumber),
         directoryPath: Array.isArray(item.directoryPath)
           ? item.directoryPath.map((part) => String(part || "").trim()).filter(Boolean)
           : []
@@ -100,7 +106,7 @@
 
     const text = String(item || "").trim();
     if (!text) return null;
-    return { text, directoryPath: [] };
+    return { text, itemNumber: "", directoryPath: [] };
   }
 
   function getTextFromNode(node) {
@@ -2112,6 +2118,20 @@
     return secondText;
   }
 
+  async function isAssistantReplyChanging(batchId, waitMs = BATCH_REPLY_CONFIRM_MS) {
+    const firstSnapshot = getAssistantSnapshot();
+    if (isGenerating()) return true;
+
+    await sleepWithStopCheck(waitMs, batchId);
+    if (isGenerating()) return true;
+
+    const secondSnapshot = getAssistantSnapshot();
+    return firstSnapshot.count !== secondSnapshot.count ||
+      firstSnapshot.key !== secondSnapshot.key ||
+      firstSnapshot.text !== secondSnapshot.text ||
+      (firstSnapshot.rawText || "") !== (secondSnapshot.rawText || "");
+  }
+
   async function clickStopGeneratingIfVisible() {
     const stopButton = Array.from(document.querySelectorAll("button")).find((button) => isStreamingStopButton(button));
 
@@ -2166,8 +2186,9 @@
       const hasUsableReply = hasNewReply && hasUsableAssistantReply(replyText, allowShortReply, minShortReplySignalLength);
       const stableEnough = Date.now() - stableSince >= BATCH_REPLY_STABLE_MS;
       const timedOut = Date.now() - startedAt >= timeout;
+      const currentlyGenerating = isGenerating();
 
-      if (hasUsableReply && !isGenerating() && stableEnough) {
+      if (hasUsableReply && !currentlyGenerating && stableEnough) {
         const confirmedReply = await confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength);
         if (confirmedReply) {
           return confirmedReply;
@@ -2175,8 +2196,12 @@
         stableSince = Date.now();
       }
 
-      if (timedOut && !isGenerating() && stableEnough && !hasUsableReply) {
-        return "";
+      if (timedOut && !currentlyGenerating && stableEnough && !hasUsableReply) {
+        const replyChanging = await isAssistantReplyChanging(batchId);
+        if (!replyChanging) {
+          return "";
+        }
+        stableSince = Date.now();
       }
 
       await sleepWithStopCheck(500, batchId);
@@ -2824,22 +2849,24 @@
     }
   }
 
-  async function sendPromptAndReadReply({ text, prompt, newChat, batchId }) {
+  async function sendPromptAndReadReply({ text, prompt, newChat, batchId, onSent }) {
     const fullText = composeFullText(text, prompt);
-    return sendSingleMessageAndReadReply({ fullText, newChat, batchId });
+    return sendSingleMessageAndReadReply({ fullText, sentText: text, newChat, batchId, onSent });
   }
 
-  async function sendGlobalPromptAndReadReply({ globalPrompt, newChat, batchId }) {
+  async function sendGlobalPromptAndReadReply({ globalPrompt, newChat, batchId, onSent }) {
     return sendSingleMessageAndReadReply({
       fullText: globalPrompt,
+      sentText: "全局 Prompt",
       newChat,
       batchId,
+      onSent,
       allowShortReply: true,
       minShortReplySignalLength: 1
     });
   }
 
-  async function sendSingleMessageAndReadReply({ fullText, newChat, batchId, allowShortReply, minShortReplySignalLength }) {
+  async function sendSingleMessageAndReadReply({ fullText, sentText, newChat, batchId, onSent, allowShortReply, minShortReplySignalLength }) {
     const previousAssistantSnapshot = getAssistantSnapshot();
     throwIfBatchStopped(batchId);
     await fillEditorAndSend({
@@ -2849,6 +2876,17 @@
       replaceExisting: true,
       batchId
     });
+    const visibleSentText = String(sentText || fullText || "").trim();
+    if (batchId && visibleSentText) {
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        sentText: visibleSentText,
+        message: `已发送：${visibleSentText}，正在等待回答……`
+      });
+    }
+    if (typeof onSent === "function") {
+      await onSent();
+    }
 
     const reply = await waitForAssistantReply(previousAssistantSnapshot, batchId, BATCH_REPLY_TIMEOUT_MS, {
       allowShortReply,
@@ -2925,6 +2963,7 @@
       total: originalTotal,
       currentIndex: skippedCount,
       currentText: "",
+      sentText: "",
       retryAttempt: isResume ? initialRetryAttempt : 0,
       maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
       message: isResume
@@ -2939,9 +2978,7 @@
 
     let completed = initialCompleted;
     let failed = initialFailed;
-    const renamedSegments = new Set(isResume && initialRetryAttempt > 0 && !shouldSendResumeGlobalPrompt
-      ? [getBatchConversationSegment(startIndex)]
-      : []);
+    const renamedSegments = new Set();
     const renameAttemptsBySegment = new Map();
     let retryWatchdogTimer = null;
 
@@ -2981,6 +3018,33 @@
           ? Math.max(0, Number(retryPayload.resumeIndex))
           : startIndex;
         if (!batchRunning || currentBatchId !== batchId || retryPayload.batchId !== batchId || storedIndex !== startIndex) {
+          return;
+        }
+
+        let replyChanging = false;
+        try {
+          replyChanging = await isAssistantReplyChanging(batchId);
+        } catch (error) {
+          if (isBatchStoppedError(error)) {
+            return;
+          }
+          throw error;
+        }
+
+        if (replyChanging) {
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: resumeDisplayIndex,
+            currentText: batchItems[startIndex]?.text || "",
+            sentText: batchItems[startIndex]?.text || "",
+            retryAttempt: storedAttempt,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: `第 ${resumeDisplayIndex}/${originalTotal} 条刷新后回答仍在生成或更新，继续等待稳定后再判断。`
+          });
+          retryWatchdogTimer = null;
+          startRetryResumeWatchdog();
           return;
         }
 
@@ -3050,21 +3114,62 @@
       }, BATCH_RETRY_WATCHDOG_MS);
     };
 
-    const renameSegmentConversation = async (index) => {
+    const renameSegmentConversation = async (index, options = {}) => {
+      const force = Boolean(options.force);
       const segment = getBatchConversationSegment(index);
-      if (renamedSegments.has(segment)) return;
-      const attempts = renameAttemptsBySegment.get(segment) || 0;
-      if (attempts >= 2) return;
+      if (!force && renamedSegments.has(segment)) return;
+      const attemptKey = force ? `force:${segment}` : `normal:${segment}`;
+      const attempts = renameAttemptsBySegment.get(attemptKey) || 0;
+      if (attempts >= (force ? 3 : 2)) return;
 
-      renameAttemptsBySegment.set(segment, attempts + 1);
+      renameAttemptsBySegment.set(attemptKey, attempts + 1);
       const displayIndex = getDisplayIndexForBatchItem(index);
-      const renamed = await renameCurrentConversationBestEffort(buildBatchConversationTitle(batchItems, index, {
+      const title = buildBatchConversationTitle(batchItems, index, {
         displayIndex,
         originalTotal,
         directoryName
-      }));
+      });
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex: displayIndex,
+        currentText: batchItems[index]?.text || "",
+        sentText: "",
+        retryAttempt: index === startIndex ? initialRetryAttempt : 0,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `正在修改对话标题：${title}`
+      });
+      let renamed = await renameCurrentConversationBestEffort(title);
+      if (force) {
+        await sleepWithStopCheck(1200, batchId);
+        renamed = await renameCurrentConversationBestEffort(title) || renamed;
+      }
       if (renamed) {
         renamedSegments.add(segment);
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex: displayIndex,
+          currentText: batchItems[index]?.text || "",
+          sentText: "",
+          retryAttempt: index === startIndex ? initialRetryAttempt : 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: `对话标题已改为：${title}`
+        });
+      } else {
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex: displayIndex,
+          currentText: batchItems[index]?.text || "",
+          sentText: "",
+          retryAttempt: index === startIndex ? initialRetryAttempt : 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: `对话标题暂未改成：${title}，稍后会再次尝试。`
+        });
       }
     };
 
@@ -3075,6 +3180,7 @@
         total: originalTotal,
         currentIndex: Math.max(skippedCount, displayIndex - 1),
         currentText: "",
+        sentText: "",
         retryAttempt: 0,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `已处理 ${Math.max(0, displayIndex - 1)} 条，正在新建对话……`
@@ -3088,6 +3194,17 @@
       }
 
       await prepareEditor(true, batchId);
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex: Math.max(skippedCount, displayIndex - 1),
+        currentText: "",
+        sentText: "",
+        retryAttempt: 0,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: oneTimePrompt ? "新对话已打开，正在准备全局 Prompt……" : "新对话已打开，正在准备本段第一条文本……"
+      });
 
       if (oneTimePrompt) {
         await sendRuntimeMessage("BATCH_PROGRESS", {
@@ -3096,11 +3213,28 @@
           total: originalTotal,
           currentIndex: Math.max(skippedCount, displayIndex - 1),
           currentText: "",
+          sentText: "",
           retryAttempt: 0,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: "正在发送全局 Prompt……"
         });
-        await sendGlobalPromptAndReadReply({ globalPrompt: oneTimePrompt, newChat: false, batchId });
+        await sendGlobalPromptAndReadReply({
+          globalPrompt: oneTimePrompt,
+          newChat: false,
+          batchId,
+          onSent: () => renameSegmentConversation(index, { force: true })
+        });
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex: Math.max(skippedCount, displayIndex - 1),
+          currentText: "",
+          sentText: "全局 Prompt",
+          retryAttempt: 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: "全局 Prompt 已收到回答，正在进入批量文本处理……"
+        });
       }
 
       await renameSegmentConversation(index);
@@ -3130,6 +3264,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: text,
+        sentText: text,
         retryAttempt: nextRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `第 ${displayIndex}/${originalTotal} 条保存失败，正在第 ${nextRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次${retryMethod}。${reason || ""}`.trim()
@@ -3242,6 +3377,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: item.text,
+        sentText: item.text,
         retryAttempt: initialRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `页面已刷新，正在读取第 ${displayIndex}/${originalTotal} 条已有回答……`
@@ -3252,11 +3388,24 @@
         return "";
       }
 
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex: displayIndex,
+        currentText: item.text,
+        sentText: item.text,
+        retryAttempt: initialRetryAttempt,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `第 ${displayIndex}/${originalTotal} 条已有回答已读取，正在保存：${item.text}`
+      });
+
       const result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
         batchId,
         index: displayIndex,
         total: originalTotal,
         text: item.text,
+        itemNumber: item.itemNumber,
         directoryPath: item.directoryPath,
         prompt,
         answer,
@@ -3277,6 +3426,7 @@
 
       clearRetryStateForCurrentItem(startIndex);
       if (result && result.saved) {
+        await renameSegmentConversation(startIndex, { force: true });
         completed += 1;
         return "saved";
       }
@@ -3315,12 +3465,35 @@
             total: originalTotal,
             currentIndex: skippedCount,
             currentText: "",
+            sentText: "",
             retryAttempt: 0,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
             message: "正在新建对话……"
           });
           await prepareEditor(true, batchId);
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: skippedCount,
+            currentText: "",
+            sentText: "",
+            retryAttempt: 0,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: oneTimePrompt ? "新对话已打开，正在准备全局 Prompt……" : "新对话已打开，正在准备第一条文本……"
+          });
         } else {
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: skippedCount,
+            currentText: "",
+            sentText: "",
+            retryAttempt: isResume ? initialRetryAttempt : 0,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: "正在检查当前页面输入框和回答状态……"
+          });
           const editor = await waitEditor({ batchId });
           if (!editor) {
             throw new Error("没有找到输入框。");
@@ -3335,13 +3508,30 @@
           total: originalTotal,
           currentIndex: skippedCount,
           currentText: "",
+          sentText: "",
           retryAttempt: 0,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: "正在发送全局 Prompt……"
         });
-        await sendGlobalPromptAndReadReply({ globalPrompt: oneTimePrompt, newChat: false, batchId });
+        await sendGlobalPromptAndReadReply({
+          globalPrompt: oneTimePrompt,
+          newChat: false,
+          batchId,
+          onSent: () => renameSegmentConversation(startIndex, { force: true })
+        });
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex: skippedCount,
+          currentText: "",
+          sentText: "全局 Prompt",
+          retryAttempt: 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: "全局 Prompt 已收到回答，正在准备第一条文本……"
+        });
       }
-      if (loopStartIndex === startIndex) {
+      if (loopStartIndex === startIndex && getConversationIdFromLocation()) {
         await renameSegmentConversation(startIndex);
       }
 
@@ -3361,9 +3551,10 @@
           total: originalTotal,
           currentIndex: displayIndex,
           currentText: text,
+          sentText: "",
           retryAttempt,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
-          message: `正在处理第 ${displayIndex}/${originalTotal} 条……`
+          message: `正在准备第 ${displayIndex}/${originalTotal} 条：${text}`
         });
 
         const scheduleRetry = async (reason) => {
@@ -3392,12 +3583,43 @@
         };
 
         try {
-          const answer = await sendPromptAndReadReply({ text, prompt, newChat: false, batchId });
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: displayIndex,
+            currentText: text,
+            sentText: "",
+            retryAttempt,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: `正在发送第 ${displayIndex}/${originalTotal} 条：${text}`
+          });
+          const answer = await sendPromptAndReadReply({
+            text,
+            prompt,
+            newChat: false,
+            batchId,
+            onSent: () => renameSegmentConversation(index, {
+              force: index === startIndex || index % BATCH_CONVERSATION_ITEM_LIMIT === 0
+            })
+          });
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: displayIndex,
+            currentText: text,
+            sentText: text,
+            retryAttempt,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: `第 ${displayIndex}/${originalTotal} 条回答已读取，正在保存：${text}`
+          });
           const result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
             batchId,
             index: displayIndex,
             total: originalTotal,
             text,
+            itemNumber: item.itemNumber,
             directoryPath,
             prompt,
             answer,
@@ -3406,11 +3628,23 @@
           });
           if (await handleResult(result) === "retry") return;
         } catch (error) {
+          await sendRuntimeMessage("BATCH_PROGRESS", {
+            batchId,
+            running: true,
+            total: originalTotal,
+            currentIndex: displayIndex,
+            currentText: text,
+            sentText: text,
+            retryAttempt,
+            maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+            message: `第 ${displayIndex}/${originalTotal} 条发送、读取或保存前处理失败，正在记录结果：${text}`
+          });
           const result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
             batchId,
             index: displayIndex,
             total: originalTotal,
             text,
+            itemNumber: item.itemNumber,
             directoryPath,
             prompt,
             error: String(error && error.message ? error.message : error),
@@ -3419,7 +3653,10 @@
           });
           if (await handleResult(result) === "retry") return;
         }
-        await renameSegmentConversation(index);
+        await renameSegmentConversation(index, {
+          force: (isResume && initialRetryAttempt > 0 && index === startIndex) ||
+            index % BATCH_CONVERSATION_ITEM_LIMIT === 0
+        });
 
         if (index + 1 < batchItems.length && delayMs > 0) {
           await sleepWithStopCheck(delayMs, batchId);

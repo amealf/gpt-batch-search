@@ -2,7 +2,7 @@
 <html data-theme="light">
 <head>
   <meta charset="utf-8">
-  <title>GPT quick search</title>
+  <title>GPT Batch Search</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -90,9 +90,9 @@
       --text-primary: #e8eaed;
       --text-secondary: #9aa0a6;
       --text-muted: #6b7280;
-      --accent: #818cf8;
-      --accent-dim: rgba(129, 140, 248, 0.15);
-      --accent-glow: rgba(129, 140, 248, 0.25);
+      --accent: #2f7a93;
+      --accent-dim: rgba(47, 122, 147, 0.18);
+      --accent-glow: rgba(47, 122, 147, 0.28);
       --danger: #f87171;
       --danger-dim: rgba(248, 113, 113, 0.12);
       --danger-border: rgba(248, 113, 113, 0.3);
@@ -104,21 +104,21 @@
       --tooltip-shadow: rgba(0, 0, 0, 0.4);
       --tooltip-border: rgba(255, 255, 255, 0.08);
 
-      --tab-active-bg: rgba(129, 140, 248, 0.15);
-      --tab-active-text: #818cf8;
+      --tab-active-bg: rgba(47, 122, 147, 0.2);
+      --tab-active-text: #8fd3e6;
       --tab-active-border: transparent;
-      --tab-active-shadow: 0 0 12px rgba(129, 140, 248, 0.25);
+      --tab-active-shadow: 0 0 12px rgba(47, 122, 147, 0.28);
       --tab-hover-bg: rgba(255, 255, 255, 0.07);
 
-      --primary-bg: linear-gradient(135deg, #818cf8, #a78bfa);
+      --primary-bg: #2f7a93;
       --primary-border: transparent;
       --primary-text: #ffffff;
-      --primary-shadow: 0 0 16px rgba(129, 140, 248, 0.25);
-      --primary-hover-shadow: 0 0 24px rgba(129, 140, 248, 0.4);
+      --primary-shadow: 0 0 16px rgba(47, 122, 147, 0.28);
+      --primary-hover-shadow: 0 0 24px rgba(47, 122, 147, 0.38);
 
-      --toggle-active-bg: rgba(129, 140, 248, 0.15);
-      --toggle-active-border: #818cf8;
-      --toggle-active-text: #818cf8;
+      --toggle-active-bg: rgba(47, 122, 147, 0.2);
+      --toggle-active-border: #2f7a93;
+      --toggle-active-text: #8fd3e6;
 
       --select-option-bg: #1a1c2a;
       --select-option-text: #e8eaed;
@@ -133,7 +133,7 @@
 
       --glow-display: block;
 
-      --icon-bg: linear-gradient(135deg, #818cf8, #a78bfa);
+      --icon-bg: #2f7a93;
       --h1-gradient-from: #e8eaed;
       --h1-gradient-to: #9aa0a6;
 
@@ -225,12 +225,67 @@
       -webkit-text-fill-color: transparent;
     }
 
-    /* ─── theme toggle ─── */
-    .theme-toggle {
+    /* ─── header actions ─── */
+    .header-actions {
       position: absolute;
-      right: 0;
+      right: -36px;
       top: 50%;
       transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 1080px) {
+      .header-actions {
+        right: 0;
+      }
+    }
+
+    .header-language-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      min-height: 40px;
+      padding: 4px;
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+    }
+
+    .language-option {
+      min-height: 30px;
+      min-width: 42px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .language-option:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface-hover);
+    }
+
+    .language-option.is-active {
+      color: var(--tab-active-text);
+      background: var(--tab-active-bg);
+    }
+
+    .language-option:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .theme-toggle,
+    .settings-toggle {
       width: 40px;
       height: 40px;
       border-radius: 12px;
@@ -247,14 +302,23 @@
       transition: all 0.25s ease;
     }
 
-    .theme-toggle:hover {
+    .theme-toggle:hover,
+    .settings-toggle:hover {
       border-color: var(--btn-hover-border);
       color: var(--text-primary);
-      transform: translateY(-50%) scale(1.05);
+      transform: scale(1.05);
     }
 
-    .theme-toggle:active {
-      transform: translateY(-50%) scale(0.95);
+    .theme-toggle:active,
+    .settings-toggle:active {
+      transform: scale(0.95);
+    }
+
+    .settings-toggle.is-active {
+      background: var(--tab-active-bg);
+      border-color: var(--tab-active-border);
+      color: var(--tab-active-text);
+      box-shadow: var(--tab-active-shadow);
     }
 
     .theme-toggle .icon-sun,
@@ -273,7 +337,7 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      width: calc(100% - 72px);
+      width: 100%;
       max-width: 980px;
       margin: 0 auto 20px;
       background: var(--bg-surface);
@@ -310,6 +374,48 @@
       border-color: var(--tab-active-border);
       color: var(--tab-active-text);
       box-shadow: var(--tab-active-shadow);
+    }
+
+    .settings-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      background: var(--toolbar-bg);
+    }
+
+    .settings-main {
+      min-width: 0;
+    }
+
+    .settings-title {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .settings-desc {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .settings-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     /* ═══════════════════════════════════════
@@ -438,7 +544,7 @@
 
     .batch-grid {
       display: grid;
-      grid-template-columns: 411px 525px;
+      grid-template-columns: minmax(0, 411fr) minmax(0, 525fr);
       gap: 16px;
       align-items: stretch;
       height: 608px;
@@ -996,11 +1102,18 @@
 <body>
   <div class="page-header">
     <div class="page-header-icon">G</div>
-    <h1>GPT Quick Search</h1>
-    <button type="button" class="theme-toggle" id="themeToggle" title="切换日间/夜间模式">
-      <span class="icon-sun">&#9728;</span>
-      <span class="icon-moon">&#9790;</span>
-    </button>
+    <h1>GPT Batch Search</h1>
+    <div class="header-actions">
+      <div class="header-language-toggle" role="group" aria-label="Prompt 语言">
+        <button type="button" class="language-option is-active" data-batch-language="cn" aria-pressed="true">中文</button>
+        <button type="button" class="language-option" data-batch-language="en" aria-pressed="false">EN</button>
+      </div>
+      <button type="button" class="theme-toggle" id="themeToggle" title="切换日间/夜间模式">
+        <span class="icon-sun">&#9728;</span>
+        <span class="icon-moon">&#9790;</span>
+      </button>
+      <button type="button" class="settings-toggle" id="settingsToggle" data-page="settings" aria-label="设置" title="设置">&#9881;</button>
+    </div>
   </div>
 
   <div class="tabs" role="tablist" aria-label="设置页面">
@@ -1039,7 +1152,7 @@
             <div class="panel-head">
               <label for="batchInputs">待处理文本</label>
               <div class="panel-tools">
-                <button type="button" class="help-button" data-tip="每行一条文本。带 ◆ 的行会发送给 GPT；不带 ◆ 的行会作为目录层级，保存时自动创建对应文件夹。例：1. 1903–1919 Moore and Early Analytic Ethics（1903–1919 摩尔与早期分析伦理学）&#10;├── 1_1 Context and Political Shocks（背景与政治冲击）&#10;│   ├── 1_1 ◆ Principia Ethica and the Break with British Idealism（《伦理学原理》与对英国观念论的决裂）&#10;│   ├── 1_1 ◆ Open Question Argument and Naturalistic Fallacy（开放问题论证与自然主义谬误）">?</button>
+                <button type="button" class="help-button" data-tip="一级标题用中文（英文）这样的格式，其他级的标题都使用「英文（中文）」这样的格式&#10;&#10;不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。&#10;&#10;框架分成三个等级：&#10;&#10;大章节：1. 2. 3.&#10;&#10;二级章节：1_1 1_2&#10;&#10;三级标题：1_2_1&#10;&#10;具体的正文内容：最后一级标题+符号◆，比如如果这个正文在三级标题下面，就写成 1_2_1 ◆">?</button>
                 <button id="batchClearInputs" type="button" class="icon-button" aria-label="清除待处理文本" title="清除待处理文本">x</button>
               </div>
             </div>
@@ -1049,28 +1162,6 @@
       </div>
 
       <div class="batch-toolbar">
-        <div class="toolbar-row">
-          <div class="toolbar-group">
-            <span class="toolbar-label">任务模式</span>
-            <select id="batchConversationMode" class="compact-select" title="选择任务开始时是新建对话，还是沿用当前窗口。">
-              <option value="new">新建对话</option>
-              <option value="current">当前窗口</option>
-            </select>
-          </div>
-
-          <div class="toolbar-group">
-            <span class="toolbar-label">忽略</span>
-            <button id="batchIgnoreHeading1" type="button" class="mini-toggle" aria-pressed="false" title="跳过以 # 开头的一级标题。">一级标题</button>
-            <button id="batchIgnoreHeading2" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 ## 开头的二级标题。">二级标题</button>
-          </div>
-
-          <div class="toolbar-group">
-            <label class="toolbar-label" for="batchDelaySeconds">等待</label>
-            <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
-            <span class="toolbar-unit">秒</span>
-          </div>
-        </div>
-
         <div class="toolbar-row">
           <div class="toolbar-group toolbar-group-directory">
             <span class="toolbar-label">保存目录</span>
@@ -1150,6 +1241,48 @@
       <div id="exportSummary" class="hint">当前没有导出任务。</div>
       <div id="exportStatus" class="status-box">等待任务开始。</div>
       <ul id="exportLogs" class="log-list"></ul>
+    </div>
+  </section>
+
+  <section id="page-settings" class="page">
+    <div class="group">
+      <div class="row"><strong>批量信息相关设置项</strong></div>
+      <div class="settings-list">
+        <div class="settings-item">
+          <div class="settings-main">
+            <div class="settings-title">任务模式</div>
+            <div class="settings-desc">选择批量任务开始时新建对话，或沿用当前 ChatGPT 窗口。</div>
+          </div>
+          <div class="settings-control">
+            <select id="batchConversationMode" class="compact-select" title="选择任务开始时是新建对话，还是沿用当前窗口。">
+              <option value="new">新建对话</option>
+              <option value="current">当前窗口</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-item">
+          <div class="settings-main">
+            <div class="settings-title">忽略标题</div>
+            <div class="settings-desc">解析待处理文本时，跳过以 # 开头的一级标题和以 ## 开头的二级标题。</div>
+          </div>
+          <div class="settings-control">
+            <button id="batchIgnoreHeading1" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 # 开头的一级标题。">一级标题</button>
+            <button id="batchIgnoreHeading2" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 ## 开头的二级标题。">二级标题</button>
+          </div>
+        </div>
+
+        <div class="settings-item">
+          <div class="settings-main">
+            <div class="settings-title">等待时间</div>
+            <div class="settings-desc">这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。</div>
+          </div>
+          <div class="settings-control">
+            <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
+            <span class="toolbar-unit">秒</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

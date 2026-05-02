@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "GPT Quick Search",
-  "version": "1.1.1",
+  "name": "GPT Batch Search",
+  "version": "1.0.0",
   "description": "快捷消息、批量消息和对话导出工具。",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
@@ -27,7 +27,7 @@
   ],
   "options_page": "options.html",
   "action": {
-    "default_title": "GPT Quick Search"
+    "default_title": "GPT Batch Search"
   },
   "commands": {
     "send_to_gpt_1": {

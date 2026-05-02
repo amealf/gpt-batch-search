@@ -67,7 +67,7 @@ const PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发�
 5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
 
 6 在需要使用脚注的时候，使用obsidian能识别的上下文跳转的格式`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
+const LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
 
 1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
 
@@ -82,12 +82,52 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 6 不要使用脚注，可以在段末附带链接
 
 7 在文章开头写一个总结性质的标题`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与伦理学相关的」文本。要求如下：
+
+内容要求：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+2 以下并非硬性要求：考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。
+
+写作要求：
+
+使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验。在文章开头写一个总结性质的一级标题。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。
+
+结构要求：
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+格式要求：
+
+5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
+
+Content requirements:
+
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+
+2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
+
+Writing requirements:
+
+Write a complete English article about the text, aiming for a publishable blog style. Add some style to the prose, avoid a translated or AI-like tone, and keep the article smooth and readable. Start with a summary-style H1 heading. Consider opening through background context before gradually introducing the topic. End naturally, without extension questions or editorial suggestions.
+
+Structure requirements:
+
+4 Avoid "not...but..." and similar negative-first sentence structures. Do not lead with negation when defining a concept. Prefer short sentences and an easy reading style. Do not keep opening the final paragraph with formulaic phrases such as "In summary"; close naturally.
+
+Format requirements:
+
+5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_DEFAULT_PROMPT = "请介绍：";
+const BATCH_EN_PROMPT = "Please introduce:";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
-  batchPrompt: BATCH_DEFAULT_PROMPT
+  batchPrompt: BATCH_DEFAULT_PROMPT,
+  batchPromptLanguage: "cn"
 };
 const BATCH_STATE_KEY = "batchRunState";
 const CHAT_EXPORT_STATE_KEY = "chatExportRunState";
@@ -105,6 +145,7 @@ const EMPTY_BATCH_STATE = {
   skipped: 0,
   currentIndex: 0,
   currentText: "",
+  sentText: "",
   message: "等待任务开始。",
   startedAt: "",
   finishedAt: "",
@@ -178,6 +219,7 @@ function createBatchState(state) {
   const next = { ...EMPTY_BATCH_STATE, ...(state || {}) };
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
+  next.sentText = typeof next.sentText === "string" ? next.sentText : "";
   next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
@@ -190,10 +232,14 @@ function isRetryableBatchItemError(reason) {
   if (!text) return true;
   return !(
     text.includes("保存目录") ||
+    text.includes("保存路径不可用") ||
     text.includes("写入权限") ||
     text.includes("读取权限") ||
     text.includes("NotAllowedError") ||
     text.includes("NotFoundError") ||
+    text.includes("requested file or directory could not be found") ||
+    text.includes("file or directory could not be found") ||
+    text.includes("系统找不到指定的路径") ||
     text.includes("SecurityError")
   );
 }
@@ -212,8 +258,13 @@ function extractBatchDirectoryNumber(directoryPath) {
   return "";
 }
 
-function formatBatchLogTitle(text, directoryPath) {
-  const number = extractBatchDirectoryNumber(directoryPath);
+function normalizeBatchItemNumber(value) {
+  const match = String(value || "").trim().match(/^(\d+(?:[._]\d+)*)$/u);
+  return match ? match[1].replace(/\./g, "_") : "";
+}
+
+function formatBatchLogTitle(text, directoryPath, itemNumber = "") {
+  const number = normalizeBatchItemNumber(itemNumber) || extractBatchDirectoryNumber(directoryPath);
   return number ? `${number} ${text}` : text;
 }
 
@@ -580,6 +631,8 @@ async function getBatchPromptConfig() {
     globalPrompts: [
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
+      BATCH_EN_GLOBAL_PROMPT,
+      LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
       PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT,
       CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT,
       RECENT_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -589,6 +642,7 @@ async function getBatchPromptConfig() {
     messagePrompts: [
       items.batchPrompt,
       BATCH_DEFAULT_PROMPT,
+      BATCH_EN_PROMPT,
       LEGACY_BATCH_DEFAULT_PROMPT
     ].map(normalizePromptText).filter(Boolean)
   };
@@ -1251,13 +1305,14 @@ function normalizeBatchItem(item) {
     if (!text) return null;
     return {
       text,
+      itemNumber: normalizeBatchItemNumber(item.itemNumber),
       directoryPath: normalizeDirectoryPath(item.directoryPath)
     };
   }
 
   const text = sanitizeBatchInputText(item);
   if (!text) return null;
-  return { text, directoryPath: [] };
+  return { text, itemNumber: "", directoryPath: [] };
 }
 
 function normalizeExistingMarkdownBase(filename) {
@@ -1383,6 +1438,27 @@ async function getNestedDirectoryHandle(rootHandle, directoryPath) {
   return currentHandle;
 }
 
+function getSaveErrorText(error) {
+  return String(error && error.message ? error.message : error || "");
+}
+
+function isFileSystemPathUnavailableError(error) {
+  const text = getSaveErrorText(error);
+  return error?.name === "NotFoundError" ||
+    text.includes("requested file or directory could not be found") ||
+    text.includes("file or directory could not be found") ||
+    text.includes("系统找不到指定的路径");
+}
+
+function formatSaveTargetText(directoryHandle, directoryPath, baseName) {
+  const parts = [
+    directoryHandle?.name || "",
+    ...normalizeDirectoryPath(directoryPath),
+    `${baseName}.md`
+  ].filter(Boolean);
+  return parts.join("\\");
+}
+
 async function writeMarkdownFileToDirectory(text, content, directoryPath = []) {
   const directoryHandle = await getOutputDirectoryHandle();
   if (!directoryHandle) {
@@ -1397,15 +1473,25 @@ async function writeMarkdownFileToDirectory(text, content, directoryPath = []) {
   }
 
   const baseName = createFilenameBase(text);
-  const targetDirectoryHandle = await getNestedDirectoryHandle(directoryHandle, directoryPath);
-  const fileHandle = await createUniqueFileHandle(targetDirectoryHandle, baseName);
-  const normalizedContent = normalizeMarkdownContentForSave(content);
-  const writable = await fileHandle.createWritable();
-  await writable.write(normalizedContent);
-  await writable.close();
-  await normalizeSavedMarkdownContent(fileHandle);
+  const normalizedPath = normalizeDirectoryPath(directoryPath);
+  let fileHandle = null;
+  try {
+    const targetDirectoryHandle = await getNestedDirectoryHandle(directoryHandle, normalizedPath);
+    fileHandle = await createUniqueFileHandle(targetDirectoryHandle, baseName);
+    const normalizedContent = normalizeMarkdownContentForSave(content);
+    const writable = await fileHandle.createWritable();
+    await writable.write(normalizedContent);
+    await writable.close();
+    await normalizeSavedMarkdownContent(fileHandle);
+  } catch (error) {
+    if (isFileSystemPathUnavailableError(error)) {
+      const targetText = formatSaveTargetText(directoryHandle, normalizedPath, baseName);
+      throw new Error(`保存路径不可用，请重新选择保存目录，或缩短保存目录/标题：${targetText}。${getSaveErrorText(error)}`);
+    }
+    throw error;
+  }
 
-  const pathText = normalizeDirectoryPath(directoryPath).join("\\");
+  const pathText = normalizedPath.join("\\");
   return {
     locationText: pathText
       ? `已选目录：${directoryHandle.name ? `${directoryHandle.name}\\${pathText}` : pathText}`
@@ -1786,6 +1872,7 @@ async function handleBatchProgress(payload) {
   if (typeof payload?.total === "number") patch.total = payload.total;
   if (typeof payload?.currentIndex === "number") patch.currentIndex = payload.currentIndex;
   if (typeof payload?.currentText === "string") patch.currentText = payload.currentText;
+  if (typeof payload?.sentText === "string") patch.sentText = payload.sentText;
   if (typeof payload?.message === "string") patch.message = payload.message;
   if (typeof payload?.startedAt === "string") patch.startedAt = payload.startedAt;
   if (Number.isFinite(Number(payload?.retryAttempt))) {
@@ -1803,6 +1890,7 @@ async function handleBatchItemResult(payload) {
   const total = typeof payload?.total === "number" ? payload.total : 0;
   const text = typeof payload?.text === "string" ? payload.text : `item-${index}`;
   const directoryPath = normalizeDirectoryPath(payload?.directoryPath);
+  const itemNumber = normalizeBatchItemNumber(payload?.itemNumber);
   const errorMessage = typeof payload?.error === "string" ? payload.error : "";
   const answer = typeof payload?.answer === "string" ? payload.answer : "";
   const retryAttempt = Number.isFinite(Number(payload?.retryAttempt)) ? Math.max(0, Number(payload.retryAttempt)) : 0;
@@ -1831,14 +1919,15 @@ async function handleBatchItemResult(payload) {
       nextFailed += 1;
       logLevel = "error";
       logMessage = `第 ${index}/${total} 条失败：${text}。${errorMessage}`;
-    failedItem = {
-      time: new Date().toISOString(),
-      index,
-      total,
-      text,
-      directoryPath,
-      reason: errorMessage
-    };
+      failedItem = {
+        time: new Date().toISOString(),
+        index,
+        total,
+        text,
+        itemNumber,
+        directoryPath,
+        reason: errorMessage
+      };
     }
   } else {
     try {
@@ -1853,7 +1942,7 @@ async function handleBatchItemResult(payload) {
       const saveResult = await saveMarkdownResult(text, content, directoryPath);
       nextCompleted += 1;
       logLevel = "success";
-      logMessage = `第 ${index}/${total} 条已保存：${formatBatchLogTitle(text, directoryPath)}`;
+      logMessage = `第 ${index}/${total} 条已保存：${formatBatchLogTitle(text, directoryPath, itemNumber)}`;
     } catch (error) {
       const reason = error && error.message ? error.message : String(error);
       if (retryAttempt < maxRetries && isRetryableBatchItemError(reason)) {
@@ -1869,6 +1958,7 @@ async function handleBatchItemResult(payload) {
           index,
           total,
           text,
+          itemNumber,
           directoryPath,
           reason
         };
@@ -1893,6 +1983,7 @@ async function handleBatchItemResult(payload) {
     currentText: text,
     retryAttempt: retry ? retryAttempt + 1 : 0,
     maxRefreshRetries: maxRetries,
+    message: logMessage,
     logs,
     failedItems
   });
@@ -1933,6 +2024,7 @@ async function handleBatchRetryInNewTab(payload, sourceTabId) {
     running: true,
     currentIndex: index,
     currentText: text,
+    sentText: text,
     retryAttempt,
     maxRefreshRetries: maxRetries,
     message,

@@ -42,7 +42,7 @@ const PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发�
 5 人名第一次出现时，使用 中文（英文）这样的格式，第二次以后出现就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文
 
 6 在需要使用脚注的时候，使用obsidian能识别的上下文跳转的格式`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
+const LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「」文本。要求如下：
 
 1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
 
@@ -57,7 +57,48 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 6 不要使用脚注，可以在段末附带链接
 
 7 在文章开头写一个总结性质的标题`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与伦理学相关的」文本。要求如下：
+
+内容要求：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+2 以下并非硬性要求：考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。
+
+写作要求：
+
+使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验。在文章开头写一个总结性质的一级标题。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。
+
+结构要求：
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+格式要求：
+
+5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
+
+Content requirements:
+
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+
+2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
+
+Writing requirements:
+
+Write a complete English article about the text, aiming for a publishable blog style. Add some style to the prose, avoid a translated or AI-like tone, and keep the article smooth and readable. Start with a summary-style H1 heading. Consider opening through background context before gradually introducing the topic. End naturally, without extension questions or editorial suggestions.
+
+Structure requirements:
+
+4 Avoid "not...but..." and similar negative-first sentence structures. Do not lead with negation when defining a concept. Prefer short sentences and an easy reading style. Do not keep opening the final paragraph with formulaic phrases such as "In summary"; close naturally.
+
+Format requirements:
+
+5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_DEFAULT_PROMPT = "请介绍：";
+const BATCH_EN_PROMPT = "Please introduce:";
+const BATCH_PROMPT_LANGUAGE_CN = "cn";
+const BATCH_PROMPT_LANGUAGE_EN = "en";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
 const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
@@ -82,9 +123,10 @@ const HOTKEY_DEFAULTS = {
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
   batchPrompt: BATCH_DEFAULT_PROMPT,
+  batchPromptLanguage: BATCH_PROMPT_LANGUAGE_CN,
   batchInputs: "",
   batchConversationMode: BATCH_CONVERSATION_MODE_NEW,
-  batchIgnoreHeading1: false,
+  batchIgnoreHeading1: true,
   batchIgnoreHeading2: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   batchDirectoryName: "",
@@ -101,6 +143,7 @@ const BATCH_STATE_DEFAULT = {
   skipped: 0,
   currentIndex: 0,
   currentText: "",
+  sentText: "",
   message: "等待任务开始。",
   startedAt: "",
   finishedAt: "",
@@ -241,6 +284,7 @@ function createBatchState(state) {
   const next = { ...BATCH_STATE_DEFAULT, ...(state || {}) };
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
+  next.sentText = typeof next.sentText === "string" ? next.sentText : "";
   next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
@@ -303,6 +347,216 @@ function updateBatchActionButtons() {
   if (deleteProgressButton) {
     deleteProgressButton.disabled = deleteProgressPending || currentBatchState.running;
   }
+  document.querySelectorAll("[data-batch-language]").forEach((button) => {
+    button.disabled = startPending || stopPending || currentBatchState.running;
+  });
+}
+
+function normalizeBatchPromptLanguage(language) {
+  return language === BATCH_PROMPT_LANGUAGE_EN
+    ? BATCH_PROMPT_LANGUAGE_EN
+    : BATCH_PROMPT_LANGUAGE_CN;
+}
+
+function getBatchPromptDefaults(language) {
+  return normalizeBatchPromptLanguage(language) === BATCH_PROMPT_LANGUAGE_EN
+    ? {
+      globalPrompt: BATCH_EN_GLOBAL_PROMPT,
+      prompt: BATCH_EN_PROMPT
+    }
+    : {
+      globalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
+      prompt: BATCH_DEFAULT_PROMPT
+    };
+}
+
+const BATCH_UI_TEXT = {
+  [BATCH_PROMPT_LANGUAGE_CN]: {
+    languageCn: "中文",
+    languageEn: "EN",
+    promptLanguage: "Prompt 语言",
+    settings: "设置",
+    tabBatch: "批量消息",
+    tabExport: "对话导出",
+    tabHotkeys: "快捷消息",
+    globalPrompt: "全局 Prompt",
+    globalPromptTip: "每次批量任务开始时会先发送一次这一段，然后再逐条处理下面的文本。",
+    messagePrompt: "消息 Prompt",
+    messagePromptTip: "每条文本都会附在这个消息 Prompt 后面发送。",
+    pendingText: "待处理文本",
+    pendingTextPlaceholder: "每行一条文本",
+    pendingTextTip: "一级标题用中文（英文）这样的格式，其他级的标题都使用「英文（中文）」这样的格式\n\n不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。\n\n框架分成三个等级：\n\n大章节：1. 2. 3.\n\n二级章节：1_1 1_2\n\n三级标题：1_2_1\n\n具体的正文内容：最后一级标题+符号◆，比如如果这个正文在三级标题下面，就写成 1_2_1 ◆",
+    clearPendingText: "清除待处理文本",
+    saveDirectory: "保存目录",
+    selectDirectory: "选择目录",
+    selectDirectoryTitle: "导出的 Markdown 文件会保存到这里。",
+    required: "必选",
+    requiredTitle: "请选择目录",
+    start: "开始",
+    stop: "停止",
+    deleteProgressChats: "清理进度对话",
+    deleteProgressChatsTitle: "删除所有标题形如「当前进度 256/321」的 ChatGPT 对话。",
+    saved: "已保存",
+    runStatus: "运行状态",
+    noBatchTask: "当前没有批量任务。",
+    idleStatus: "等待任务开始。",
+    exportTitle: "当前对话导出",
+    exportCurrentChat: "导出当前对话",
+    exportStop: "停止（重置）"
+  },
+  [BATCH_PROMPT_LANGUAGE_EN]: {
+    languageCn: "中文",
+    languageEn: "EN",
+    promptLanguage: "Prompt Language",
+    settings: "Settings",
+    tabBatch: "Batch Messages",
+    tabExport: "Chat Export",
+    tabHotkeys: "Quick Messages",
+    globalPrompt: "Global Prompt",
+    globalPromptTip: "This prompt is sent once at the beginning of each batch task, before the items are processed one by one.",
+    messagePrompt: "Message Prompt",
+    messagePromptTip: "Each item is appended after this message prompt before sending.",
+    pendingText: "Pending Text",
+    pendingTextPlaceholder: "One item per line",
+    pendingTextTip: "One item per line. Lines with ◆ are sent to GPT; lines without ◆ are treated as folder levels when saving.",
+    clearPendingText: "Clear pending text",
+    saveDirectory: "Save Folder",
+    selectDirectory: "Select Folder",
+    selectDirectoryTitle: "Markdown files will be saved here.",
+    required: "Required",
+    requiredTitle: "Select a folder",
+    start: "Start",
+    stop: "Stop",
+    deleteProgressChats: "Clear Progress Chats",
+    deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles match “当前进度 256/321”.",
+    saved: "Saved",
+    runStatus: "Run Status",
+    noBatchTask: "No batch task is running.",
+    idleStatus: "Waiting for task start.",
+    exportTitle: "Current Chat Export",
+    exportCurrentChat: "Export Current Chat",
+    exportStop: "Stop (Reset)"
+  }
+};
+
+function getBatchUiText(language = getSelectedBatchPromptLanguage()) {
+  return BATCH_UI_TEXT[normalizeBatchPromptLanguage(language)] || BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_CN];
+}
+
+function setElementText(selector, text) {
+  const element = document.querySelector(selector);
+  if (element) element.textContent = text;
+}
+
+function setElementTitle(selector, text) {
+  const element = document.querySelector(selector);
+  if (element) element.title = text;
+}
+
+function setElementAriaLabel(selector, text) {
+  const element = document.querySelector(selector);
+  if (element) element.setAttribute("aria-label", text);
+}
+
+function applyBatchUiLanguage(language) {
+  const text = getBatchUiText(language);
+
+  document.querySelector('[data-batch-language="cn"]')?.replaceChildren(document.createTextNode(text.languageCn));
+  document.querySelector('[data-batch-language="en"]')?.replaceChildren(document.createTextNode(text.languageEn));
+  setElementAriaLabel(".header-language-toggle", text.promptLanguage);
+  setElementTitle("#settingsToggle", text.settings);
+  setElementAriaLabel("#settingsToggle", text.settings);
+
+  setElementText('[data-page="batch"]', text.tabBatch);
+  setElementText('[data-page="export"]', text.tabExport);
+  setElementText('[data-page="hotkeys"]', text.tabHotkeys);
+
+  setElementText('label[for="batchGlobalPrompt"]', text.globalPrompt);
+  const globalPromptHelp = document.querySelector('label[for="batchGlobalPrompt"] ~ .panel-tools .help-button');
+  if (globalPromptHelp) globalPromptHelp.dataset.tip = text.globalPromptTip;
+  setElementText('label[for="batchPrompt"]', text.messagePrompt);
+  const messagePromptHelp = document.querySelector('label[for="batchPrompt"] ~ .panel-tools .help-button');
+  if (messagePromptHelp) messagePromptHelp.dataset.tip = text.messagePromptTip;
+  const batchPrompt = document.getElementById("batchPrompt");
+  if (batchPrompt) batchPrompt.placeholder = getBatchPromptDefaults(language).prompt;
+  setElementText('label[for="batchInputs"]', text.pendingText);
+  const pendingTextHelp = document.querySelector('label[for="batchInputs"] ~ .panel-tools .help-button');
+  if (pendingTextHelp) pendingTextHelp.dataset.tip = text.pendingTextTip;
+
+  const batchInputs = document.getElementById("batchInputs");
+  if (batchInputs) batchInputs.placeholder = text.pendingTextPlaceholder;
+  setElementTitle("#batchClearInputs", text.clearPendingText);
+  setElementAriaLabel("#batchClearInputs", text.clearPendingText);
+
+  document.querySelectorAll(".toolbar-group-directory .toolbar-label").forEach((element) => {
+    element.textContent = text.saveDirectory;
+  });
+  setElementText("#pickBatchDirectory", text.selectDirectory);
+  setElementText("#pickExportDirectory", text.selectDirectory);
+  setElementTitle("#pickBatchDirectory", text.selectDirectoryTitle);
+  setElementTitle("#pickExportDirectory", text.selectDirectoryTitle);
+  setElementText("#batchStart", text.start);
+  setElementText("#batchStop", text.stop);
+  setElementText("#deleteProgressChats", text.deleteProgressChats);
+  setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
+  setElementText("#batchSaved", text.saved);
+  setElementText("#page-batch > .group:nth-of-type(2) .row strong", text.runStatus);
+
+  const batchSummary = document.getElementById("batchSummary");
+  if (batchSummary && (
+    batchSummary.textContent === BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_CN].noBatchTask ||
+    batchSummary.textContent === BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_EN].noBatchTask
+  )) {
+    batchSummary.textContent = text.noBatchTask;
+  }
+  const batchStatus = document.getElementById("batchStatus");
+  if (batchStatus && (
+    batchStatus.textContent === BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_CN].idleStatus ||
+    batchStatus.textContent === BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_EN].idleStatus
+  )) {
+    batchStatus.textContent = text.idleStatus;
+  }
+
+  setElementText("#page-export .row strong", text.exportTitle);
+  setElementText("#exportCurrentChat", text.exportCurrentChat);
+  setElementText("#exportStop", text.exportStop);
+  renderBatchDirectoryText();
+}
+
+function isKnownBatchDefaultGlobalPrompt(value) {
+  return [
+    BATCH_DEFAULT_GLOBAL_PROMPT,
+    BATCH_EN_GLOBAL_PROMPT,
+    LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT,
+    PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT,
+    CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT,
+    RECENT_BATCH_DEFAULT_GLOBAL_PROMPT,
+    LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
+    PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT
+  ].includes(value);
+}
+
+function isKnownBatchDefaultPrompt(value) {
+  return [
+    BATCH_DEFAULT_PROMPT,
+    BATCH_EN_PROMPT,
+    LEGACY_BATCH_DEFAULT_PROMPT
+  ].includes(value);
+}
+
+function setBatchPromptLanguage(language) {
+  const nextLanguage = normalizeBatchPromptLanguage(language);
+  document.querySelectorAll("[data-batch-language]").forEach((button) => {
+    const active = button.dataset.batchLanguage === nextLanguage;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  applyBatchUiLanguage(nextLanguage);
+}
+
+function getSelectedBatchPromptLanguage() {
+  const activeButton = document.querySelector("[data-batch-language].is-active");
+  return normalizeBatchPromptLanguage(activeButton?.dataset.batchLanguage);
 }
 
 function updateChatExportActionButtons() {
@@ -397,6 +651,11 @@ function inferBatchTreeDepth(rawLine, titleText) {
   return Math.max(0, numbering[1].split(/[._]/).length - 1);
 }
 
+function extractBatchItemNumber(value) {
+  const match = String(value || "").trim().match(/^(\d+(?:[._]\d+)*)\b/u);
+  return match ? match[1].replace(/\./g, "_") : "";
+}
+
 function parseBatchTreeItems(rawText) {
   const stack = [];
   const items = [];
@@ -416,6 +675,7 @@ function parseBatchTreeItems(rawText) {
       if (!text) continue;
       items.push({
         text,
+        itemNumber: extractBatchItemNumber(textForDepth),
         directoryPath: stack.filter(Boolean)
       });
       continue;
@@ -522,7 +782,7 @@ function openShortcutSettingsPage() {
 }
 
 function setActivePage(page) {
-  const nextPage = ["batch", "hotkeys", "export"].includes(page) ? page : "batch";
+  const nextPage = ["batch", "hotkeys", "export", "settings"].includes(page) ? page : "batch";
 
   document.querySelectorAll("[data-page]").forEach((button) => {
     const active = button.dataset.page === nextPage;
@@ -557,20 +817,23 @@ function formatFailedBatchItemForRetry(item) {
     : extractFailedTitleFromLog(item && item.reason ? item.reason : "");
   if (!title) return "";
 
+  const itemNumber = extractBatchItemNumber(item && item.itemNumber ? item.itemNumber : "");
+  const markedTitle = itemNumber ? `${itemNumber} ◆ ${title}` : `◆ ${title}`;
   const directoryPath = Array.isArray(item && item.directoryPath)
     ? item.directoryPath.map((part) => String(part || "").trim()).filter(Boolean)
     : [];
-  if (!directoryPath.length) return `◆ ${title}`;
+  if (!directoryPath.length) return markedTitle;
 
   const lines = directoryPath.map((part, index) => (
     index === 0 ? part : `${"│   ".repeat(index - 1)}├── ${part}`
   ));
-  lines.push(`${"│   ".repeat(Math.max(0, directoryPath.length - 1))}├── ◆ ${title}`);
+  lines.push(`${"│   ".repeat(Math.max(0, directoryPath.length - 1))}├── ${markedTitle}`);
   return lines.join("\n");
 }
 
 function renderBatchDirectoryText() {
   const hasDirectory = Boolean(currentBatchDirectoryName);
+  const text = getBatchUiText();
   [
     { buttonId: "pickBatchDirectory", textId: "batchDirectoryText" },
     { buttonId: "pickExportDirectory", textId: "exportDirectoryText" }
@@ -581,8 +844,8 @@ function renderBatchDirectoryText() {
     if (button) {
       button.classList.toggle("is-required", !hasDirectory);
     }
-    element.textContent = hasDirectory ? currentBatchDirectoryName : "必选";
-    element.title = hasDirectory ? currentBatchDirectoryName : "请选择目录";
+    element.textContent = hasDirectory ? currentBatchDirectoryName : text.required;
+    element.title = hasDirectory ? currentBatchDirectoryName : text.requiredTitle;
     element.classList.toggle("required-hint", !hasDirectory);
   });
 }
@@ -590,6 +853,7 @@ function renderBatchDirectoryText() {
 function renderBatchState(state) {
   currentBatchState = createBatchState(state);
   updateBatchActionButtons();
+  const uiText = getBatchUiText();
 
   const summary = [];
   if (currentBatchState.running) {
@@ -597,7 +861,7 @@ function renderBatchState(state) {
   } else if (currentBatchState.total) {
     summary.push(`任务已结束，共 ${currentBatchState.total} 条`);
   } else {
-    summary.push("当前没有批量任务。");
+    summary.push(uiText.noBatchTask);
   }
 
   if (currentBatchState.total) {
@@ -617,7 +881,7 @@ function renderBatchState(state) {
   document.getElementById("batchSummary").textContent = summary.join("，");
 
   const lines = [];
-  lines.push(currentBatchState.message || "等待任务开始。");
+  lines.push(currentBatchState.message || uiText.idleStatus);
   if (currentBatchState.total) {
     lines.push(`当前进度：${currentBatchState.currentIndex}/${currentBatchState.total}`);
   }
@@ -823,6 +1087,7 @@ async function persistBatchConfig(showTip = false) {
   const payload = {
     batchGlobalPrompt: document.getElementById("batchGlobalPrompt").value,
     batchPrompt: document.getElementById("batchPrompt").value,
+    batchPromptLanguage: getSelectedBatchPromptLanguage(),
     batchInputs: document.getElementById("batchInputs").value,
     batchConversationMode: getSelectedBatchConversationMode(),
     batchIgnoreHeading1: getToggleButtonState("batchIgnoreHeading1"),
@@ -834,6 +1099,17 @@ async function persistBatchConfig(showTip = false) {
   if (showTip) flashTip("batchSaved");
 }
 
+async function switchBatchPromptLanguage(language) {
+  if (currentBatchState.running) return;
+
+  const nextLanguage = normalizeBatchPromptLanguage(language);
+  const defaults = getBatchPromptDefaults(nextLanguage);
+  document.getElementById("batchGlobalPrompt").value = defaults.globalPrompt;
+  document.getElementById("batchPrompt").value = defaults.prompt;
+  setBatchPromptLanguage(nextLanguage);
+  await persistBatchConfig(true);
+}
+
 function scheduleBatchConfigSave() {
   clearTimeout(batchSaveTimer);
   batchSaveTimer = setTimeout(() => {
@@ -843,25 +1119,23 @@ function scheduleBatchConfigSave() {
 
 async function loadBatchConfig() {
   const config = await getLocal(BATCH_CONFIG_DEFAULTS);
-  const batchGlobalPrompt = !config.batchGlobalPrompt ||
-    config.batchGlobalPrompt === LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT ||
-    config.batchGlobalPrompt === PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT ||
-    config.batchGlobalPrompt === CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT ||
-    config.batchGlobalPrompt === RECENT_BATCH_DEFAULT_GLOBAL_PROMPT ||
-    config.batchGlobalPrompt === PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT
-    ? BATCH_DEFAULT_GLOBAL_PROMPT
+  const batchPromptLanguage = normalizeBatchPromptLanguage(config.batchPromptLanguage);
+  const languageDefaults = getBatchPromptDefaults(batchPromptLanguage);
+  const batchGlobalPrompt = !config.batchGlobalPrompt || isKnownBatchDefaultGlobalPrompt(config.batchGlobalPrompt)
+    ? languageDefaults.globalPrompt
     : config.batchGlobalPrompt;
   const batchConversationMode = normalizeBatchConversationMode(config.batchConversationMode, config.batchNewChat);
   const batchIgnoreHeading1 = config.batchIgnoreHeading1 === true;
   const batchIgnoreHeading2 = config.batchIgnoreHeading2 !== false;
-  const batchPrompt = !config.batchPrompt || config.batchPrompt === LEGACY_BATCH_DEFAULT_PROMPT
-    ? BATCH_CONFIG_DEFAULTS.batchPrompt
+  const batchPrompt = !config.batchPrompt || isKnownBatchDefaultPrompt(config.batchPrompt)
+    ? languageDefaults.prompt
     : config.batchPrompt;
   const batchDelaySeconds = config.batchDelaySeconds == null || Number(config.batchDelaySeconds) === LEGACY_BATCH_DEFAULT_DELAY_SECONDS
     ? BATCH_DEFAULT_DELAY_SECONDS
     : normalizeBatchDelaySeconds(config.batchDelaySeconds);
   document.getElementById("batchGlobalPrompt").value = batchGlobalPrompt;
   document.getElementById("batchPrompt").value = batchPrompt;
+  setBatchPromptLanguage(batchPromptLanguage);
   document.getElementById("batchInputs").value = config.batchInputs || "";
   setBatchConversationMode(batchConversationMode);
   setToggleButtonState("batchIgnoreHeading1", batchIgnoreHeading1);
@@ -869,10 +1143,11 @@ async function loadBatchConfig() {
   document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
   currentBatchDirectoryName = config.batchDirectoryName || "";
   renderBatchDirectoryText();
-  setActivePage(["batch", "hotkeys", "export"].includes(config.optionsActivePage) ? config.optionsActivePage : "batch");
+  setActivePage(["batch", "hotkeys", "export", "settings"].includes(config.optionsActivePage) ? config.optionsActivePage : "batch");
 
   if (
     batchGlobalPrompt !== config.batchGlobalPrompt ||
+    batchPromptLanguage !== config.batchPromptLanguage ||
     batchConversationMode !== config.batchConversationMode ||
     batchIgnoreHeading1 !== Boolean(config.batchIgnoreHeading1) ||
     batchIgnoreHeading2 !== (config.batchIgnoreHeading2 !== false) ||
@@ -881,6 +1156,7 @@ async function loadBatchConfig() {
   ) {
     await setLocal({
       batchGlobalPrompt,
+      batchPromptLanguage,
       batchConversationMode,
       batchIgnoreHeading1,
       batchIgnoreHeading2,
@@ -1261,6 +1537,11 @@ function bindBatchEvents() {
     clearBatchInputs().catch(() => {});
   });
   document.getElementById("pickBatchDirectory").addEventListener("click", pickBatchDirectory);
+  document.querySelectorAll("[data-batch-language]").forEach((button) => {
+    button.addEventListener("click", () => {
+      switchBatchPromptLanguage(button.dataset.batchLanguage).catch(() => {});
+    });
+  });
 }
 
 function bindExportEvents() {
