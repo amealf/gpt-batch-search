@@ -23,6 +23,7 @@
   const BATCH_REPLY_TIMEOUT_MS = 600000;
   const BATCH_REPLY_STABLE_MS = 5000;
   const BATCH_REPLY_CONFIRM_MS = 1500;
+  const BATCH_REPLY_FINAL_CONFIRM_MS = 10000;
   const BATCH_RETRY_WATCHDOG_MS = 300000;
   const BATCH_CONVERSATION_ITEM_LIMIT = 30;
   let exportRunning = false;
@@ -2018,12 +2019,19 @@
   }
 
   function getButtonLabel(button) {
-    return [
+    const ownLabels = [
       button.getAttribute("aria-label") || "",
       button.getAttribute("title") || "",
       button.getAttribute("data-testid") || "",
       button.textContent || ""
-    ].join(" ").replace(/\s+/g, " ").trim().toLowerCase();
+    ];
+    const childLabels = Array.from(button.querySelectorAll("[aria-label], [title], [data-testid]"))
+      .flatMap((element) => [
+        element.getAttribute("aria-label") || "",
+        element.getAttribute("title") || "",
+        element.getAttribute("data-testid") || ""
+      ]);
+    return ownLabels.concat(childLabels).join(" ").replace(/\s+/g, " ").trim().toLowerCase();
   }
 
   function hasStopIcon(button) {
@@ -2115,7 +2123,16 @@
     if (!hasUsableAssistantReply(secondText, allowShortReply, minShortReplySignalLength)) return "";
     if (secondSnapshot.text !== firstSnapshot.text) return "";
     if ((secondSnapshot.rawText || "") !== (firstSnapshot.rawText || "")) return "";
-    return secondText;
+
+    await sleepWithStopCheck(BATCH_REPLY_FINAL_CONFIRM_MS, batchId);
+    if (isGenerating()) return "";
+
+    const finalSnapshot = getAssistantSnapshot();
+    const finalText = getReplyTextFromSnapshot(finalSnapshot, allowShortReply, minShortReplySignalLength);
+    if (!hasUsableAssistantReply(finalText, allowShortReply, minShortReplySignalLength)) return "";
+    if (finalSnapshot.text !== secondSnapshot.text) return "";
+    if ((finalSnapshot.rawText || "") !== (secondSnapshot.rawText || "")) return "";
+    return finalText;
   }
 
   async function isAssistantReplyChanging(batchId, waitMs = BATCH_REPLY_CONFIRM_MS) {

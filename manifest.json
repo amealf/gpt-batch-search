@@ -3,6 +3,12 @@
   "name": "GPT Batch Search",
   "version": "1.0.0",
   "description": "快捷消息、批量消息和对话导出工具。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -27,7 +33,13 @@
   ],
   "options_page": "options.html",
   "action": {
-    "default_title": "GPT Batch Search"
+    "default_title": "GPT Batch Search",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "commands": {
     "send_to_gpt_1": {
