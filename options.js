@@ -129,6 +129,7 @@ const BATCH_CONFIG_DEFAULTS = {
   batchIgnoreHeading1: true,
   batchIgnoreHeading2: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
+  batchFocusWhenStuck: false,
   batchDirectoryName: "",
   optionsActivePage: "batch"
 };
@@ -150,7 +151,11 @@ const BATCH_STATE_DEFAULT = {
   logs: [],
   failedItems: [],
   retryAttempt: 0,
-  maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES
+  maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
+  focusWhenStuck: false,
+  lastActivityAt: "",
+  lastHeartbeatAt: "",
+  lastFocusAt: ""
 };
 const CHAT_EXPORT_STATE_DEFAULT = {
   running: false,
@@ -396,6 +401,8 @@ const BATCH_UI_TEXT = {
     stop: "停止",
     deleteProgressChats: "清理进度对话",
     deleteProgressChatsTitle: "删除所有标题形如「当前进度 256/321」的 ChatGPT 对话。",
+    focusWhenStuck: "保持网页焦点",
+    focusWhenStuckTip: "批量任务依赖网页里的计时器和页面更新。窗口长时间失去焦点时，浏览器可能降低页面运行频率，导致等待回答、重试或保存进度变慢。开启后，任务心跳约 5 分钟没有更新时，会刷新 ChatGPT 网页恢复任务；刷新后约 2 分钟当前条目仍没有推进时，才会激活 ChatGPT 网页。两次激活之间至少间隔 10 分钟。默认关闭，避免影响当前操作。",
     saved: "已保存",
     runStatus: "运行状态",
     noBatchTask: "当前没有批量任务。",
@@ -429,6 +436,8 @@ const BATCH_UI_TEXT = {
     stop: "Stop",
     deleteProgressChats: "Clear Progress Chats",
     deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles match “当前进度 256/321”.",
+    focusWhenStuck: "Keep Web Page Focus",
+    focusWhenStuckTip: "Batch tasks rely on timers and page updates inside the web page. When the window stays unfocused for a long time, the browser may reduce page activity, which can slow waiting, retrying, or saving progress. When enabled, the ChatGPT page is refreshed after the task heartbeat has not updated for about 5 minutes. If the current item has still not moved forward about 2 minutes after the refresh, the ChatGPT page is activated. Activations are spaced at least 10 minutes apart. Off by default to avoid interrupting current work.",
     saved: "Saved",
     runStatus: "Run Status",
     noBatchTask: "No batch task is running.",
@@ -499,6 +508,9 @@ function applyBatchUiLanguage(language) {
   setElementText("#batchStop", text.stop);
   setElementText("#deleteProgressChats", text.deleteProgressChats);
   setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
+  setElementText("#batchFocusWhenStuckLabel", text.focusWhenStuck);
+  const focusWhenStuckHelp = document.getElementById("batchFocusWhenStuckHelp");
+  if (focusWhenStuckHelp) focusWhenStuckHelp.dataset.tip = text.focusWhenStuckTip;
   setElementText("#batchSaved", text.saved);
   setElementText("#page-batch > .group:nth-of-type(2) .row strong", text.runStatus);
 
@@ -987,45 +999,6 @@ function renderChatExportState(state) {
   }
 }
 
-function getBatchRetryText(state) {
-  const failedItems = Array.isArray(state && state.failedItems)
-    ? state.failedItems
-    : [];
-  const retryLines = failedItems
-    .map((item) => formatFailedBatchItemForRetry(item))
-    .filter(Boolean);
-
-  if (retryLines.length) {
-    return retryLines.join("\n");
-  }
-
-  if (!state || !state.failed || !Array.isArray(state.logs)) {
-    return "";
-  }
-
-  return state.logs
-    .filter((item) => item && (item.level === "error" || String(item.message || "").includes("失败")))
-    .map((item) => formatFailedBatchItemForRetry({ reason: item.message }))
-    .filter(Boolean)
-    .join("\n");
-}
-
-function renderBatchRetryBox(state) {
-  const group = document.getElementById("batchRetryGroup");
-  const box = document.getElementById("batchRetryBox");
-  if (!group || !box) return;
-
-  const text = getBatchRetryText(state);
-  group.hidden = !text;
-  box.textContent = text;
-}
-
-const renderBatchStateBase = renderBatchState;
-renderBatchState = function renderBatchStateWithRetryBox(state) {
-  renderBatchStateBase(state);
-  renderBatchRetryBox(currentBatchState);
-};
-
 async function forceStopBatchState(message = "任务已停止。") {
   const finishedAt = new Date().toISOString();
   const nextState = createBatchState({
@@ -1084,6 +1057,7 @@ async function persistBatchConfig(showTip = false) {
   const delayInput = document.getElementById("batchDelaySeconds");
   const delaySeconds = normalizeBatchDelaySeconds(delayInput.value);
   delayInput.value = String(delaySeconds);
+  const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
   const payload = {
     batchGlobalPrompt: document.getElementById("batchGlobalPrompt").value,
     batchPrompt: document.getElementById("batchPrompt").value,
@@ -1093,6 +1067,7 @@ async function persistBatchConfig(showTip = false) {
     batchIgnoreHeading1: getToggleButtonState("batchIgnoreHeading1"),
     batchIgnoreHeading2: getToggleButtonState("batchIgnoreHeading2"),
     batchDelaySeconds: delaySeconds,
+    batchFocusWhenStuck: Boolean(focusWhenStuck && focusWhenStuck.checked),
     batchDirectoryName: currentBatchDirectoryName
   };
   await setLocal(payload);
@@ -1141,6 +1116,8 @@ async function loadBatchConfig() {
   setToggleButtonState("batchIgnoreHeading1", batchIgnoreHeading1);
   setToggleButtonState("batchIgnoreHeading2", batchIgnoreHeading2);
   document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
+  const batchFocusWhenStuck = config.batchFocusWhenStuck === true;
+  document.getElementById("batchFocusWhenStuck").checked = batchFocusWhenStuck;
   currentBatchDirectoryName = config.batchDirectoryName || "";
   renderBatchDirectoryText();
   setActivePage(["batch", "hotkeys", "export", "settings"].includes(config.optionsActivePage) ? config.optionsActivePage : "batch");
@@ -1152,7 +1129,8 @@ async function loadBatchConfig() {
     batchIgnoreHeading1 !== Boolean(config.batchIgnoreHeading1) ||
     batchIgnoreHeading2 !== (config.batchIgnoreHeading2 !== false) ||
     batchPrompt !== config.batchPrompt ||
-    batchDelaySeconds !== Number(config.batchDelaySeconds)
+    batchDelaySeconds !== Number(config.batchDelaySeconds) ||
+    config.batchFocusWhenStuck !== batchFocusWhenStuck
   ) {
     await setLocal({
       batchGlobalPrompt,
@@ -1161,7 +1139,8 @@ async function loadBatchConfig() {
       batchIgnoreHeading1,
       batchIgnoreHeading2,
       batchPrompt,
-      batchDelaySeconds
+      batchDelaySeconds,
+      batchFocusWhenStuck
     });
   }
 }
@@ -1285,6 +1264,7 @@ async function startBatch() {
         items,
         newChat: conversationMode === BATCH_CONVERSATION_MODE_NEW,
         delaySeconds,
+        focusWhenStuck: Boolean(document.getElementById("batchFocusWhenStuck").checked),
         directoryName: currentBatchDirectoryName
       }
     });
@@ -1510,11 +1490,13 @@ function bindBatchEvents() {
   const ignoreHeading1 = document.getElementById("batchIgnoreHeading1");
   const ignoreHeading2 = document.getElementById("batchIgnoreHeading2");
   const delaySeconds = document.getElementById("batchDelaySeconds");
+  const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
 
   globalPrompt.addEventListener("input", scheduleBatchConfigSave);
   prompt.addEventListener("input", scheduleBatchConfigSave);
   inputs.addEventListener("input", scheduleBatchConfigSave);
   delaySeconds.addEventListener("input", scheduleBatchConfigSave);
+  focusWhenStuck.addEventListener("change", () => persistBatchConfig(true));
   conversationMode.addEventListener("change", () => persistBatchConfig(true));
   ignoreHeading1.addEventListener("click", () => {
     setToggleButtonState("batchIgnoreHeading1", !getToggleButtonState("batchIgnoreHeading1"));

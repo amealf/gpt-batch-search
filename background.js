@@ -136,6 +136,10 @@ const DIRECTORY_STORE_NAME = "handles";
 const DIRECTORY_HANDLE_KEY = "output-directory";
 const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
 const BATCH_NEW_TAB_RETRY_AFTER = 2;
+const BATCH_FOCUS_ALARM_NAME = "batch-focus-when-stuck";
+const BATCH_FOCUS_STUCK_MS = 5 * 60 * 1000;
+const BATCH_FOCUS_AFTER_REFRESH_MS = 2 * 60 * 1000;
+const BATCH_FOCUS_COOLDOWN_MS = 10 * 60 * 1000;
 const EMPTY_BATCH_STATE = {
   running: false,
   batchId: "",
@@ -154,7 +158,13 @@ const EMPTY_BATCH_STATE = {
   retryAttempt: 0,
   maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
   delaySeconds: 3,
-  directoryName: ""
+  directoryName: "",
+  focusWhenStuck: false,
+  lastActivityAt: "",
+  lastHeartbeatAt: "",
+  lastStuckRefreshAt: "",
+  lastStuckRefreshProgressKey: "",
+  lastFocusAt: ""
 };
 const EMPTY_CHAT_EXPORT_STATE = {
   running: false,
@@ -308,6 +318,7 @@ async function saveBatchState(nextState) {
   const state = createBatchState(nextState);
   await setLocal({ [BATCH_STATE_KEY]: state });
   await broadcastBatchState(state);
+  syncBatchFocusAlarm(state).catch(() => {});
   return state;
 }
 
@@ -506,6 +517,124 @@ async function bringToFront(tabId) {
     await chrome.windows.update(tab.windowId, { focused: true });
     await chrome.tabs.update(tabId, { active: true });
   } catch {}
+}
+
+function parseStateTime(value) {
+  const time = Date.parse(String(value || ""));
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getLatestBatchSignalTime(state) {
+  return Math.max(
+    parseStateTime(state?.lastActivityAt),
+    parseStateTime(state?.lastHeartbeatAt),
+    parseStateTime(state?.startedAt)
+  );
+}
+
+function getBatchProgressKey(state) {
+  return [
+    Number(state?.completed) || 0,
+    Number(state?.failed) || 0
+  ].join(":");
+}
+
+async function syncBatchFocusAlarm(state) {
+  if (!chrome.alarms) return;
+  if (state && state.running && state.batchId && state.focusWhenStuck) {
+    await chrome.alarms.create(BATCH_FOCUS_ALARM_NAME, {
+      delayInMinutes: 1,
+      periodInMinutes: 1
+    });
+    return;
+  }
+  await chrome.alarms.clear(BATCH_FOCUS_ALARM_NAME);
+}
+
+async function handleBatchFocusAlarm() {
+  const current = await getBatchState();
+  if (!current.running || !current.batchId || !current.focusWhenStuck) {
+    await syncBatchFocusAlarm(current);
+    return;
+  }
+
+  const now = Date.now();
+  const latestSignalAt = getLatestBatchSignalTime(current);
+  const lastStuckRefreshAt = parseStateTime(current.lastStuckRefreshAt);
+  const currentProgressKey = getBatchProgressKey(current);
+  const stuckRefreshProgressKey = String(current.lastStuckRefreshProgressKey || "");
+  const lastFocusAt = parseStateTime(current.lastFocusAt);
+
+  const chatTab = await findChatTab();
+  if (!chatTab?.id) return;
+
+  if (lastStuckRefreshAt && stuckRefreshProgressKey) {
+    if (currentProgressKey !== stuckRefreshProgressKey) {
+      await saveBatchState({
+        ...current,
+        lastStuckRefreshAt: "",
+        lastStuckRefreshProgressKey: ""
+      });
+      return;
+    }
+
+    if (now - lastStuckRefreshAt < BATCH_FOCUS_AFTER_REFRESH_MS) return;
+    if (lastFocusAt && now - lastFocusAt < BATCH_FOCUS_COOLDOWN_MS) return;
+
+    await bringToFront(chatTab.id);
+
+    const latest = await getBatchState();
+    if (!isCurrentBatchMessage(latest, current.batchId)) return;
+    await saveBatchState({
+      ...latest,
+      message: "刷新后任务仍没有推进，已激活 ChatGPT 网页。",
+      lastFocusAt: new Date().toISOString(),
+      logs: latest.logs.concat({
+        time: new Date().toISOString(),
+        level: "info",
+        message: "刷新后任务仍没有推进，已激活 ChatGPT 网页。"
+      }).slice(-60)
+    });
+    return;
+  }
+
+  if (!latestSignalAt || now - latestSignalAt < BATCH_FOCUS_STUCK_MS) return;
+
+  try {
+    await sendMessageToChatTabSafely(chatTab.id, "EXT_REFRESH_STUCK_BATCH", {
+      batchId: current.batchId
+    });
+    const latest = await getBatchState();
+    if (!isCurrentBatchMessage(latest, current.batchId)) return;
+    await saveBatchState({
+      ...latest,
+      message: "任务心跳长时间没有更新，已刷新 ChatGPT 网页恢复任务。",
+      lastStuckRefreshAt: new Date().toISOString(),
+      lastStuckRefreshProgressKey: getBatchProgressKey(latest),
+      logs: latest.logs.concat({
+        time: new Date().toISOString(),
+        level: "info",
+        message: "任务心跳长时间没有更新，已刷新 ChatGPT 网页恢复任务。"
+      }).slice(-60)
+    });
+    return;
+  } catch {}
+
+  if (lastFocusAt && now - lastFocusAt < BATCH_FOCUS_COOLDOWN_MS) return;
+  await bringToFront(chatTab.id);
+
+  const latest = await getBatchState();
+  if (!isCurrentBatchMessage(latest, current.batchId)) return;
+  await saveBatchState({
+    ...latest,
+    message: "刷新恢复请求失败，已激活 ChatGPT 网页。",
+    lastFocusAt: new Date().toISOString(),
+    logs: latest.logs.concat({
+      time: new Date().toISOString(),
+      level: "info",
+      message: "刷新恢复请求失败，已激活 ChatGPT 网页。"
+    }).slice(-60)
+  });
 }
 
 async function ensureChatTab(newChat) {
@@ -910,7 +1039,21 @@ function isTransientChatGptErrorAnswer(answer) {
   const normalized = String(answer || "")
     .replace(/\s+/g, " ")
     .trim();
-  return /^Something went wrong while processing your request\. Please try again\.?$/i.test(normalized);
+  return /^Something went wrong while processing your request\. Please try again\.?$/i.test(normalized) ||
+    /message (?:send|sending) timed out/i.test(normalized) ||
+    /timed out[^\n.。]*try again/i.test(normalized) ||
+    /request timed out/i.test(normalized) ||
+    /network error/i.test(normalized) ||
+    /there was an error generating (?:a )?response/i.test(normalized) ||
+    (/please retry/i.test(normalized) && /message|send|sending|request|response|generation|error|timeout/i.test(normalized)) ||
+    (/please try again/i.test(normalized) && /message|send|sending|request|response|generation|error|timeout/i.test(normalized)) ||
+    /消息发送超时/u.test(normalized) ||
+    /发送超时/u.test(normalized) ||
+    /请求超时/u.test(normalized) ||
+    /网络错误/u.test(normalized) ||
+    /请再试一次/u.test(normalized) ||
+    (/请重试/u.test(normalized) && /消息|发送|请求|回答|响应|生成|错误|超时/u.test(normalized)) ||
+    (/重试/u.test(normalized) && /已停止思考|发送失败|生成失败/u.test(normalized));
 }
 
 function sanitizeExportedAnswer(answer) {
@@ -1546,6 +1689,7 @@ async function handleStartBatch(payload) {
   const delaySeconds = Number.isFinite(Number(payload?.delaySeconds))
     ? Math.min(60, Math.max(0, Number(payload.delaySeconds)))
     : 3;
+  const focusWhenStuck = payload?.focusWhenStuck === true;
   const directoryName = typeof payload?.directoryName === "string" ? payload.directoryName : "";
   const currentState = await getBatchState();
   const batchId = crypto.randomUUID();
@@ -1574,6 +1718,7 @@ async function handleStartBatch(payload) {
   }
 
   const startedAt = new Date().toISOString();
+  const lastActivityAt = startedAt;
   const skippedLogs = skippedItems.length
     ? [{
       time: startedAt,
@@ -1600,6 +1745,12 @@ async function handleStartBatch(payload) {
     failedItems: [],
     retryAttempt: 0,
     maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
+    focusWhenStuck,
+    lastActivityAt,
+    lastHeartbeatAt: lastActivityAt,
+    lastStuckRefreshAt: "",
+    lastStuckRefreshProgressKey: "",
+    lastFocusAt: "",
     logs: [
       {
         time: startedAt,
@@ -1881,8 +2032,26 @@ async function handleBatchProgress(payload) {
   if (Number.isFinite(Number(payload?.maxRefreshRetries))) {
     patch.maxRefreshRetries = Math.max(0, Number(payload.maxRefreshRetries));
   }
+  patch.lastActivityAt = new Date().toISOString();
 
-  return saveBatchState({ ...current, ...patch });
+  const progressMoved = typeof patch.currentIndex === "number" && patch.currentIndex > current.currentIndex;
+  return saveBatchState({
+    ...current,
+    ...patch,
+    ...(progressMoved ? { lastStuckRefreshAt: "", lastStuckRefreshProgressKey: "" } : {})
+  });
+}
+
+async function handleBatchHeartbeat(payload) {
+  const current = await getBatchState();
+  if (!isCurrentBatchMessage(current, payload?.batchId)) {
+    return current;
+  }
+
+  return saveBatchState({
+    ...current,
+    lastHeartbeatAt: new Date().toISOString()
+  });
 }
 
 async function handleBatchItemResult(payload) {
@@ -1984,6 +2153,9 @@ async function handleBatchItemResult(payload) {
     retryAttempt: retry ? retryAttempt + 1 : 0,
     maxRefreshRetries: maxRetries,
     message: logMessage,
+    lastActivityAt: new Date().toISOString(),
+    lastStuckRefreshAt: "",
+    lastStuckRefreshProgressKey: "",
     logs,
     failedItems
   });
@@ -2195,6 +2367,14 @@ chrome.commands.onCommand.addListener((command) => {
   handleHotkeyCommand(command).catch(() => {});
 });
 
+if (chrome.alarms) {
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm && alarm.name === BATCH_FOCUS_ALARM_NAME) {
+      handleBatchFocusAlarm().catch(() => {});
+    }
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || !message.type) return;
 
@@ -2250,6 +2430,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "BATCH_PROGRESS") {
     handleBatchProgress(message.payload)
       .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "BATCH_HEARTBEAT") {
+    handleBatchHeartbeat(message.payload)
+      .then((state) => sendResponse({ ok: true, state }))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;
   }

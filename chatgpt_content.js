@@ -16,6 +16,7 @@
   let batchRunning = false;
   let currentBatchId = "";
   let batchStopRequested = false;
+  let currentBatchStuckRefresh = null;
   const BATCH_STOPPED_ERROR = "__BATCH_STOPPED__";
   const BATCH_RETRY_STORAGE_KEY = "__GPT_QUICK_SEARCH_BATCH_RETRY__";
   const BATCH_MAX_REFRESH_RETRIES = 5;
@@ -26,6 +27,8 @@
   const BATCH_REPLY_FINAL_CONFIRM_MS = 10000;
   const BATCH_RETRY_WATCHDOG_MS = 300000;
   const BATCH_CONVERSATION_ITEM_LIMIT = 30;
+  const BATCH_HEARTBEAT_INTERVAL_MS = 15000;
+  let lastBatchHeartbeatAt = 0;
   let exportRunning = false;
   let currentExportId = "";
   let exportStopRequested = false;
@@ -118,6 +121,121 @@
       .replace(/\u200b/g, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+  }
+
+  function normalizeChatGptPageErrorText(text) {
+    return String(text || "")
+      .replace(/\u200b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getElementTextWithControls(element) {
+    if (!element) return "";
+    return normalizeChatGptPageErrorText([
+      getTextFromNode(element),
+      element.innerText || "",
+      element.textContent || "",
+      element.getAttribute("aria-label") || "",
+      element.getAttribute("title") || ""
+    ].join(" "));
+  }
+
+  function isChatGptTransientPageErrorText(text) {
+    const normalized = normalizeChatGptPageErrorText(text);
+    if (!normalized) return false;
+
+    const chineseTransientError = (
+      /消息发送超时/u.test(normalized) ||
+      /发送超时/u.test(normalized) ||
+      /请求超时/u.test(normalized) ||
+      /网络错误/u.test(normalized) ||
+      /出错了/u.test(normalized) ||
+      /请再试一次/u.test(normalized) ||
+      (/请重试/u.test(normalized) && /消息|发送|请求|回答|响应|生成|错误|超时/u.test(normalized)) ||
+      (/重试/u.test(normalized) && /已停止思考|发送失败|生成失败/u.test(normalized))
+    );
+    if (chineseTransientError) return true;
+
+    return /message (?:send|sending) timed out/i.test(normalized) ||
+      /timed out[^\n.。]*try again/i.test(normalized) ||
+      /request timed out/i.test(normalized) ||
+      /network error/i.test(normalized) ||
+      /something went wrong/i.test(normalized) ||
+      /there was an error generating (?:a )?response/i.test(normalized) ||
+      (/please retry/i.test(normalized) && /message|send|sending|request|response|generation|error|timeout/i.test(normalized)) ||
+      (/please try again/i.test(normalized) && /message|send|sending|request|response|generation|error|timeout/i.test(normalized)) ||
+      (/retry/i.test(normalized) && /stopped thinking|failed to send|failed to generate|timed out/i.test(normalized));
+  }
+
+  function isElementForLatestChatGptResponse(element) {
+    if (!element) return false;
+
+    const assistantMessages = getAssistantMessages();
+    const latestAssistant = assistantMessages[assistantMessages.length - 1] || null;
+    if (latestAssistant && (
+      latestAssistant === element ||
+      latestAssistant.contains(element) ||
+      element.contains(latestAssistant)
+    )) {
+      return true;
+    }
+
+    const userMessages = getUserMessages();
+    const latestUser = userMessages[userMessages.length - 1] || null;
+    if (!latestUser) return !latestAssistant;
+
+    return Boolean(latestUser.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+
+  function getVisibleChatGptTransientPageErrorText() {
+    const roots = Array.from(document.querySelectorAll([
+      "[role='alert']",
+      "[aria-live]",
+      "[data-testid*='error' i]",
+      "[data-testid*='toast' i]",
+      "[data-testid*='retry' i]",
+      "main [class*='error' i]",
+      "main [class*='danger' i]",
+      "main [class*='destructive' i]",
+      "main [class*='red' i]"
+    ].join(",")));
+
+    for (const element of roots) {
+      if (!isElementVisible(element)) continue;
+      if (!isElementForLatestChatGptResponse(element)) continue;
+      const text = getElementTextWithControls(element);
+      if (isChatGptTransientPageErrorText(text)) {
+        return text.slice(0, 240);
+      }
+    }
+
+    const retryButtons = Array.from(document.querySelectorAll("main button")).filter((button) => {
+      if (!isElementVisible(button) || button.disabled) return false;
+      if (!isElementForLatestChatGptResponse(button)) return false;
+      const label = getElementTextWithControls(button).toLowerCase();
+      return /\b(retry|try again)\b/i.test(label) || /重试/u.test(label);
+    });
+
+    for (const button of retryButtons) {
+      let current = button;
+      for (let depth = 0; current && depth < 6; depth += 1) {
+        const text = getElementTextWithControls(current);
+        if (isChatGptTransientPageErrorText(text)) {
+          return text.slice(0, 240);
+        }
+        current = current.parentElement;
+      }
+    }
+
+    return "";
+  }
+
+  function throwIfChatGptTransientPageError() {
+    const errorText = getVisibleChatGptTransientPageErrorText();
+    if (errorText) {
+      throw new Error(`ChatGPT 页面临时错误：${errorText}`);
+    }
   }
 
   function splitIntoParagraphs(text) {
@@ -2111,11 +2229,13 @@
   }
 
   async function confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength) {
+    throwIfChatGptTransientPageError();
     const firstSnapshot = getAssistantSnapshot();
     const firstText = getReplyTextFromSnapshot(firstSnapshot, allowShortReply, minShortReplySignalLength);
     if (!hasUsableAssistantReply(firstText, allowShortReply, minShortReplySignalLength) || isGenerating()) return "";
 
     await sleepWithStopCheck(BATCH_REPLY_CONFIRM_MS, batchId);
+    throwIfChatGptTransientPageError();
     if (isGenerating()) return "";
 
     const secondSnapshot = getAssistantSnapshot();
@@ -2125,6 +2245,7 @@
     if ((secondSnapshot.rawText || "") !== (firstSnapshot.rawText || "")) return "";
 
     await sleepWithStopCheck(BATCH_REPLY_FINAL_CONFIRM_MS, batchId);
+    throwIfChatGptTransientPageError();
     if (isGenerating()) return "";
 
     const finalSnapshot = getAssistantSnapshot();
@@ -2136,10 +2257,12 @@
   }
 
   async function isAssistantReplyChanging(batchId, waitMs = BATCH_REPLY_CONFIRM_MS) {
+    if (getVisibleChatGptTransientPageErrorText()) return false;
     const firstSnapshot = getAssistantSnapshot();
     if (isGenerating()) return true;
 
     await sleepWithStopCheck(waitMs, batchId);
+    if (getVisibleChatGptTransientPageErrorText()) return false;
     if (isGenerating()) return true;
 
     const secondSnapshot = getAssistantSnapshot();
@@ -2162,6 +2285,7 @@
     const startedAt = Date.now();
     while (Date.now() - startedAt < ms) {
       throwIfBatchStopped(batchId);
+      sendBatchHeartbeat(batchId);
       await sleep(Math.min(200, ms - (Date.now() - startedAt)));
     }
   }
@@ -2178,6 +2302,7 @@
 
     while (true) {
       throwIfBatchStopped(batchId);
+      throwIfChatGptTransientPageError();
       const currentSnapshot = getAssistantSnapshot();
       const latestText = currentSnapshot.text;
       const latestRawText = currentSnapshot.rawText || "";
@@ -2275,6 +2400,39 @@
         resolve({ ok: false, error: String(error && error.message ? error.message : error) });
       }
     });
+  }
+
+  function sendBatchHeartbeat(batchId) {
+    if (!batchId || currentBatchId !== batchId || !batchRunning) return;
+    const now = Date.now();
+    if (now - lastBatchHeartbeatAt < BATCH_HEARTBEAT_INTERVAL_MS) return;
+    lastBatchHeartbeatAt = now;
+    sendRuntimeMessage("BATCH_HEARTBEAT", {
+      batchId,
+      time: new Date().toISOString()
+    }).catch(() => {});
+  }
+
+  function refreshCurrentBatchAfterStuck(batchId) {
+    if (!batchRunning || !currentBatchId || currentBatchId !== batchId) {
+      return { ok: false, error: "当前页面没有对应的批量任务。" };
+    }
+    if (!currentBatchStuckRefresh?.payload) {
+      return { ok: false, error: "当前批量任务没有可恢复的续跑状态。" };
+    }
+
+    const saved = saveBatchRetryState({
+      payload: currentBatchStuckRefresh.payload,
+      time: Date.now()
+    });
+    if (!saved) {
+      return { ok: false, error: "续跑状态保存失败。" };
+    }
+
+    window.setTimeout(() => {
+      location.reload();
+    }, 80);
+    return { ok: true };
   }
 
   function normalizeConversationTitle(title) {
@@ -2591,7 +2749,7 @@
     const batchId = typeof options.batchId === "string" ? options.batchId : "";
     const startedAt = Date.now();
     let lastAssistantRawText = getAssistantSnapshot().rawText || "";
-    let assistantChangedAt = lastAssistantRawText ? Date.now() : 0;
+    let assistantChangedAt = 0;
 
     while (true) {
       if (batchId) {
@@ -2974,6 +3132,8 @@
     batchRunning = true;
     currentBatchId = batchId || "";
     batchStopRequested = false;
+    lastBatchHeartbeatAt = 0;
+    sendBatchHeartbeat(batchId);
     await sendRuntimeMessage("BATCH_PROGRESS", {
       batchId,
       running: true,
@@ -3016,6 +3176,21 @@
       resumeRetryAttempt: retryAttempt,
       resumeNeedsGlobalPrompt: Boolean(needsGlobalPrompt)
     });
+
+    const updateStuckRefreshPayload = (index, retryAttempt, needsGlobalPrompt) => {
+      const safeIndex = Math.min(batchItems.length - 1, Math.max(0, Number(index) || 0));
+      const safeRetryAttempt = Math.max(1, Number(retryAttempt) || 0);
+      currentBatchStuckRefresh = {
+        batchId,
+        index: safeIndex,
+        displayIndex: getDisplayIndexForBatchItem(safeIndex),
+        payload: buildResumePayload(safeIndex, safeRetryAttempt, needsGlobalPrompt)
+      };
+    };
+
+    if (batchItems.length) {
+      updateStuckRefreshPayload(startIndex, initialRetryAttempt, shouldSendResumeGlobalPrompt);
+    }
 
     const clearRetryStateForCurrentItem = (index) => {
       if (index === startIndex && initialRetryAttempt > 0) {
@@ -3224,6 +3399,7 @@
       });
 
       if (oneTimePrompt) {
+        updateStuckRefreshPayload(index, 1, true);
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
@@ -3241,6 +3417,7 @@
           batchId,
           onSent: () => renameSegmentConversation(index, { force: true })
         });
+        updateStuckRefreshPayload(index, 1, false);
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
@@ -3349,6 +3526,7 @@
 
       while (true) {
         throwIfBatchStopped(batchId);
+        throwIfChatGptTransientPageError();
         const snapshot = getAssistantSnapshot();
         const replyText = getReplyTextFromSnapshot(snapshot, false, 1);
         const rawText = snapshot.rawText || "";
@@ -3400,7 +3578,22 @@
         message: `页面已刷新，正在读取第 ${displayIndex}/${originalTotal} 条已有回答……`
       });
 
-      const answer = await readCurrentSettledAssistantReply();
+      let answer = "";
+      try {
+        answer = await readCurrentSettledAssistantReply();
+      } catch (error) {
+        if (isBatchStoppedError(error)) {
+          throw error;
+        }
+        await scheduleItemRetry({
+          index: startIndex,
+          retryAttempt: initialRetryAttempt,
+          displayIndex,
+          text: item.text,
+          reason: String(error && error.message ? error.message : error)
+        });
+        return "retry";
+      }
       if (!answer) {
         return "";
       }
@@ -3519,6 +3712,7 @@
       }
 
       if (loopStartIndex === startIndex && oneTimePrompt && (!isResume || shouldSendResumeGlobalPrompt)) {
+        updateStuckRefreshPayload(startIndex, 1, true);
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
@@ -3536,6 +3730,7 @@
           batchId,
           onSent: () => renameSegmentConversation(startIndex, { force: true })
         });
+        updateStuckRefreshPayload(startIndex, 1, false);
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
@@ -3559,6 +3754,7 @@
         const directoryPath = item.directoryPath;
         const retryAttempt = index === startIndex ? initialRetryAttempt : 0;
         const displayIndex = getDisplayIndexForBatchItem(index);
+        updateStuckRefreshPayload(index, retryAttempt, false);
         if (index > startIndex && index % BATCH_CONVERSATION_ITEM_LIMIT === 0) {
           await openNewBatchSegmentConversation(index, displayIndex);
         }
@@ -3729,6 +3925,8 @@
       batchRunning = false;
       currentBatchId = "";
       batchStopRequested = false;
+      currentBatchStuckRefresh = null;
+      lastBatchHeartbeatAt = 0;
     }
   }
 
@@ -3837,6 +4035,12 @@
       return;
     }
 
+    if (message.type === "EXT_REFRESH_STUCK_BATCH") {
+      const batchId = typeof message.payload?.batchId === "string" ? message.payload.batchId : "";
+      sendResponse(refreshCurrentBatchAfterStuck(batchId));
+      return;
+    }
+
     if (message.type === "EXT_STOP_CHAT_EXPORT") {
       const exportId = typeof message.payload?.exportId === "string" ? message.payload.exportId : "";
       if (!exportRunning || !currentExportId || (exportId && currentExportId !== exportId)) {
@@ -3858,6 +4062,8 @@
       batchRunning = false;
       currentBatchId = "";
       batchStopRequested = false;
+      currentBatchStuckRefresh = null;
+      lastBatchHeartbeatAt = 0;
       await sendRuntimeMessage("BATCH_FAILED", {
         batchId: retryState.payload.batchId,
         error: String(error && error.message ? error.message : error)

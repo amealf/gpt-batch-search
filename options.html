@@ -25,9 +25,9 @@
       --text-primary: #111827;
       --text-secondary: #374151;
       --text-muted: #6b7280;
-      --accent: #111827;
-      --accent-dim: #111827;
-      --accent-glow: transparent;
+      --accent: rgb(46, 124, 209);
+      --accent-dim: rgba(46, 124, 209, 0.16);
+      --accent-glow: rgba(46, 124, 209, 0.22);
       --danger: #d07a7a;
       --danger-dim: #fdf1f1;
       --danger-border: #ebb1b1;
@@ -39,20 +39,20 @@
       --tooltip-shadow: rgba(17, 24, 39, 0.18);
       --tooltip-border: transparent;
 
-      --tab-active-bg: #111827;
+      --tab-active-bg: rgb(46, 124, 209);
       --tab-active-text: #ffffff;
-      --tab-active-border: #111827;
+      --tab-active-border: rgb(46, 124, 209);
       --tab-active-shadow: none;
       --tab-hover-bg: #f3f4f6;
 
-      --primary-bg: #111827;
-      --primary-border: #111827;
+      --primary-bg: rgb(46, 124, 209);
+      --primary-border: rgb(46, 124, 209);
       --primary-text: #ffffff;
       --primary-shadow: none;
       --primary-hover-shadow: none;
 
-      --toggle-active-bg: #111827;
-      --toggle-active-border: #111827;
+      --toggle-active-bg: rgb(46, 124, 209);
+      --toggle-active-border: rgb(46, 124, 209);
       --toggle-active-text: #ffffff;
 
       --select-option-bg: #ffffff;
@@ -68,20 +68,20 @@
 
       --glow-display: none;
 
-      --icon-bg: #111827;
+      --icon-bg: rgb(46, 124, 209);
       --h1-gradient-from: #111827;
       --h1-gradient-to: #374151;
 
-      --help-hover-border: #d1d5db;
-      --toggle-hover-border: #9ca3af;
-      --btn-hover-border: #9ca3af;
+      --help-hover-border: rgb(46, 124, 209);
+      --toggle-hover-border: rgb(46, 124, 209);
+      --btn-hover-border: rgb(46, 124, 209);
     }
 
     /* ═══════════════════════════════════════
        Dark theme
        ═══════════════════════════════════════ */
     [data-theme="dark"] {
-      --bg-base: #0f1117;
+      --bg-base: rgb(25, 25, 25);
       --bg-surface: rgba(255, 255, 255, 0.04);
       --bg-surface-hover: rgba(255, 255, 255, 0.07);
       --bg-elevated: rgba(255, 255, 255, 0.06);
@@ -90,9 +90,9 @@
       --text-primary: #e8eaed;
       --text-secondary: #9aa0a6;
       --text-muted: #6b7280;
-      --accent: #2f7a93;
-      --accent-dim: rgba(47, 122, 147, 0.18);
-      --accent-glow: rgba(47, 122, 147, 0.28);
+      --accent: rgb(46, 124, 209);
+      --accent-dim: rgba(46, 124, 209, 0.18);
+      --accent-glow: rgba(46, 124, 209, 0.28);
       --danger: #f87171;
       --danger-dim: rgba(248, 113, 113, 0.12);
       --danger-border: rgba(248, 113, 113, 0.3);
@@ -104,21 +104,21 @@
       --tooltip-shadow: rgba(0, 0, 0, 0.4);
       --tooltip-border: rgba(255, 255, 255, 0.08);
 
-      --tab-active-bg: rgba(47, 122, 147, 0.2);
-      --tab-active-text: #8fd3e6;
+      --tab-active-bg: rgba(46, 124, 209, 0.2);
+      --tab-active-text: #8ec5ff;
       --tab-active-border: transparent;
-      --tab-active-shadow: 0 0 12px rgba(47, 122, 147, 0.28);
+      --tab-active-shadow: 0 0 12px rgba(46, 124, 209, 0.28);
       --tab-hover-bg: rgba(255, 255, 255, 0.07);
 
-      --primary-bg: #2f7a93;
+      --primary-bg: rgb(46, 124, 209);
       --primary-border: transparent;
       --primary-text: #ffffff;
-      --primary-shadow: 0 0 16px rgba(47, 122, 147, 0.28);
-      --primary-hover-shadow: 0 0 24px rgba(47, 122, 147, 0.38);
+      --primary-shadow: 0 0 16px rgba(46, 124, 209, 0.28);
+      --primary-hover-shadow: 0 0 24px rgba(46, 124, 209, 0.38);
 
-      --toggle-active-bg: rgba(47, 122, 147, 0.2);
-      --toggle-active-border: #2f7a93;
-      --toggle-active-text: #8fd3e6;
+      --toggle-active-bg: rgba(46, 124, 209, 0.2);
+      --toggle-active-border: rgb(46, 124, 209);
+      --toggle-active-text: #8ec5ff;
 
       --select-option-bg: #1a1c2a;
       --select-option-text: #e8eaed;
@@ -131,15 +131,15 @@
       --scrollbar-thumb: rgba(255,255,255,0.12);
       --scrollbar-thumb-hover: rgba(255,255,255,0.2);
 
-      --glow-display: block;
+      --glow-display: none;
 
-      --icon-bg: #2f7a93;
+      --icon-bg: rgb(46, 124, 209);
       --h1-gradient-from: #e8eaed;
       --h1-gradient-to: #9aa0a6;
 
-      --help-hover-border: rgba(255,255,255,0.18);
-      --toggle-hover-border: rgba(255,255,255,0.18);
-      --btn-hover-border: rgba(255,255,255,0.18);
+      --help-hover-border: rgba(46, 124, 209, 0.8);
+      --toggle-hover-border: rgba(46, 124, 209, 0.8);
+      --btn-hover-border: rgba(46, 124, 209, 0.8);
     }
 
     /* ═══════════════════════════════════════
@@ -275,8 +275,8 @@
     }
 
     .language-option.is-active {
-      color: var(--tab-active-text);
-      background: var(--tab-active-bg);
+      color: var(--text-primary);
+      background: var(--bg-surface-hover);
     }
 
     .language-option:disabled {
@@ -315,10 +315,10 @@
     }
 
     .settings-toggle.is-active {
-      background: var(--tab-active-bg);
-      border-color: var(--tab-active-border);
-      color: var(--tab-active-text);
-      box-shadow: var(--tab-active-shadow);
+      background: var(--bg-surface-hover);
+      border-color: var(--border-default);
+      color: var(--text-primary);
+      box-shadow: none;
     }
 
     .theme-toggle .icon-sun,
@@ -781,7 +781,7 @@
       line-height: 1;
       border: 1px solid var(--border-default);
       background: var(--bg-elevated);
-      color: var(--text-secondary);
+      color: var(--accent);
       cursor: pointer;
       transition: all 0.15s ease;
       min-height: unset;
@@ -790,7 +790,7 @@
     .help-button:hover,
     .icon-button:hover {
       background: var(--bg-surface-hover);
-      color: var(--text-primary);
+      color: var(--accent);
       border-color: var(--help-hover-border);
     }
 
@@ -861,6 +861,10 @@
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+    }
+
+    .toolbar-row-focus {
+      align-items: flex-start;
     }
 
     .toolbar-group {
@@ -987,6 +991,14 @@
 
     .toolbar-spacer {
       flex: 1 1 0;
+    }
+
+    .toolbar-focus-option {
+      flex: 0 1 auto;
+    }
+
+    .toolbar-focus-option .toggle-label {
+      min-height: var(--control-height);
     }
 
     /* ═══════════════════════════════════════
@@ -1174,6 +1186,15 @@
           <button id="deleteProgressChats" type="button" title="删除所有标题形如「当前进度 256/321」的 ChatGPT 对话。">清理进度对话</button>
           <span id="batchSaved" class="hint" style="display: none;">已保存</span>
         </div>
+        <div class="toolbar-row toolbar-row-focus">
+          <div class="toolbar-group toolbar-focus-option">
+            <label class="toggle-label" for="batchFocusWhenStuck">
+              <input id="batchFocusWhenStuck" type="checkbox">
+              <span id="batchFocusWhenStuckLabel">保持网页焦点</span>
+            </label>
+            <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="批量任务依赖网页里的计时器和页面更新。窗口长时间失去焦点时，浏览器可能降低页面运行频率，导致等待回答、重试或保存进度变慢。开启后，任务心跳约 5 分钟没有更新时，会刷新 ChatGPT 网页恢复任务；刷新后约 2 分钟当前条目仍没有推进时，才会激活 ChatGPT 网页。两次激活之间至少间隔 10 分钟。默认关闭，避免影响当前操作。">?</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1184,10 +1205,6 @@
       <div id="batchFailureGroup" class="failure-group" hidden>
         <div class="failure-title">保存失败</div>
         <div id="batchFailureBox" class="status-box failure-box"></div>
-      </div>
-      <div id="batchRetryGroup" class="failure-group" hidden>
-        <div class="failure-title">再次发送</div>
-        <div id="batchRetryBox" class="status-box failure-box"></div>
       </div>
       <ul id="batchLogs" class="log-list"></ul>
     </div>
