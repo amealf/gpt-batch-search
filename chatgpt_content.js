@@ -2479,6 +2479,12 @@
     return normalizeConversationTitle(path[path.length - 1] || directoryName || item.text || "批量消息");
   }
 
+  function getBatchConversationDirectoryTitle(batchItems, index, directoryName) {
+    const item = batchItems[index] || {};
+    const path = Array.isArray(item.directoryPath) ? item.directoryPath.filter(Boolean) : [];
+    return normalizeConversationTitle(directoryName || path[path.length - 1] || getBatchSubjectTitle(batchItems, index, directoryName));
+  }
+
   function buildBatchConversationTitle(batchItems, index, options = {}) {
     const originalTotal = Number.isFinite(Number(options.originalTotal)) && Number(options.originalTotal) > 0
       ? Number(options.originalTotal)
@@ -2486,11 +2492,27 @@
     const displayIndex = Number.isFinite(Number(options.displayIndex)) && Number(options.displayIndex) > 0
       ? Number(options.displayIndex)
       : index + 1;
-    return normalizeConversationTitle(`当前进度 ${displayIndex}/${originalTotal}`);
+    const progress = `${displayIndex}/${originalTotal}`;
+    const maxBaseLength = Math.max(1, 80 - progress.length - 1);
+    const baseTitle = getBatchConversationDirectoryTitle(batchItems, index, options.directoryName)
+      .slice(0, maxBaseLength)
+      .trim() || "批量消息";
+    return normalizeConversationTitle(`${baseTitle} ${progress}`);
   }
 
   function isProgressConversationTitle(title) {
-    return /^当前进度\s+\d+\s*\/\s*\d+$/u.test(normalizeConversationTitle(title));
+    const normalized = normalizeConversationTitle(title);
+    const matches = normalized.matchAll(/(?:^|[^\d])(?:当前进度\s*)?(\d{1,5})\s*\/\s*(\d{1,5})(?=$|[^\d])/gu);
+    for (const match of matches) {
+      const current = Number(match[1]);
+      const total = Number(match[2]);
+      if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0 || current > total) {
+        continue;
+      }
+      const looksLikeYearRange = current >= 1900 && current <= 2100 && total >= 1900 && total <= 2100;
+      if (!looksLikeYearRange) return true;
+    }
+    return false;
   }
 
   async function reportDeleteProgress(message, level = "info") {
@@ -3155,7 +3177,7 @@
 
     let completed = initialCompleted;
     let failed = initialFailed;
-    const renamedSegments = new Set();
+    const renamedSegments = new Map();
     const renameAttemptsBySegment = new Map();
     let retryWatchdogTimer = null;
 
@@ -3309,18 +3331,18 @@
     const renameSegmentConversation = async (index, options = {}) => {
       const force = Boolean(options.force);
       const segment = getBatchConversationSegment(index);
-      if (!force && renamedSegments.has(segment)) return;
-      const attemptKey = force ? `force:${segment}` : `normal:${segment}`;
-      const attempts = renameAttemptsBySegment.get(attemptKey) || 0;
-      if (attempts >= (force ? 3 : 2)) return;
-
-      renameAttemptsBySegment.set(attemptKey, attempts + 1);
       const displayIndex = getDisplayIndexForBatchItem(index);
       const title = buildBatchConversationTitle(batchItems, index, {
         displayIndex,
         originalTotal,
         directoryName
       });
+      if (!force && renamedSegments.get(segment) === title) return;
+      const attemptKey = `${force ? "force" : "normal"}:${segment}:${title}`;
+      const attempts = renameAttemptsBySegment.get(attemptKey) || 0;
+      if (attempts >= (force ? 3 : 2)) return;
+
+      renameAttemptsBySegment.set(attemptKey, attempts + 1);
       await sendRuntimeMessage("BATCH_PROGRESS", {
         batchId,
         running: true,
@@ -3338,7 +3360,7 @@
         renamed = await renameCurrentConversationBestEffort(title) || renamed;
       }
       if (renamed) {
-        renamedSegments.add(segment);
+        renamedSegments.set(segment, title);
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
           running: true,
