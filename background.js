@@ -82,7 +82,7 @@ const LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发�
 6 不要使用脚注，可以在段末附带链接
 
 7 在文章开头写一个总结性质的标题`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与伦理学相关的」文本。要求如下：
+const ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与伦理学相关的」文本。要求如下：
 
 内容要求：
 
@@ -101,7 +101,45 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与文学理论相关的」文本。要求如下：
+
+内容要求：
+
+1 优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。避免使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+2 以下并非硬性要求：考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。
+
+写作要求：
+
+3 使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验。在文章开头写一个总结性质的一级标题。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。
+
+结构要求：
+
+4 不要使用「不是..而是..」和类似的否定先行的句子结构。不要先行使用否定句来引导后续定义。优先使用短句，用易读的风格进行写作。不要总是使用「总得来说」等结构词开启最后一段，自然地结尾。
+
+格式要求：
+
+5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
+
+Content requirements:
+
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+
+2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
+
+Writing requirements:
+
+3 Write a complete English article about the text, aiming for a publishable blog style. Add some style to the prose, avoid a translated or AI-like tone, and keep the article smooth and readable. Start with a summary-style H1 heading. Consider opening through background context before gradually introducing the topic. End naturally, without extension questions or editorial suggestions.
+
+Structure requirements:
+
+4 Avoid "not...but..." and similar negative-first sentence structures. Do not lead with negation when defining a concept. Prefer short sentences and an easy reading style. Do not keep opening the final paragraph with formulaic phrases such as "In summary"; close naturally.
+
+Format requirements:
+
+5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
 
@@ -761,6 +799,8 @@ async function getBatchPromptConfig() {
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
       BATCH_EN_GLOBAL_PROMPT,
+      ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT,
+      ETHICS_BATCH_EN_GLOBAL_PROMPT,
       LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
       PRIOR_BATCH_DEFAULT_GLOBAL_PROMPT,
       CURRENT_BATCH_DEFAULT_GLOBAL_PROMPT,

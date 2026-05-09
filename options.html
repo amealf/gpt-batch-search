@@ -32,6 +32,10 @@
       --danger-dim: #fdf1f1;
       --danger-border: #ebb1b1;
       --danger-text: #8f4949;
+      --soft-blue-bg: #bfdbfe;
+      --soft-blue-text: #111827;
+      --directory-alert-border: #f4aaaa;
+      --directory-alert-shadow: rgba(244, 170, 170, 0.35);
 
       --tooltip-bg: #111827;
       --tooltip-text: #ffffff;
@@ -97,6 +101,10 @@
       --danger-dim: rgba(248, 113, 113, 0.12);
       --danger-border: rgba(248, 113, 113, 0.3);
       --danger-text: #f87171;
+      --soft-blue-bg: rgba(46, 124, 209, 0.34);
+      --soft-blue-text: #e8eaed;
+      --directory-alert-border: rgba(248, 113, 113, 0.72);
+      --directory-alert-shadow: rgba(248, 113, 113, 0.24);
 
       --tooltip-bg: #1e2030;
       --tooltip-text: #e8eaed;
@@ -276,7 +284,7 @@
 
     .language-option.is-active {
       color: var(--text-primary);
-      background: var(--bg-surface-hover);
+      background: var(--soft-blue-bg);
     }
 
     .language-option:disabled {
@@ -838,6 +846,88 @@
       border: 1px solid var(--tooltip-border);
     }
 
+    .copy-prompt-button {
+      position: relative;
+      min-height: 28px;
+      padding: 0 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .copy-prompt-button:hover,
+    .copy-prompt-button:focus-visible {
+      background: var(--bg-surface-hover);
+      border-color: var(--help-hover-border);
+      outline: none;
+    }
+
+    .copy-prompt-button.is-copied {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .copy-prompt-button.is-copy-failed {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .copy-prompt-tooltip {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(560px, calc(100vw - 48px));
+      max-height: 360px;
+      overflow: auto;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #111827;
+      box-shadow: none;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: left !important;
+      white-space: normal;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      z-index: 30;
+    }
+
+    .copy-prompt-tooltip strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .copy-prompt-tooltip-body {
+      display: block;
+      margin: 0;
+      padding: 0;
+      text-indent: 0;
+      white-space: pre-wrap;
+    }
+
+    .copy-prompt-button:hover .copy-prompt-tooltip,
+    .copy-prompt-button:focus-visible .copy-prompt-tooltip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
     .help-button:hover::before,
     .help-button:hover::after,
     .help-button:focus-visible::before,
@@ -878,7 +968,7 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--control-radius);
       background: var(--toolbar-bg);
-      transition: background 0.3s ease, border-color 0.3s ease;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease;
     }
 
     .toolbar-label {
@@ -987,6 +1077,17 @@
       color: var(--chip-text);
       white-space: normal;
       word-break: break-all;
+    }
+
+    .directory-chip.is-selected {
+      background: var(--soft-blue-bg);
+      color: var(--soft-blue-text);
+      font-weight: 600;
+    }
+
+    .toolbar-group-directory.is-directory-alert {
+      border-color: var(--directory-alert-border);
+      box-shadow: 0 0 0 3px var(--directory-alert-shadow);
     }
 
     .toolbar-spacer {
@@ -1164,7 +1265,15 @@
             <div class="panel-head">
               <label for="batchInputs">待处理文本</label>
               <div class="panel-tools">
-                <button type="button" class="help-button" data-tip="一级标题用中文（英文）这样的格式，其他级的标题都使用「英文（中文）」这样的格式&#10;&#10;不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。&#10;&#10;框架分成三个等级：&#10;&#10;大章节：1. 2. 3.&#10;&#10;二级章节：1_1 1_2&#10;&#10;三级标题：1_2_1&#10;&#10;具体的正文内容：最后一级标题+符号◆，比如如果这个正文在三级标题下面，就写成 1_2_1 ◆">?</button>
+                <button id="copyDisciplineMapPrompt" type="button" class="copy-prompt-button" aria-describedby="disciplineMapPromptTooltip">
+                  <span id="copyDisciplineMapPromptLabel">学科地图 Prompt</span>
+                  <span id="disciplineMapPromptTooltip" class="copy-prompt-tooltip" role="tooltip">
+                    <strong id="disciplineMapPromptTooltipLead">点击可复制。
+需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。</strong>
+                    <span id="disciplineMapPromptTooltipBody" class="copy-prompt-tooltip-body"></span>
+                  </span>
+                </button>
+                <button id="batchInputsHelp" type="button" class="help-button" data-tip="这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。默认会跳过一级标题和二级标题。">?</button>
                 <button id="batchClearInputs" type="button" class="icon-button" aria-label="清除待处理文本" title="清除待处理文本">x</button>
               </div>
             </div>
@@ -1175,7 +1284,7 @@
 
       <div class="batch-toolbar">
         <div class="toolbar-row">
-          <div class="toolbar-group toolbar-group-directory">
+          <div id="batchDirectoryGroup" class="toolbar-group toolbar-group-directory">
             <span class="toolbar-label">保存目录</span>
             <button id="pickBatchDirectory" type="button" class="directory-button is-required" title="导出的 Markdown 文件会保存到这里。">选择目录</button>
             <span id="batchDirectoryText" class="directory-chip required-hint">必选</span>
@@ -1203,7 +1312,7 @@
       <div id="batchSummary" class="hint">当前没有批量任务。</div>
       <div id="batchStatus" class="status-box">等待任务开始。</div>
       <div id="batchFailureGroup" class="failure-group" hidden>
-        <div class="failure-title">保存失败</div>
+        <div id="batchFailureTitle" class="failure-title">保存失败</div>
         <div id="batchFailureBox" class="status-box failure-box"></div>
       </div>
       <ul id="batchLogs" class="log-list"></ul>
@@ -1213,7 +1322,7 @@
   <section id="page-hotkeys" class="page">
     <div class="guide-card">
       <div class="guide-card-head">
-        <div class="guide-card-title">快捷消息使用说明</div>
+        <div id="hotkeyGuideTitle" class="guide-card-title">快捷消息使用说明</div>
         <div class="guide-actions">
           <button id="openShortcutSettings" type="button" class="secondary-button">打开快捷键设置</button>
           <button id="save" class="primary">保存快捷消息设置</button>
@@ -1223,14 +1332,14 @@
 
       <div class="guide-card-body">
         <ol class="guide-list">
-          <li>先给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。</li>
-          <li>点「保存快捷消息设置」，再点「打开快捷键设置」进入 Chrome 的快捷键页面。</li>
-          <li>给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。</li>
+          <li id="hotkeyGuideStep1">先给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。</li>
+          <li id="hotkeyGuideStep2">点「保存快捷消息设置」，再点「打开快捷键设置」进入 Chrome 的快捷键页面。</li>
+          <li id="hotkeyGuideStep3">给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。</li>
         </ol>
 
         <div class="guide-side">
-          <div class="guide-note">推荐流程：修改 Prompt 后先保存，再设置快捷键。设置完成以后，不需要一直停留在这个页面。</div>
-          <div class="guide-note">四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。</div>
+          <div id="hotkeyGuideNote1" class="guide-note">推荐流程：修改 Prompt 后先保存，再设置快捷键。设置完成以后，不需要一直停留在这个页面。</div>
+          <div id="hotkeyGuideNote2" class="guide-note">四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。</div>
         </div>
       </div>
     </div>
@@ -1240,8 +1349,8 @@
 
   <section id="page-export" class="page">
     <div class="group">
-      <div class="row"><strong>当前对话导出</strong></div>
-      <p class="hint">读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答逐条导出。每个 md 文件沿用批量处理的保存格式，标题使用用户问题，正文使用 GPT 回答。</p>
+      <div class="row"><strong id="exportTitle">当前对话导出</strong></div>
+      <p id="exportHint" class="hint">读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答逐条导出。每个 md 文件沿用批量处理的保存格式，标题使用用户问题，正文使用 GPT 回答。</p>
       <div class="actions export-actions">
         <div class="toolbar-group toolbar-group-directory">
           <span class="toolbar-label">保存目录</span>
@@ -1254,7 +1363,7 @@
     </div>
 
     <div class="group">
-      <div class="row"><strong>运行状态</strong></div>
+      <div class="row"><strong id="exportRunStatusTitle">运行状态</strong></div>
       <div id="exportSummary" class="hint">当前没有导出任务。</div>
       <div id="exportStatus" class="status-box">等待任务开始。</div>
       <ul id="exportLogs" class="log-list"></ul>
@@ -1263,25 +1372,25 @@
 
   <section id="page-settings" class="page">
     <div class="group">
-      <div class="row"><strong>批量信息相关设置项</strong></div>
+      <div class="row"><strong id="batchSettingsTitle">批量信息相关设置项</strong></div>
       <div class="settings-list">
         <div class="settings-item">
           <div class="settings-main">
-            <div class="settings-title">任务模式</div>
-            <div class="settings-desc">选择批量任务开始时新建对话，或沿用当前 ChatGPT 窗口。</div>
+            <div id="taskModeTitle" class="settings-title">任务模式</div>
+            <div id="taskModeDesc" class="settings-desc">选择批量任务开始时新建对话，或沿用当前 ChatGPT 窗口。</div>
           </div>
           <div class="settings-control">
             <select id="batchConversationMode" class="compact-select" title="选择任务开始时是新建对话，还是沿用当前窗口。">
-              <option value="new">新建对话</option>
-              <option value="current">当前窗口</option>
+              <option id="batchConversationModeNew" value="new">新建对话</option>
+              <option id="batchConversationModeCurrent" value="current">当前窗口</option>
             </select>
           </div>
         </div>
 
         <div class="settings-item">
           <div class="settings-main">
-            <div class="settings-title">忽略标题</div>
-            <div class="settings-desc">解析待处理文本时，跳过以 # 开头的一级标题和以 ## 开头的二级标题。</div>
+            <div id="ignoreHeadingTitle" class="settings-title">忽略标题</div>
+            <div id="ignoreHeadingDesc" class="settings-desc">解析待处理文本时，跳过以 # 开头的一级标题和以 ## 开头的二级标题。</div>
           </div>
           <div class="settings-control">
             <button id="batchIgnoreHeading1" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 # 开头的一级标题。">一级标题</button>
@@ -1291,12 +1400,12 @@
 
         <div class="settings-item">
           <div class="settings-main">
-            <div class="settings-title">等待时间</div>
-            <div class="settings-desc">这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。</div>
+            <div id="delayTitle" class="settings-title">等待时间</div>
+            <div id="delayDesc" class="settings-desc">这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。</div>
           </div>
           <div class="settings-control">
             <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
-            <span class="toolbar-unit">秒</span>
+            <span id="delaySecondsUnit" class="toolbar-unit">秒</span>
           </div>
         </div>
       </div>

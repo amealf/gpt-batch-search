@@ -168,6 +168,41 @@
       (/retry/i.test(normalized) && /stopped thinking|failed to send|failed to generate|timed out/i.test(normalized));
   }
 
+  function isActiveThinkingStatusText(text) {
+    const normalized = normalizeChatGptPageErrorText(text);
+    if (!normalized || normalized.length > 140) return false;
+    if (/^已思考/u.test(normalized) || /^Thought for\b/i.test(normalized)) return false;
+    return /正在思考/u.test(normalized) ||
+      /正在推理/u.test(normalized) ||
+      /正在生成/u.test(normalized) ||
+      /^Thinking\b/i.test(normalized) ||
+      /^Reasoning\b/i.test(normalized) ||
+      /^Generating\b/i.test(normalized);
+  }
+
+  function hasActiveThinkingStatus() {
+    const candidates = Array.from(document.querySelectorAll([
+      "[aria-live]",
+      "[role='status']",
+      "[data-testid*='thinking' i]",
+      "[data-testid*='reason' i]",
+      "[data-testid*='stream' i]",
+      "main div",
+      "main span",
+      "main p"
+    ].join(",")));
+
+    for (const element of candidates) {
+      if (!isElementVisible(element)) continue;
+      if (!isElementForLatestChatGptResponse(element)) continue;
+      const text = normalizeChatGptPageErrorText(element.innerText || element.textContent || "");
+      if (isActiveThinkingStatusText(text)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function isElementForLatestChatGptResponse(element) {
     if (!element) return false;
 
@@ -2207,6 +2242,10 @@
 
   function isGenerating() {
     if (Array.from(document.querySelectorAll("button")).some((button) => isStreamingStopButton(button))) {
+      return true;
+    }
+
+    if (hasActiveThinkingStatus()) {
       return true;
     }
 
