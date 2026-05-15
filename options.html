@@ -37,11 +37,11 @@
       --directory-alert-border: #f4aaaa;
       --directory-alert-shadow: rgba(244, 170, 170, 0.35);
 
-      --tooltip-bg: #111827;
+      --tooltip-bg: rgba(17, 24, 39, 0.72);
       --tooltip-text: #ffffff;
-      --tooltip-arrow: #111827;
+      --tooltip-arrow: rgba(17, 24, 39, 0.72);
       --tooltip-shadow: rgba(17, 24, 39, 0.18);
-      --tooltip-border: transparent;
+      --tooltip-border: rgba(255, 255, 255, 0.22);
 
       --tab-active-bg: #111827;
       --tab-active-text: #ffffff;
@@ -106,11 +106,11 @@
       --directory-alert-border: rgba(248, 113, 113, 0.72);
       --directory-alert-shadow: rgba(248, 113, 113, 0.24);
 
-      --tooltip-bg: #1e2030;
+      --tooltip-bg: rgba(30, 32, 48, 0.68);
       --tooltip-text: #e8eaed;
-      --tooltip-arrow: #1e2030;
+      --tooltip-arrow: rgba(30, 32, 48, 0.68);
       --tooltip-shadow: rgba(0, 0, 0, 0.4);
-      --tooltip-border: rgba(255, 255, 255, 0.08);
+      --tooltip-border: rgba(255, 255, 255, 0.16);
 
       --tab-active-bg: rgba(46, 124, 209, 0.2);
       --tab-active-text: #8ec5ff;
@@ -831,19 +831,21 @@
       bottom: calc(100% + 10px);
       transform: translateX(-50%);
       width: max-content;
-      max-width: 260px;
-      padding: 8px 10px;
-      border-radius: 10px;
+      max-width: 320px;
+      padding: 10px 12px;
+      border-radius: 12px;
       background: var(--tooltip-bg);
       color: var(--tooltip-text);
       font-size: 12px;
       font-weight: 400;
-      line-height: 1.45;
+      line-height: 1.55;
       text-align: left;
-      white-space: normal;
+      white-space: pre-line;
       box-shadow: 0 10px 30px var(--tooltip-shadow);
       z-index: 20;
       border: 1px solid var(--tooltip-border);
+      backdrop-filter: blur(14px) saturate(1.35);
+      -webkit-backdrop-filter: blur(14px) saturate(1.35);
     }
 
     .copy-prompt-button {
@@ -953,8 +955,16 @@
       align-items: center;
     }
 
+    .batch-toolbar > .toolbar-row:first-child {
+      flex-wrap: nowrap;
+    }
+
     .toolbar-row-focus {
       align-items: flex-start;
+    }
+
+    .toolbar-row-actions {
+      justify-content: space-between;
     }
 
     .toolbar-group {
@@ -978,7 +988,8 @@
     }
 
     .compact-select,
-    input.compact-number {
+    input.compact-number,
+    input.compact-text {
       font: inherit;
       font-size: var(--control-font-size);
       border: 1px solid var(--border-default);
@@ -991,7 +1002,8 @@
     }
 
     .compact-select:focus,
-    input.compact-number:focus {
+    input.compact-number:focus,
+    input.compact-text:focus {
       border-color: var(--accent);
       outline: none;
     }
@@ -1015,6 +1027,12 @@
       -moz-appearance: textfield;
     }
 
+    input.compact-text {
+      width: min(300px, 32vw);
+      min-width: 190px;
+      padding: 0 10px;
+    }
+
     .compact-number::-webkit-outer-spin-button,
     .compact-number::-webkit-inner-spin-button {
       margin: 0;
@@ -1027,37 +1045,35 @@
     }
 
     /* ═══════════════════════════════════════
-       Mini toggle
-       ═══════════════════════════════════════ */
-    .mini-toggle {
-      min-height: var(--control-height);
-      padding: 0 10px;
-      border-radius: var(--control-radius);
-      font-size: var(--control-font-size);
-      background: var(--bg-base);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-default);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .mini-toggle:hover {
-      border-color: var(--toggle-hover-border);
-      color: var(--text-primary);
-    }
-
-    .mini-toggle.is-active {
-      background: var(--toggle-active-bg);
-      border-color: var(--toggle-active-border);
-      color: var(--toggle-active-text);
-    }
-
-    /* ═══════════════════════════════════════
        Directory
        ═══════════════════════════════════════ */
     .toolbar-group-directory {
       flex: 1 1 auto;
       min-width: 0;
+    }
+
+    #batchDirectoryGroup {
+      flex: 0 1 360px;
+      max-width: min(360px, 100%);
+    }
+
+    #batchDirectoryGroup .directory-chip {
+      max-width: 86px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      word-break: normal;
+    }
+
+    .toolbar-new-chat {
+      flex: 1 1 680px;
+      max-width: 900px;
+    }
+
+    .toolbar-new-chat input.compact-text {
+      flex: 1 1 560px;
+      width: min(680px, 56vw);
+      min-width: 320px;
     }
 
     .directory-button.is-required {
@@ -1092,6 +1108,21 @@
 
     .toolbar-spacer {
       flex: 1 1 0;
+    }
+
+    .toolbar-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .toolbar-actions button {
+      height: calc(var(--control-height) + 14px);
+      min-height: calc(var(--control-height) + 14px);
+      padding: 0 23px;
+      font-size: 14px;
     }
 
     .toolbar-focus-option {
@@ -1273,7 +1304,7 @@
                     <span id="disciplineMapPromptTooltipBody" class="copy-prompt-tooltip-body"></span>
                   </span>
                 </button>
-                <button id="batchInputsHelp" type="button" class="help-button" data-tip="这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。默认会跳过一级标题和二级标题。">?</button>
+                <button id="batchInputsHelp" type="button" class="help-button" data-tip="这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近标题」后，最近的一个标题会和文本一起发送；可在设置页面关闭。">?</button>
                 <button id="batchClearInputs" type="button" class="icon-button" aria-label="清除待处理文本" title="清除待处理文本">x</button>
               </div>
             </div>
@@ -1289,19 +1320,26 @@
             <button id="pickBatchDirectory" type="button" class="directory-button is-required" title="导出的 Markdown 文件会保存到这里。">选择目录</button>
             <span id="batchDirectoryText" class="directory-chip required-hint">必选</span>
           </div>
-          <div class="toolbar-spacer"></div>
-          <button id="batchStart" class="primary">开始</button>
-          <button id="batchStop" type="button">停止</button>
-          <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
-          <span id="batchSaved" class="hint" style="display: none;">已保存</span>
+          <div class="toolbar-group toolbar-new-chat">
+            <span id="newChatUrlTitle" class="toolbar-label">新建对话链接</span>
+            <input id="batchNewChatUrl" class="compact-text" type="url" placeholder="https://chatgpt.com/g/.../project" title="用于新建对话的 ChatGPT 项目链接。">
+            <button id="batchNewChatUrlHelp" type="button" class="help-button" data-tip="这个链接决定新建对话在哪里创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议新建一个项目，再使用这个项目链接。">?</button>
+          </div>
         </div>
-        <div class="toolbar-row toolbar-row-focus">
+        <div class="toolbar-row toolbar-row-focus toolbar-row-actions">
           <div class="toolbar-group toolbar-focus-option">
             <label class="toggle-label" for="batchFocusWhenStuck">
               <input id="batchFocusWhenStuck" type="checkbox">
               <span id="batchFocusWhenStuckLabel">保持网页焦点</span>
             </label>
             <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="批量任务依赖网页里的计时器和页面更新。窗口长时间失去焦点时，浏览器可能降低页面运行频率，导致等待回答、重试或保存进度变慢。开启后，任务心跳约 5 分钟没有更新时，会刷新 ChatGPT 网页恢复任务；刷新后约 2 分钟当前条目仍没有推进时，才会激活 ChatGPT 网页。两次激活之间至少间隔 10 分钟。默认关闭，避免影响当前操作。">?</button>
+          </div>
+          <div class="toolbar-spacer"></div>
+          <div class="toolbar-actions">
+            <button id="batchStart" class="primary">开始</button>
+            <button id="batchStop" type="button">停止</button>
+            <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
+            <span id="batchSaved" class="hint" style="display: none;">已保存</span>
           </div>
         </div>
       </div>
@@ -1389,12 +1427,14 @@
 
         <div class="settings-item">
           <div class="settings-main">
-            <div id="ignoreHeadingTitle" class="settings-title">忽略标题</div>
-            <div id="ignoreHeadingDesc" class="settings-desc">解析待处理文本时，跳过以 # 开头的一级标题和以 ## 开头的二级标题。</div>
+            <div id="includeNearestHeadingTitle" class="settings-title">发送最近标题</div>
+            <div id="includeNearestHeadingDesc" class="settings-desc">开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上离它最近的上级标题，中间使用一个空格。</div>
           </div>
           <div class="settings-control">
-            <button id="batchIgnoreHeading1" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 # 开头的一级标题。">一级标题</button>
-            <button id="batchIgnoreHeading2" type="button" class="mini-toggle" aria-pressed="true" title="跳过以 ## 开头的二级标题。">二级标题</button>
+            <label class="toggle-label" for="batchIncludeNearestHeading">
+              <input id="batchIncludeNearestHeading" type="checkbox">
+              <span id="batchIncludeNearestHeadingLabel">开启</span>
+            </label>
           </div>
         </div>
 

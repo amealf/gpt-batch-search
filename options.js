@@ -76,7 +76,7 @@ const ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与文学理论相关的」文本。要求如下：
+const LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与文学理论相关的」文本。要求如下：
 
 内容要求：
 
@@ -95,7 +95,26 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这个并非硬性要求。
+
+写作要求：
+
+使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验。在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。
+
+风格要求：
+
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。用易读的风格进行写作，考虑优先使用短句。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+
+格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
 
 Content requirements:
 
@@ -114,6 +133,25 @@ Structure requirements:
 Format requirements:
 
 5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+
+Content requirements:
+
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Use Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+
+Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
+
+Writing requirements:
+
+Write a complete English article about the text, aiming for publishable quality. Use a blog-article style, add some prose style, and avoid translated-sounding or AI-sounding phrasing. Keep the article smooth and pleasant to read as a whole. Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions.
+
+Style requirements:
+
+Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures. Write in an easy-to-read style and prefer short sentences where possible. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
+
+Format requirements:
+
+The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
 const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
@@ -189,8 +227,8 @@ const BATCH_CONFIG_DEFAULTS = {
   batchPromptLanguage: BATCH_PROMPT_LANGUAGE_CN,
   batchInputs: BATCH_DEFAULT_INPUTS,
   batchConversationMode: BATCH_CONVERSATION_MODE_NEW,
-  batchIgnoreHeading1: true,
-  batchIgnoreHeading2: true,
+  batchNewChatUrl: "",
+  batchIncludeNearestHeading: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   batchFocusWhenStuck: false,
   batchDirectoryName: "",
@@ -460,7 +498,7 @@ const BATCH_UI_TEXT = {
     messagePromptTip: "每条文本都会附在这个消息 Prompt 后面发送。",
     pendingText: "待处理文本",
     pendingTextPlaceholder: "每行一条文本",
-    pendingTextTip: "这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。默认会跳过一级标题和二级标题。",
+    pendingTextTip: "这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近标题」后，最近的一个标题会和文本一起发送；可在设置页面关闭。",
     copyDisciplineMapPrompt: "学科地图 Prompt",
     copyDisciplineMapPromptTitle: "点击可复制。\n需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。",
     copyDisciplineMapPromptCopied: "已复制",
@@ -514,12 +552,13 @@ const BATCH_UI_TEXT = {
     taskModeSelectTitle: "选择任务开始时是新建对话，还是沿用当前窗口。",
     taskModeNew: "新建对话",
     taskModeCurrent: "当前窗口",
-    ignoreHeadingTitle: "忽略标题",
-    ignoreHeadingDesc: "解析待处理文本时，跳过以 # 开头的一级标题和以 ## 开头的二级标题。",
-    heading1: "一级标题",
-    heading2: "二级标题",
-    heading1Title: "跳过以 # 开头的一级标题。",
-    heading2Title: "跳过以 ## 开头的二级标题。",
+    newChatUrlTitle: "新建对话链接",
+    newChatUrlDesc: "这个链接决定新建对话在哪里创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议新建一个项目，再使用这个项目链接。",
+    newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
+    newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
+    includeNearestHeadingTitle: "发送最近标题",
+    includeNearestHeadingDesc: "开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上离它最近的上级标题，中间使用一个空格。",
+    includeNearestHeadingLabel: "开启",
     delayTitle: "等待时间",
     delayDesc: "这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。",
     delayInputTitle: "每条文本之间的等待时长。",
@@ -542,7 +581,7 @@ const BATCH_UI_TEXT = {
     messagePromptTip: "Each item is appended after this message prompt before sending.",
     pendingText: "Pending Text",
     pendingTextPlaceholder: "One item per line",
-    pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading level 1 and 2 are skipped by default.",
+    pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading lines without ◆ are not sent as tasks by default. When “Send Nearest Heading” is enabled, the nearest heading is sent together with the item text; this can be turned off in Settings.",
     copyDisciplineMapPrompt: "Map Prompt",
     copyDisciplineMapPromptTitle: "Click to copy.\nPaste it into an AI chat yourself. GPT Pro is recommended.",
     copyDisciplineMapPromptCopied: "Copied",
@@ -596,12 +635,13 @@ const BATCH_UI_TEXT = {
     taskModeSelectTitle: "Choose whether the task starts in a new chat or uses the current window.",
     taskModeNew: "New Chat",
     taskModeCurrent: "Current Window",
-    ignoreHeadingTitle: "Ignore Headings",
-    ignoreHeadingDesc: "When parsing pending text, skip level-1 headings starting with # and level-2 headings starting with ##.",
-    heading1: "Heading 1",
-    heading2: "Heading 2",
-    heading1Title: "Skip level-1 headings starting with #.",
-    heading2Title: "Skip level-2 headings starting with ##.",
+    newChatUrlTitle: "New Chat URL",
+    newChatUrlDesc: "This link controls where new chats are created. Leave it blank to create chats on the main GPT page. Enter a ChatGPT project link to create chats inside that project. Creating a dedicated project for this workflow is recommended.",
+    newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
+    newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
+    includeNearestHeadingTitle: "Send Nearest Heading",
+    includeNearestHeadingDesc: "When enabled, each ◆ item is sent with its nearest parent heading before the item text, separated by one space.",
+    includeNearestHeadingLabel: "On",
     delayTitle: "Delay",
     delayDesc: "This delay only applies after one item has been saved or marked as failed, before the next item is sent. GPT responses still wait for answer stability and are not limited by this number. Clicking Stop interrupts the delay.",
     delayInputTitle: "Delay between items.",
@@ -621,6 +661,23 @@ function setElementText(selector, text) {
 function setElementTitle(selector, text) {
   const element = document.querySelector(selector);
   if (element) element.title = text;
+}
+
+function formatHelpTipText(value) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s*([。！？；])\s*/gu, "$1\n\n")
+    .replace(/([.!?])\s+(?=[A-Z“"(\[])/g, "$1\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function setHelpTip(element, text) {
+  if (element) element.dataset.tip = formatHelpTipText(text);
 }
 
 function setElementAriaLabel(selector, text) {
@@ -670,10 +727,10 @@ function applyBatchUiLanguage(language) {
 
   setElementText('label[for="batchGlobalPrompt"]', text.globalPrompt);
   const globalPromptHelp = document.querySelector('label[for="batchGlobalPrompt"] ~ .panel-tools .help-button');
-  if (globalPromptHelp) globalPromptHelp.dataset.tip = text.globalPromptTip;
+  setHelpTip(globalPromptHelp, text.globalPromptTip);
   setElementText('label[for="batchPrompt"]', text.messagePrompt);
   const messagePromptHelp = document.querySelector('label[for="batchPrompt"] ~ .panel-tools .help-button');
-  if (messagePromptHelp) messagePromptHelp.dataset.tip = text.messagePromptTip;
+  setHelpTip(messagePromptHelp, text.messagePromptTip);
   const batchPrompt = document.getElementById("batchPrompt");
   if (batchPrompt) batchPrompt.placeholder = getBatchPromptDefaults(language).prompt;
   setElementText('label[for="batchInputs"]', text.pendingText);
@@ -682,7 +739,7 @@ function applyBatchUiLanguage(language) {
   setElementTitle("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
   setElementAriaLabel("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
   const pendingTextHelp = document.getElementById("batchInputsHelp");
-  if (pendingTextHelp) pendingTextHelp.dataset.tip = text.pendingTextTip;
+  setHelpTip(pendingTextHelp, text.pendingTextTip);
 
   const batchInputs = document.getElementById("batchInputs");
   if (batchInputs) batchInputs.placeholder = text.pendingTextPlaceholder;
@@ -702,7 +759,7 @@ function applyBatchUiLanguage(language) {
   setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
   setElementText("#batchFocusWhenStuckLabel", text.focusWhenStuck);
   const focusWhenStuckHelp = document.getElementById("batchFocusWhenStuckHelp");
-  if (focusWhenStuckHelp) focusWhenStuckHelp.dataset.tip = text.focusWhenStuckTip;
+  setHelpTip(focusWhenStuckHelp, text.focusWhenStuckTip);
   setElementText("#batchSaved", text.saved);
   setElementText("#batchFailureTitle", text.failureTitle);
   setElementText("#page-batch > .group:nth-of-type(2) .row strong", text.runStatus);
@@ -745,12 +802,16 @@ function applyBatchUiLanguage(language) {
   setElementTitle("#batchConversationMode", text.taskModeSelectTitle);
   setElementText("#batchConversationModeNew", text.taskModeNew);
   setElementText("#batchConversationModeCurrent", text.taskModeCurrent);
-  setElementText("#ignoreHeadingTitle", text.ignoreHeadingTitle);
-  setElementText("#ignoreHeadingDesc", text.ignoreHeadingDesc);
-  setElementText("#batchIgnoreHeading1", text.heading1);
-  setElementText("#batchIgnoreHeading2", text.heading2);
-  setElementTitle("#batchIgnoreHeading1", text.heading1Title);
-  setElementTitle("#batchIgnoreHeading2", text.heading2Title);
+  setElementText("#newChatUrlTitle", text.newChatUrlTitle);
+  setElementText("#newChatUrlDesc", text.newChatUrlDesc);
+  setElementTitle("#batchNewChatUrl", text.newChatUrlInputTitle);
+  const newChatUrlInput = document.getElementById("batchNewChatUrl");
+  if (newChatUrlInput) newChatUrlInput.placeholder = text.newChatUrlPlaceholder;
+  const newChatUrlHelp = document.getElementById("batchNewChatUrlHelp");
+  setHelpTip(newChatUrlHelp, text.newChatUrlDesc);
+  setElementText("#includeNearestHeadingTitle", text.includeNearestHeadingTitle);
+  setElementText("#includeNearestHeadingDesc", text.includeNearestHeadingDesc);
+  setElementText("#batchIncludeNearestHeadingLabel", text.includeNearestHeadingLabel);
   setElementText("#delayTitle", text.delayTitle);
   setElementText("#delayDesc", text.delayDesc);
   setElementTitle("#batchDelaySeconds", text.delayInputTitle);
@@ -763,6 +824,8 @@ function isKnownBatchDefaultGlobalPrompt(value) {
   return [
     BATCH_DEFAULT_GLOBAL_PROMPT,
     BATCH_EN_GLOBAL_PROMPT,
+    LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT,
+    LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT,
     ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT,
     ETHICS_BATCH_EN_GLOBAL_PROMPT,
     LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -833,25 +896,12 @@ function setBatchConversationMode(mode) {
   if (select) select.value = normalized;
 }
 
-function getToggleButtonState(id) {
-  const button = document.getElementById(id);
-  return Boolean(button && button.dataset.active === "true");
-}
-
-function setToggleButtonState(id, active) {
-  const button = document.getElementById(id);
-  if (!button) return;
-  const enabled = Boolean(active);
-  button.dataset.active = enabled ? "true" : "false";
-  button.classList.toggle("is-active", enabled);
-  button.setAttribute("aria-pressed", enabled ? "true" : "false");
-}
-
-function shouldIgnoreBatchLine(line, ignoreHeading1, ignoreHeading2) {
+function shouldIgnoreBatchLine(line) {
   const text = stripBatchTreePrefix(line);
   if (!text) return true;
-  if (ignoreHeading2 && /^(?:\d+[._])+\d+\b/u.test(text)) return true;
-  if (ignoreHeading1 && /^\d+\.\s*/u.test(text)) return true;
+  if (/^#{1,6}\s+/u.test(text)) return true;
+  if (/^(?:\d+[._])+\d+\b/u.test(text)) return true;
+  if (/^\d+\.\s*/u.test(text)) return true;
   return false;
 }
 
@@ -894,7 +944,34 @@ function extractBatchItemNumber(value) {
   return match ? match[1].replace(/\./g, "_") : "";
 }
 
-function parseBatchTreeItems(rawText) {
+function cleanBatchPromptPart(value) {
+  return String(value || "")
+    .replace(/[◆◇]/g, " ")
+    .replace(/^#+\s*/u, "")
+    .replace(/^\+\s*/u, "")
+    .replace(/^(?:\d+(?:[._]\d+)*|[IVXLC]+)$/iu, "")
+    .replace(/^(?:\d+(?:[._]\d+)*|[IVXLC]+)[\s._-]+/iu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getNearestBatchHeading(stack) {
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    const heading = cleanBatchPromptPart(stack[index]);
+    if (heading) return heading;
+  }
+  return "";
+}
+
+function buildBatchSendText(text, stack, includeNearestHeading, inlineHeading = "") {
+  const itemText = cleanBatchPromptPart(text) || String(text || "").trim();
+  if (!includeNearestHeading) return itemText;
+
+  const heading = cleanBatchPromptPart(inlineHeading) || getNearestBatchHeading(stack);
+  return heading && itemText ? `${heading} ${itemText}` : itemText;
+}
+
+function parseBatchTreeItems(rawText, includeNearestHeading) {
   const stack = [];
   const items = [];
 
@@ -913,6 +990,7 @@ function parseBatchTreeItems(rawText) {
       if (!text) continue;
       items.push({
         text,
+        sendText: buildBatchSendText(text, stack, includeNearestHeading, textForDepth),
         itemNumber: extractBatchItemNumber(textForDepth),
         directoryPath: stack.filter(Boolean)
       });
@@ -928,15 +1006,15 @@ function parseBatchTreeItems(rawText) {
   return items;
 }
 
-function parseBatchItems(rawText, ignoreHeading1, ignoreHeading2) {
+function parseBatchItems(rawText, includeNearestHeading) {
   if (String(rawText || "").includes("◆")) {
-    return parseBatchTreeItems(rawText);
+    return parseBatchTreeItems(rawText, includeNearestHeading);
   }
 
   return String(rawText || "")
     .split(/\r?\n/)
     .map((item) => extractBatchInputText(item))
-    .filter((item) => item && !shouldIgnoreBatchLine(item, ignoreHeading1, ignoreHeading2));
+    .filter((item) => item && !shouldIgnoreBatchLine(item));
 }
 
 function renderHotkeyGroups() {
@@ -1310,14 +1388,15 @@ async function persistBatchConfig(showTip = false) {
   const delaySeconds = normalizeBatchDelaySeconds(delayInput.value);
   delayInput.value = String(delaySeconds);
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
+  const includeNearestHeading = document.getElementById("batchIncludeNearestHeading");
   const payload = {
     batchGlobalPrompt: document.getElementById("batchGlobalPrompt").value,
     batchPrompt: document.getElementById("batchPrompt").value,
     batchPromptLanguage: getSelectedBatchPromptLanguage(),
     batchInputs: document.getElementById("batchInputs").value,
     batchConversationMode: getSelectedBatchConversationMode(),
-    batchIgnoreHeading1: getToggleButtonState("batchIgnoreHeading1"),
-    batchIgnoreHeading2: getToggleButtonState("batchIgnoreHeading2"),
+    batchNewChatUrl: document.getElementById("batchNewChatUrl").value.trim(),
+    batchIncludeNearestHeading: Boolean(includeNearestHeading && includeNearestHeading.checked),
     batchDelaySeconds: delaySeconds,
     batchFocusWhenStuck: Boolean(focusWhenStuck && focusWhenStuck.checked),
     batchDirectoryName: currentBatchDirectoryName
@@ -1352,8 +1431,7 @@ async function loadBatchConfig() {
     ? languageDefaults.globalPrompt
     : config.batchGlobalPrompt;
   const batchConversationMode = normalizeBatchConversationMode(config.batchConversationMode, config.batchNewChat);
-  const batchIgnoreHeading1 = config.batchIgnoreHeading1 === true;
-  const batchIgnoreHeading2 = config.batchIgnoreHeading2 !== false;
+  const batchIncludeNearestHeading = config.batchIncludeNearestHeading !== false;
   const batchPrompt = !config.batchPrompt || isKnownBatchDefaultPrompt(config.batchPrompt)
     ? languageDefaults.prompt
     : config.batchPrompt;
@@ -1365,8 +1443,8 @@ async function loadBatchConfig() {
   setBatchPromptLanguage(batchPromptLanguage);
   document.getElementById("batchInputs").value = config.batchInputs || "";
   setBatchConversationMode(batchConversationMode);
-  setToggleButtonState("batchIgnoreHeading1", batchIgnoreHeading1);
-  setToggleButtonState("batchIgnoreHeading2", batchIgnoreHeading2);
+  document.getElementById("batchNewChatUrl").value = typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "";
+  document.getElementById("batchIncludeNearestHeading").checked = batchIncludeNearestHeading;
   document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
   const batchFocusWhenStuck = config.batchFocusWhenStuck === true;
   document.getElementById("batchFocusWhenStuck").checked = batchFocusWhenStuck;
@@ -1378,8 +1456,8 @@ async function loadBatchConfig() {
     batchGlobalPrompt !== config.batchGlobalPrompt ||
     batchPromptLanguage !== config.batchPromptLanguage ||
     batchConversationMode !== config.batchConversationMode ||
-    batchIgnoreHeading1 !== Boolean(config.batchIgnoreHeading1) ||
-    batchIgnoreHeading2 !== (config.batchIgnoreHeading2 !== false) ||
+    typeof config.batchNewChatUrl !== "string" ||
+    batchIncludeNearestHeading !== (config.batchIncludeNearestHeading !== false) ||
     batchPrompt !== config.batchPrompt ||
     batchDelaySeconds !== Number(config.batchDelaySeconds) ||
     config.batchFocusWhenStuck !== batchFocusWhenStuck
@@ -1388,8 +1466,8 @@ async function loadBatchConfig() {
       batchGlobalPrompt,
       batchPromptLanguage,
       batchConversationMode,
-      batchIgnoreHeading1,
-      batchIgnoreHeading2,
+      batchNewChatUrl: typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "",
+      batchIncludeNearestHeading,
       batchPrompt,
       batchDelaySeconds,
       batchFocusWhenStuck
@@ -1477,17 +1555,17 @@ async function startBatch() {
   if (startPending) return;
 
   const conversationMode = getSelectedBatchConversationMode();
-  const ignoreHeading1 = getToggleButtonState("batchIgnoreHeading1");
-  const ignoreHeading2 = getToggleButtonState("batchIgnoreHeading2");
+  const includeNearestHeading = document.getElementById("batchIncludeNearestHeading").checked;
   const globalPrompt = document.getElementById("batchGlobalPrompt").value.trim();
   const prompt = document.getElementById("batchPrompt").value.trim();
+  const newChatUrl = document.getElementById("batchNewChatUrl").value.trim();
   const delaySeconds = normalizeBatchDelaySeconds(document.getElementById("batchDelaySeconds").value);
-  const items = parseBatchItems(document.getElementById("batchInputs").value, ignoreHeading1, ignoreHeading2);
+  const items = parseBatchItems(document.getElementById("batchInputs").value, includeNearestHeading);
 
   if (!items.length) {
     renderBatchState({
       ...currentBatchState,
-      message: "没有可处理的文本，请检查标题忽略选项。"
+      message: "没有可处理的文本，请检查待处理文本。"
     });
     setActivePage("batch");
     return;
@@ -1516,6 +1594,7 @@ async function startBatch() {
         prompt,
         items,
         newChat: conversationMode === BATCH_CONVERSATION_MODE_NEW,
+        newChatUrl,
         delaySeconds,
         focusWhenStuck: Boolean(document.getElementById("batchFocusWhenStuck").checked),
         directoryName: currentBatchDirectoryName
@@ -1792,8 +1871,8 @@ function bindBatchEvents() {
   const prompt = document.getElementById("batchPrompt");
   const inputs = document.getElementById("batchInputs");
   const conversationMode = document.getElementById("batchConversationMode");
-  const ignoreHeading1 = document.getElementById("batchIgnoreHeading1");
-  const ignoreHeading2 = document.getElementById("batchIgnoreHeading2");
+  const newChatUrl = document.getElementById("batchNewChatUrl");
+  const includeNearestHeading = document.getElementById("batchIncludeNearestHeading");
   const delaySeconds = document.getElementById("batchDelaySeconds");
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
 
@@ -1801,19 +1880,14 @@ function bindBatchEvents() {
   prompt.addEventListener("input", scheduleBatchConfigSave);
   inputs.addEventListener("input", scheduleBatchConfigSave);
   delaySeconds.addEventListener("input", scheduleBatchConfigSave);
+  newChatUrl.addEventListener("input", scheduleBatchConfigSave);
   focusWhenStuck.addEventListener("change", () => persistBatchConfig(true));
   conversationMode.addEventListener("change", () => persistBatchConfig(true));
-  ignoreHeading1.addEventListener("click", () => {
-    setToggleButtonState("batchIgnoreHeading1", !getToggleButtonState("batchIgnoreHeading1"));
-    persistBatchConfig(true).catch(() => {});
-  });
-  ignoreHeading2.addEventListener("click", () => {
-    setToggleButtonState("batchIgnoreHeading2", !getToggleButtonState("batchIgnoreHeading2"));
-    persistBatchConfig(true).catch(() => {});
-  });
+  includeNearestHeading.addEventListener("change", () => persistBatchConfig(true));
   globalPrompt.addEventListener("change", () => persistBatchConfig(true));
   prompt.addEventListener("change", () => persistBatchConfig(true));
   inputs.addEventListener("change", () => persistBatchConfig(true));
+  newChatUrl.addEventListener("change", () => persistBatchConfig(true));
   delaySeconds.addEventListener("change", () => persistBatchConfig(true));
   document.getElementById("batchStart").addEventListener("click", startBatch);
   document.getElementById("batchStop").addEventListener("click", stopBatch);

@@ -99,8 +99,10 @@
     if (item && typeof item === "object") {
       const text = extractContentBatchText(item);
       if (!text) return null;
+      const sendText = extractContentBatchText(item.sendText).replace(/\s+/g, " ").trim() || text;
       return {
         text,
+        sendText,
         itemNumber: normalizeContentBatchItemNumber(item.itemNumber),
         directoryPath: Array.isArray(item.directoryPath)
           ? item.directoryPath.map((part) => String(part || "").trim()).filter(Boolean)
@@ -110,7 +112,7 @@
 
     const text = String(item || "").trim();
     if (!text) return null;
-    return { text, itemNumber: "", directoryPath: [] };
+    return { text, sendText: text, itemNumber: "", directoryPath: [] };
   }
 
   function getTextFromNode(node) {
@@ -3034,9 +3036,10 @@
     );
   }
 
-  async function prepareEditor(newChat, batchId = "") {
+  async function prepareEditor(newChat, batchId = "", options = {}) {
     throwIfBatchStopped(batchId);
-    if (newChat) {
+    const skipNewChatClick = Boolean(options.skipNewChatClick);
+    if (newChat && !skipNewChatClick) {
       const previousConversationId = getConversationIdFromLocation();
       const clicked = await clickNewChatIfVisible();
       if (clicked) {
@@ -3055,9 +3058,11 @@
       }
     }
 
-    await ensureHomeIfNeeded(newChat);
+    if (!skipNewChatClick) {
+      await ensureHomeIfNeeded(newChat);
+    }
 
-    if (newChat) {
+    if (newChat && !skipNewChatClick) {
       await clickNewChatIfVisible();
       await sleep(200);
     }
@@ -3145,6 +3150,7 @@
       totalCount,
       completedOffset,
       newChat,
+      newChatUrl,
       delaySeconds,
       directoryName,
       resumeIndex,
@@ -3165,6 +3171,8 @@
       ? Math.min(originalTotal, Math.max(0, Number(completedOffset)))
       : 0;
     const shouldNewChat = newChat !== false;
+    const customNewChatUrl = typeof newChatUrl === "string" ? newChatUrl.trim() : "";
+    const usesCustomNewChatUrl = shouldNewChat && Boolean(customNewChatUrl);
     const normalizedDelaySeconds = Number.isFinite(Number(delaySeconds))
       ? Math.min(60, Math.max(0, Number(delaySeconds)))
       : 3;
@@ -3229,6 +3237,7 @@
       totalCount: originalTotal,
       completedOffset: skippedCount,
       newChat,
+      newChatUrl: customNewChatUrl,
       delaySeconds,
       directoryName,
       resumeIndex: index,
@@ -3291,7 +3300,7 @@
             total: originalTotal,
             currentIndex: resumeDisplayIndex,
             currentText: batchItems[startIndex]?.text || "",
-            sentText: batchItems[startIndex]?.text || "",
+            sentText: batchItems[startIndex]?.sendText || batchItems[startIndex]?.text || "",
             retryAttempt: storedAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
             message: `第 ${resumeDisplayIndex}/${originalTotal} 条刷新后回答仍在生成或更新，继续等待稳定后再判断。`
@@ -3321,6 +3330,7 @@
             retryPayload: {
               ...retryPayload,
               newChat: true,
+              newChatUrl: customNewChatUrl,
               resumeNeedsGlobalPrompt: true
             },
             index: resumeDisplayIndex,
@@ -3446,6 +3456,28 @@
         throw new Error("新建对话续跑状态保存失败。");
       }
 
+      if (usesCustomNewChatUrl) {
+        const response = await sendRuntimeMessage("BATCH_CONTINUE_IN_NEW_TAB", {
+          batchId,
+          resumePayload: {
+            ...buildResumePayload(index, 0, Boolean(oneTimePrompt)),
+            newChat: true,
+            newChatUrl: customNewChatUrl,
+            resumeNeedsGlobalPrompt: Boolean(oneTimePrompt)
+          },
+          index: displayIndex,
+          total: originalTotal,
+          newChatUrl: customNewChatUrl,
+          message: `已处理 ${Math.max(0, displayIndex - 1)} 条，正在打开新的项目对话……`
+        });
+        if (response && response.ok) {
+          batchStopRequested = true;
+          batchRunning = false;
+          return "continued-in-new-tab";
+        }
+        throw new Error(response && response.error ? response.error : "新项目对话打开失败。");
+      }
+
       await prepareEditor(true, batchId);
       await sendRuntimeMessage("BATCH_PROGRESS", {
         batchId,
@@ -3496,7 +3528,7 @@
       clearBatchRetryState();
     };
 
-    const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, reason }) => {
+    const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, sentText, reason }) => {
       if (retryAttempt >= BATCH_MAX_REFRESH_RETRIES) {
         clearBatchRetryState();
         await sendRuntimeMessage("BATCH_FAILED", {
@@ -3519,7 +3551,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: text,
-        sentText: text,
+        sentText: sentText || text,
         retryAttempt: nextRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `第 ${displayIndex}/${originalTotal} 条保存失败，正在第 ${nextRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次${retryMethod}。${reason || ""}`.trim()
@@ -3531,11 +3563,13 @@
           retryPayload: {
             ...retryPayload,
             newChat: true,
+            newChatUrl: customNewChatUrl,
             resumeNeedsGlobalPrompt: true
           },
           index: displayIndex,
           total: originalTotal,
           text,
+          sentText: sentText || text,
           retryAttempt: nextRetryAttempt,
           maxRetries: BATCH_MAX_REFRESH_RETRIES,
           reason
@@ -3622,7 +3656,8 @@
       }
 
       const item = batchItems[startIndex];
-      if (!item || !currentItemWasAlreadySent(item.text)) {
+      const sendText = item && (item.sendText || item.text);
+      if (!item || !currentItemWasAlreadySent(sendText)) {
         return "";
       }
 
@@ -3633,7 +3668,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: item.text,
-        sentText: item.text,
+        sentText: sendText,
         retryAttempt: initialRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `页面已刷新，正在读取第 ${displayIndex}/${originalTotal} 条已有回答……`
@@ -3651,6 +3686,7 @@
           retryAttempt: initialRetryAttempt,
           displayIndex,
           text: item.text,
+          sentText: sendText,
           reason: String(error && error.message ? error.message : error)
         });
         return "retry";
@@ -3665,7 +3701,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: item.text,
-        sentText: item.text,
+        sentText: sendText,
         retryAttempt: initialRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
         message: `第 ${displayIndex}/${originalTotal} 条已有回答已读取，正在保存：${item.text}`
@@ -3690,6 +3726,7 @@
           retryAttempt: initialRetryAttempt,
           displayIndex,
           text: item.text,
+          sentText: sendText,
           reason: result.error || ""
         });
         return "retry";
@@ -3741,7 +3778,7 @@
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
             message: "正在新建对话……"
           });
-          await prepareEditor(true, batchId);
+          await prepareEditor(true, batchId, { skipNewChatClick: usesCustomNewChatUrl });
           await sendRuntimeMessage("BATCH_PROGRESS", {
             batchId,
             running: true,
@@ -3812,12 +3849,16 @@
         throwIfBatchStopped(batchId);
         const item = batchItems[index];
         const text = item.text;
+        const sendText = item.sendText || text;
         const directoryPath = item.directoryPath;
         const retryAttempt = index === startIndex ? initialRetryAttempt : 0;
         const displayIndex = getDisplayIndexForBatchItem(index);
         updateStuckRefreshPayload(index, retryAttempt, false);
         if (index > startIndex && index % BATCH_CONVERSATION_ITEM_LIMIT === 0) {
-          await openNewBatchSegmentConversation(index, displayIndex);
+          const segmentResult = await openNewBatchSegmentConversation(index, displayIndex);
+          if (segmentResult === "continued-in-new-tab") {
+            return;
+          }
         }
         await sendRuntimeMessage("BATCH_PROGRESS", {
           batchId,
@@ -3837,6 +3878,7 @@
             retryAttempt,
             displayIndex,
             text,
+            sentText: sendText,
             reason
           });
         };
@@ -3866,10 +3908,10 @@
             sentText: "",
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
-            message: `正在发送第 ${displayIndex}/${originalTotal} 条：${text}`
+            message: `正在发送第 ${displayIndex}/${originalTotal} 条：${sendText}`
           });
           const answer = await sendPromptAndReadReply({
-            text,
+            text: sendText,
             prompt,
             newChat: false,
             batchId,
@@ -3883,7 +3925,7 @@
             total: originalTotal,
             currentIndex: displayIndex,
             currentText: text,
-            sentText: text,
+            sentText: sendText,
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
             message: `第 ${displayIndex}/${originalTotal} 条回答已读取，正在保存：${text}`
@@ -3908,7 +3950,7 @@
             total: originalTotal,
             currentIndex: displayIndex,
             currentText: text,
-            sentText: text,
+            sentText: sendText,
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
             message: `第 ${displayIndex}/${originalTotal} 条发送、读取或保存前处理失败，正在记录结果：${text}`

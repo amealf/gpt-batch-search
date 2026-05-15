@@ -101,7 +101,7 @@ const ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与文学理论相关的」文本。要求如下：
+const LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与文学理论相关的」文本。要求如下：
 
 内容要求：
 
@@ -120,7 +120,26 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少使用中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这个并非硬性要求。
+
+写作要求：
+
+使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验。在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。
+
+风格要求：
+
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。用易读的风格进行写作，考虑优先使用短句。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+
+格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
 
 Content requirements:
 
@@ -139,6 +158,25 @@ Structure requirements:
 Format requirements:
 
 5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+
+Content requirements:
+
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Use Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+
+Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
+
+Writing requirements:
+
+Write a complete English article about the text, aiming for publishable quality. Use a blog-article style, add some prose style, and avoid translated-sounding or AI-sounding phrasing. Keep the article smooth and pleasant to read as a whole. Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions.
+
+Style requirements:
+
+Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures. Write in an easy-to-read style and prefer short sentences where possible. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
+
+Format requirements:
+
+The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
 const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
@@ -165,7 +203,8 @@ const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
   batchPrompt: BATCH_DEFAULT_PROMPT,
-  batchPromptLanguage: "cn"
+  batchPromptLanguage: "cn",
+  batchNewChatUrl: ""
 };
 const BATCH_STATE_KEY = "batchRunState";
 const CHAT_EXPORT_STATE_KEY = "chatExportRunState";
@@ -498,6 +537,20 @@ async function findChatTab() {
   return activeTab || tabs[0];
 }
 
+function normalizeChatLaunchUrl(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text) return "";
+
+  try {
+    const url = new URL(text);
+    if (url.protocol !== "https:") return "";
+    if (url.hostname !== "chatgpt.com" && url.hostname !== "chat.openai.com") return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
 function isChatTabUrl(url) {
   const text = String(url || "");
   return text.startsWith("https://chatgpt.com/") || text.startsWith("https://chat.openai.com/");
@@ -675,16 +728,17 @@ async function handleBatchFocusAlarm() {
   });
 }
 
-async function ensureChatTab(newChat) {
+async function ensureChatTab(newChat, newChatUrl = "") {
+  const launchUrl = normalizeChatLaunchUrl(newChatUrl) || CHAT_HOME;
   if (newChat) {
     const existing = await findChatTab();
     if (existing) {
-      await chrome.tabs.update(existing.id, { url: CHAT_HOME, active: true });
+      await chrome.tabs.update(existing.id, { url: launchUrl, active: true });
       await waitForTabComplete(existing.id);
       return existing;
     }
 
-    const created = await chrome.tabs.create({ url: CHAT_HOME, active: true });
+    const created = await chrome.tabs.create({ url: launchUrl, active: true });
     await waitForTabComplete(created.id);
     return created;
   }
@@ -799,6 +853,8 @@ async function getBatchPromptConfig() {
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
       BATCH_EN_GLOBAL_PROMPT,
+      LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT,
+      LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT,
       ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT,
       ETHICS_BATCH_EN_GLOBAL_PROMPT,
       LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -1151,6 +1207,12 @@ function sanitizeBatchInputText(text) {
     .replace(/\.+$/, "");
 }
 
+function normalizeBatchSendText(value) {
+  return extractBatchInputText(value)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatMarkdownBody(answer) {
   const normalized = String(answer || "")
     .replace(/\r\n?/g, "\n")
@@ -1486,8 +1548,10 @@ function normalizeBatchItem(item) {
   if (item && typeof item === "object") {
     const text = sanitizeBatchInputText(item);
     if (!text) return null;
+    const sendText = normalizeBatchSendText(item.sendText) || text;
     return {
       text,
+      sendText,
       itemNumber: normalizeBatchItemNumber(item.itemNumber),
       directoryPath: normalizeDirectoryPath(item.directoryPath)
     };
@@ -1495,7 +1559,7 @@ function normalizeBatchItem(item) {
 
   const text = sanitizeBatchInputText(item);
   if (!text) return null;
-  return { text, itemNumber: "", directoryPath: [] };
+  return { text, sendText: text, itemNumber: "", directoryPath: [] };
 }
 
 function normalizeExistingMarkdownBase(filename) {
@@ -1726,6 +1790,7 @@ async function handleStartBatch(payload) {
     ? payload.items.map((item) => normalizeBatchItem(item)).filter(Boolean)
     : [];
   const newChat = payload?.newChat !== false;
+  const newChatUrl = normalizeChatLaunchUrl(payload?.newChatUrl);
   const delaySeconds = Number.isFinite(Number(payload?.delaySeconds))
     ? Math.min(60, Math.max(0, Number(payload.delaySeconds)))
     : 3;
@@ -1808,7 +1873,7 @@ async function handleStartBatch(payload) {
 
   (async () => {
     try {
-      const chatTab = await ensureChatTab(newChat);
+      const chatTab = await ensureChatTab(newChat, newChat ? newChatUrl : "");
       await bringToFront(chatTab.id);
       await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
         batchId,
@@ -1819,6 +1884,7 @@ async function handleStartBatch(payload) {
         totalCount: items.length,
         completedOffset: skippedItems.length,
         newChat,
+        newChatUrl: newChat ? newChatUrl : "",
         delaySeconds,
         directoryName
       });
@@ -2216,6 +2282,7 @@ async function handleBatchRetryInNewTab(payload, sourceTabId) {
   const index = typeof payload?.index === "number" ? payload.index : 0;
   const total = typeof payload?.total === "number" ? payload.total : 0;
   const text = typeof payload?.text === "string" ? payload.text : "";
+  const sentText = typeof payload?.sentText === "string" ? payload.sentText : text;
   const retryAttempt = Number.isFinite(Number(payload?.retryAttempt)) ? Math.max(0, Number(payload.retryAttempt)) : 0;
   const maxRetries = Number.isFinite(Number(payload?.maxRetries))
     ? Math.max(0, Number(payload.maxRetries))
@@ -2236,7 +2303,7 @@ async function handleBatchRetryInNewTab(payload, sourceTabId) {
     running: true,
     currentIndex: index,
     currentText: text,
-    sentText: text,
+    sentText,
     retryAttempt,
     maxRefreshRetries: maxRetries,
     message,
@@ -2247,16 +2314,65 @@ async function handleBatchRetryInNewTab(payload, sourceTabId) {
     }).slice(-60)
   });
 
-  const chatTab = await chrome.tabs.create({ url: CHAT_HOME, active: true });
+  const launchUrl = normalizeChatLaunchUrl(retryPayload.newChatUrl) || CHAT_HOME;
+  const chatTab = await chrome.tabs.create({ url: launchUrl, active: true });
   await waitForTabComplete(chatTab.id, 20000);
   await ensureChatContentScript(chatTab.id);
   await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
     ...retryPayload,
     batchId,
     newChat: true,
+    newChatUrl: launchUrl,
     resumeNeedsGlobalPrompt: true
   });
   await appendBatchLogIfCurrent(batchId, `第 ${index}/${total} 条已在新标签页继续重试。`);
+  closeRetrySourceTab(sourceTabId, chatTab.id).catch(() => {});
+  return { ok: true, state: await getBatchState(), tabId: chatTab.id };
+}
+
+async function handleBatchContinueInNewTab(payload, sourceTabId) {
+  const batchId = typeof payload?.batchId === "string" ? payload.batchId : "";
+  const resumePayload = payload?.resumePayload && typeof payload.resumePayload === "object"
+    ? { ...payload.resumePayload }
+    : null;
+  const index = typeof payload?.index === "number" ? payload.index : 0;
+  const total = typeof payload?.total === "number" ? payload.total : 0;
+  const message = typeof payload?.message === "string" && payload.message.trim()
+    ? payload.message.trim()
+    : `已处理 ${Math.max(0, index - 1)} 条，正在打开新的项目对话……`;
+  const current = await getBatchState();
+  if (!isCurrentBatchMessage(current, batchId)) {
+    return { ok: true, ignored: true, state: current };
+  }
+  if (!resumePayload) {
+    return { ok: false, error: "新对话续跑参数缺失。", state: current };
+  }
+
+  const launchUrl = normalizeChatLaunchUrl(payload?.newChatUrl || resumePayload.newChatUrl) || CHAT_HOME;
+  const now = new Date().toISOString();
+  await saveBatchState({
+    ...current,
+    running: true,
+    currentIndex: index,
+    retryAttempt: 0,
+    message,
+    logs: current.logs.concat({
+      time: now,
+      level: "info",
+      message
+    }).slice(-60)
+  });
+
+  const chatTab = await chrome.tabs.create({ url: launchUrl, active: true });
+  await waitForTabComplete(chatTab.id, 20000);
+  await ensureChatContentScript(chatTab.id);
+  await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
+    ...resumePayload,
+    batchId,
+    newChat: true,
+    newChatUrl: launchUrl
+  });
+  await appendBatchLogIfCurrent(batchId, `第 ${index}/${total} 条已在新项目对话继续。`);
   closeRetrySourceTab(sourceTabId, chatTab.id).catch(() => {});
   return { ok: true, state: await getBatchState(), tabId: chatTab.id };
 }
@@ -2497,6 +2613,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "BATCH_RETRY_IN_NEW_TAB") {
     handleBatchRetryInNewTab(message.payload, _sender?.tab?.id)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "BATCH_CONTINUE_IN_NEW_TAB") {
+    handleBatchContinueInNewTab(message.payload, _sender?.tab?.id)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;
