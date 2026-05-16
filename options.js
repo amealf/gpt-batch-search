@@ -95,7 +95,7 @@ const LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接
 格式要求：
 
 5 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+const SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
 
 内容要求：
 
@@ -114,6 +114,25 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 格式要求：
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
 const LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
 
 Content requirements:
@@ -133,7 +152,7 @@ Structure requirements:
 Format requirements:
 
 5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+const SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 Content requirements:
 
@@ -152,6 +171,25 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 Format requirements:
 
 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+
+# Content Requirements:
+
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+
+Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
+
+# Writing Requirements:
+
+Write a complete English article about the text, aiming for publishable quality. Use a blog-article style, add some prose style, and avoid translated-sounding or AI-sounding phrasing. Keep the article smooth and pleasant to read as a whole. Prefer short sentences.
+Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
+
+Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures.
+
+# Format Requirements:
+
+The first time a person appears, use English (Chinese). After that, use the English name.
+The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
 const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
@@ -735,7 +773,7 @@ function applyBatchUiLanguage(language) {
   if (batchPrompt) batchPrompt.placeholder = getBatchPromptDefaults(language).prompt;
   setElementText('label[for="batchInputs"]', text.pendingText);
   setElementText("#copyDisciplineMapPromptLabel", text.copyDisciplineMapPrompt);
-  setElementText("#disciplineMapPromptTooltipLead", text.copyDisciplineMapPromptTitle);
+  setElementText("#disciplineMapPromptTooltipLead", formatHelpTipText(text.copyDisciplineMapPromptTitle));
   setElementTitle("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
   setElementAriaLabel("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
   const pendingTextHelp = document.getElementById("batchInputsHelp");
@@ -820,10 +858,17 @@ function applyBatchUiLanguage(language) {
   renderBatchDirectoryText();
 }
 
+function normalizeKnownPromptText(value) {
+  return String(value || "").replace(/\r\n?/g, "\n").trim();
+}
+
 function isKnownBatchDefaultGlobalPrompt(value) {
+  const normalizedValue = normalizeKnownPromptText(value);
   return [
     BATCH_DEFAULT_GLOBAL_PROMPT,
     BATCH_EN_GLOBAL_PROMPT,
+    SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
+    SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT,
     LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT,
     LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT,
     ETHICS_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -834,7 +879,7 @@ function isKnownBatchDefaultGlobalPrompt(value) {
     RECENT_BATCH_DEFAULT_GLOBAL_PROMPT,
     LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
     PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT
-  ].includes(value);
+  ].some((prompt) => normalizeKnownPromptText(prompt) === normalizedValue);
 }
 
 function isKnownBatchDefaultPrompt(value) {
@@ -1850,7 +1895,7 @@ function showDisciplineMapPromptCopyState(success) {
 function bindDisciplineMapPromptButton() {
   const button = document.getElementById("copyDisciplineMapPrompt");
   const tooltipBody = document.getElementById("disciplineMapPromptTooltipBody");
-  if (tooltipBody) tooltipBody.textContent = DISCIPLINE_MAP_PROMPT.trim();
+  if (tooltipBody) tooltipBody.textContent = formatHelpTipText(DISCIPLINE_MAP_PROMPT.trim());
   if (!button) return;
 
   button.addEventListener("click", () => {
