@@ -29,11 +29,22 @@
       "js": ["chatgpt_content.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["selection_content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "options_page": "options.html",
   "action": {
     "default_title": "GPT Batch Search",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

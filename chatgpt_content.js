@@ -3090,6 +3090,22 @@
     }
   }
 
+  async function handlePayloadAndReadReply({ text, prefix, newChat }) {
+    try {
+      if (batchRunning) {
+        return { ok: false, error: "批量任务仍在执行中。" };
+      }
+      const reply = await sendPromptAndReadReply({
+        text,
+        prompt: prefix,
+        newChat: Boolean(newChat)
+      });
+      return { ok: true, reply };
+    } catch (error) {
+      return { ok: false, error: String(error && error.message ? error.message : error) };
+    }
+  }
+
   async function sendPromptAndReadReply({ text, prompt, newChat, batchId, onSent }) {
     const fullText = composeFullText(text, prompt);
     return sendSingleMessageAndReadReply({ fullText, sentText: text, newChat, batchId, onSent });
@@ -3528,7 +3544,7 @@
       clearBatchRetryState();
     };
 
-    const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, sentText, reason }) => {
+    const scheduleItemRetry = async ({ index, retryAttempt, displayIndex, text, sentText, reason, allowNewTab = true }) => {
       if (retryAttempt >= BATCH_MAX_REFRESH_RETRIES) {
         clearBatchRetryState();
         await sendRuntimeMessage("BATCH_FAILED", {
@@ -3543,7 +3559,8 @@
       }
 
       const nextRetryAttempt = retryAttempt + 1;
-      const retryMethod = nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER ? "新标签页重试" : "刷新重试";
+      const shouldOpenNewTab = allowNewTab && nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER;
+      const retryMethod = shouldOpenNewTab ? "新标签页重试" : "刷新重试";
       const retryPayload = buildResumePayload(index, nextRetryAttempt, false);
       await sendRuntimeMessage("BATCH_PROGRESS", {
         batchId,
@@ -3557,7 +3574,7 @@
         message: `第 ${displayIndex}/${originalTotal} 条保存失败，正在第 ${nextRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次${retryMethod}。${reason || ""}`.trim()
       });
 
-      if (nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER) {
+      if (shouldOpenNewTab) {
         const response = await sendRuntimeMessage("BATCH_RETRY_IN_NEW_TAB", {
           batchId,
           retryPayload: {
@@ -3707,18 +3724,32 @@
         message: `第 ${displayIndex}/${originalTotal} 条已有回答已读取，正在保存：${item.text}`
       });
 
-      const result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
-        batchId,
-        index: displayIndex,
-        total: originalTotal,
-        text: item.text,
-        itemNumber: item.itemNumber,
-        directoryPath: item.directoryPath,
-        prompt,
-        answer,
-        retryAttempt: initialRetryAttempt,
-        maxRetries: BATCH_MAX_REFRESH_RETRIES
-      });
+      let result;
+      try {
+        result = await sendRuntimeMessage("BATCH_ITEM_RESULT", {
+          batchId,
+          index: displayIndex,
+          total: originalTotal,
+          text: item.text,
+          itemNumber: item.itemNumber,
+          directoryPath: item.directoryPath,
+          prompt,
+          answer,
+          retryAttempt: initialRetryAttempt,
+          maxRetries: BATCH_MAX_REFRESH_RETRIES
+        });
+      } catch (error) {
+        await scheduleItemRetry({
+          index: startIndex,
+          retryAttempt: initialRetryAttempt,
+          displayIndex,
+          text: item.text,
+          sentText: sendText,
+          reason: String(error && error.message ? error.message : error),
+          allowNewTab: false
+        });
+        return "retry";
+      }
 
       if (result && result.retry) {
         await scheduleItemRetry({
@@ -3727,7 +3758,8 @@
           displayIndex,
           text: item.text,
           sentText: sendText,
-          reason: result.error || ""
+          reason: result.error || "",
+          allowNewTab: false
         });
         return "retry";
       }
@@ -3872,20 +3904,21 @@
           message: `正在准备第 ${displayIndex}/${originalTotal} 条：${text}`
         });
 
-        const scheduleRetry = async (reason) => {
+        const scheduleRetry = async (reason, options = {}) => {
           await scheduleItemRetry({
             index,
             retryAttempt,
             displayIndex,
             text,
             sentText: sendText,
-            reason
+            reason,
+            allowNewTab: options.allowNewTab !== false
           });
         };
 
-        const handleResult = async (result) => {
+        const handleResult = async (result, options = {}) => {
           if (result && result.retry) {
-            await scheduleRetry(result.error || "");
+            await scheduleRetry(result.error || "", options);
             return "retry";
           }
           if (result && result.saved) {
@@ -3898,6 +3931,7 @@
           return "failed";
         };
 
+        let answerWasRead = false;
         try {
           await sendRuntimeMessage("BATCH_PROGRESS", {
             batchId,
@@ -3919,6 +3953,7 @@
               force: index === startIndex || index % BATCH_CONVERSATION_ITEM_LIMIT === 0
             })
           });
+          answerWasRead = true;
           await sendRuntimeMessage("BATCH_PROGRESS", {
             batchId,
             running: true,
@@ -3942,8 +3977,12 @@
             retryAttempt,
             maxRetries: BATCH_MAX_REFRESH_RETRIES
           });
-          if (await handleResult(result) === "retry") return;
+          if (await handleResult(result, { allowNewTab: false }) === "retry") return;
         } catch (error) {
+          if (answerWasRead) {
+            await scheduleRetry(String(error && error.message ? error.message : error), { allowNewTab: false });
+            return;
+          }
           await sendRuntimeMessage("BATCH_PROGRESS", {
             batchId,
             running: true,
@@ -4061,6 +4100,11 @@
 
     if (message.type === "EXT_SEND_TO_GPT") {
       handlePayload(message.payload).then((result) => sendResponse(result));
+      return true;
+    }
+
+    if (message.type === "EXT_SEND_TO_GPT_AND_READ_REPLY") {
+      handlePayloadAndReadReply(message.payload).then((result) => sendResponse(result));
       return true;
     }
 

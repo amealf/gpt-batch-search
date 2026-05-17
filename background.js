@@ -5,9 +5,6 @@ const EXECUTION_URL_PATTERNS = [
   "https://gemini.google.com/*"
 ];
 const INJECT_WORLD = "ISOLATED";
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.openOptionsPage();
-});
 
 const DEFAULT_PREFIX = "请将下列文本翻译成中文：";
 const HOTKEY_DEFAULTS = {
@@ -22,7 +19,9 @@ const HOTKEY_DEFAULTS = {
   newChat1: true,
   newChat2: false,
   newChat3: false,
-  newChat4: false
+  newChat4: false,
+  selectionBubbleEnabled: true,
+  selectionBubbleExcludedUrls: []
 };
 const PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户下面将要发送的文本。
 
@@ -370,8 +369,7 @@ function isRetryableBatchItemError(reason) {
 }
 
 function formatBatchRetryAction(nextRetryAttempt, maxRetries) {
-  const method = nextRetryAttempt >= BATCH_NEW_TAB_RETRY_AFTER ? "新标签页重试" : "刷新重试";
-  return `准备第 ${nextRetryAttempt}/${maxRetries} 次${method}`;
+  return `准备第 ${nextRetryAttempt}/${maxRetries} 次重试`;
 }
 
 function extractBatchDirectoryNumber(directoryPath) {
@@ -533,15 +531,29 @@ async function getHotkeySettings() {
 
 async function getSelectedTextOnActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (!tab || !tab.id) return "";
-  if (typeof tab.url === "string" && tab.url.startsWith(`chrome-extension://${chrome.runtime.id}/`)) {
-    return "";
+  if (!tab || !tab.id) {
+    return { text: "", tabId: 0, canDisplayInPage: false };
   }
+  if (typeof tab.url === "string" && tab.url.startsWith(`chrome-extension://${chrome.runtime.id}/`)) {
+    return { text: "", tabId: tab.id, canDisplayInPage: false };
+  }
+
+  try {
+    const response = await sendMessageToTab(tab.id, { type: "GPT_QUICK_SEARCH_GET_SELECTION" });
+    if (response && response.ok) {
+      return {
+        text: response.text || "",
+        tabId: tab.id,
+        canDisplayInPage: true
+      };
+    }
+  } catch {}
+
   if (typeof tab.url !== "string" || !EXECUTION_URL_PATTERNS.some((pattern) => {
     const prefix = pattern.replace(/\*$/, "");
     return tab.url.startsWith(prefix);
   })) {
-    return "";
+    return { text: "", tabId: tab.id, canDisplayInPage: false };
   }
 
   const [{ result: selectedText = "" } = {}] = await chrome.scripting.executeScript({
@@ -565,7 +577,11 @@ async function getSelectedTextOnActiveTab() {
     }
   });
 
-  return selectedText || "";
+  return {
+    text: selectedText || "",
+    tabId: tab.id,
+    canDisplayInPage: false
+  };
 }
 
 async function findChatTab() {
@@ -766,17 +782,21 @@ async function handleBatchFocusAlarm() {
   });
 }
 
-async function ensureChatTab(newChat, newChatUrl = "") {
+async function ensureChatTab(newChat, newChatUrl = "", options = {}) {
   const launchUrl = normalizeChatLaunchUrl(newChatUrl) || CHAT_HOME;
+  const activate = options.active !== false;
   if (newChat) {
     const existing = await findChatTab();
     if (existing) {
-      await chrome.tabs.update(existing.id, { url: launchUrl, active: true });
+      const updateProperties = activate
+        ? { url: launchUrl, active: true }
+        : { url: launchUrl };
+      await chrome.tabs.update(existing.id, updateProperties);
       await waitForTabComplete(existing.id);
       return existing;
     }
 
-    const created = await chrome.tabs.create({ url: launchUrl, active: true });
+    const created = await chrome.tabs.create({ url: launchUrl, active: activate });
     await waitForTabComplete(created.id);
     return created;
   }
@@ -784,7 +804,7 @@ async function ensureChatTab(newChat, newChatUrl = "") {
   const existing = await findChatTab();
   if (existing) return existing;
 
-  const created = await chrome.tabs.create({ url: CHAT_HOME, active: true });
+  const created = await chrome.tabs.create({ url: CHAT_HOME, active: activate });
   await waitForTabComplete(created.id);
   return created;
 }
@@ -793,6 +813,18 @@ async function getChatMaintenanceTab() {
   const created = await chrome.tabs.create({ url: CHAT_HOME, active: false });
   await waitForTabComplete(created.id, 20000);
   return created;
+}
+
+function sendMessageToTab(tabId, message) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(response);
+    });
+  });
 }
 
 function sendMessageToChatTab(tabId, type, payload) {
@@ -849,6 +881,88 @@ function composePromptText(prefix, text) {
   const cleanText = typeof text === "string" ? text : "";
   if (!cleanPrefix) return cleanText;
   return `${cleanPrefix}\n${cleanText}`;
+}
+
+function getHotkeyPresetConfig(settings, presetIndex) {
+  const index = [1, 2, 3, 4].includes(Number(presetIndex)) ? Number(presetIndex) : 1;
+  return {
+    index,
+    prefix: settings[`prefix${index}`],
+    autoSend: Boolean(settings[`autoSend${index}`]),
+    newChat: Boolean(settings[`newChat${index}`])
+  };
+}
+
+function getPresetIndexFromCommand(command) {
+  const match = String(command || "").match(/send_to_gpt_(\d)$/);
+  const index = match ? Number(match[1]) : 1;
+  return [1, 2, 3, 4].includes(index) ? index : 1;
+}
+
+async function sendQuickSelectionStatus(tabId, payload) {
+  if (!tabId) return;
+  try {
+    await sendMessageToTab(tabId, {
+      type: "GPT_QUICK_SEARCH_STATUS",
+      payload
+    });
+  } catch {}
+}
+
+async function handleSelectionQuickMessage(payload, sender) {
+  const text = typeof payload?.text === "string" ? payload.text.trim() : "";
+  const sourceTabId = sender?.tab?.id || 0;
+  const requestId = typeof payload?.requestId === "string" && payload.requestId
+    ? payload.requestId
+    : crypto.randomUUID();
+  const presetIndex = [1, 2, 3, 4].includes(Number(payload?.presetIndex))
+    ? Number(payload.presetIndex)
+    : 1;
+
+  if (!text) {
+    return { ok: false, requestId, error: "没有可发送的选中文本。" };
+  }
+
+  const settings = await getHotkeySettings();
+  const config = getHotkeyPresetConfig(settings, presetIndex);
+
+  try {
+    await sendQuickSelectionStatus(sourceTabId, {
+      requestId,
+      status: "sending",
+      message: "正在打开或连接 ChatGPT 页面..."
+    });
+
+    const chatTab = await ensureChatTab(config.newChat, "", { active: false });
+    await sendQuickSelectionStatus(sourceTabId, {
+      requestId,
+      status: "sending",
+      message: "正在发送文本，等待 GPT 回答..."
+    });
+
+    const result = await sendMessageToChatTabSafely(chatTab.id, "EXT_SEND_TO_GPT_AND_READ_REPLY", {
+      text,
+      prefix: config.prefix,
+      newChat: config.newChat
+    });
+
+    const reply = result?.reply || "";
+    await sendQuickSelectionStatus(sourceTabId, {
+      requestId,
+      status: "done",
+      reply
+    });
+
+    return { ok: true, requestId, reply };
+  } catch (error) {
+    const errorMessage = String(error && error.message ? error.message : error);
+    await sendQuickSelectionStatus(sourceTabId, {
+      requestId,
+      status: "error",
+      error: errorMessage
+    });
+    return { ok: false, requestId, error: errorMessage };
+  }
 }
 
 function normalizePromptText(text) {
@@ -1797,28 +1911,36 @@ async function saveMarkdownResult(text, content, directoryPath = []) {
 }
 
 async function handleHotkeyCommand(command) {
-  const selectedText = await getSelectedTextOnActiveTab();
+  const selection = await getSelectedTextOnActiveTab();
+  const selectedText = selection.text || "";
   if (!selectedText.trim()) return;
 
   const settings = await getHotkeySettings();
-  const configMap = {
-    send_to_gpt_1: { prefix: settings.prefix1, autoSend: Boolean(settings.autoSend1), newChat: Boolean(settings.newChat1) },
-    send_to_gpt_2: { prefix: settings.prefix2, autoSend: Boolean(settings.autoSend2), newChat: Boolean(settings.newChat2) },
-    send_to_gpt_3: { prefix: settings.prefix3, autoSend: Boolean(settings.autoSend3), newChat: Boolean(settings.newChat3) },
-    send_to_gpt_4: { prefix: settings.prefix4, autoSend: Boolean(settings.autoSend4), newChat: Boolean(settings.newChat4) }
-  };
+  const presetIndex = getPresetIndexFromCommand(command);
+  const presetConfig = getHotkeyPresetConfig(settings, presetIndex);
 
-  const config = configMap[command];
-  if (!config) return;
+  if (selection.canDisplayInPage && selection.tabId) {
+    try {
+      const response = await sendMessageToTab(selection.tabId, {
+        type: "GPT_QUICK_SEARCH_START_FROM_COMMAND",
+        payload: {
+          requestId: crypto.randomUUID(),
+          presetIndex,
+          text: selectedText
+        }
+      });
+      if (response && response.ok) return;
+    } catch {}
+  }
 
   const payload = {
     text: selectedText,
-    prefix: config.prefix,
-    autoSend: config.autoSend,
-    newChat: config.newChat
+    prefix: presetConfig.prefix,
+    autoSend: presetConfig.autoSend,
+    newChat: presetConfig.newChat
   };
 
-  const chatTab = await ensureChatTab(config.newChat);
+  const chatTab = await ensureChatTab(presetConfig.newChat);
   await bringToFront(chatTab.id);
   await sendMessageToChatTabSafely(chatTab.id, "EXT_SEND_TO_GPT", payload);
 }
@@ -2573,6 +2695,13 @@ if (chrome.alarms) {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || !message.type) return;
+
+  if (message.type === "SELECTION_BUBBLE_SEND_TO_GPT") {
+    handleSelectionQuickMessage(message.payload, _sender)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
 
   if (message.type === "GET_BATCH_STATE") {
     getBatchState()

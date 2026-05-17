@@ -257,7 +257,9 @@ const HOTKEY_DEFAULTS = {
   newChat1: true,
   newChat2: false,
   newChat3: false,
-  newChat4: false
+  newChat4: false,
+  selectionBubbleEnabled: true,
+  selectionBubbleExcludedUrls: []
 };
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -321,6 +323,7 @@ const HOTKEY_RECOMMENDED_KEYS = {
 };
 
 let batchSaveTimer = null;
+let hotkeySaveTimer = null;
 let startPending = false;
 let stopPending = false;
 let exportPending = false;
@@ -330,6 +333,7 @@ let chatExportRequestToken = 0;
 let currentBatchState = { ...BATCH_STATE_DEFAULT };
 let currentChatExportState = { ...CHAT_EXPORT_STATE_DEFAULT };
 let currentBatchDirectoryName = "";
+let currentSelectionFilterUrls = [];
 
 function getSync(defaults) {
   return new Promise((resolve) => chrome.storage.sync.get(defaults, (items) => resolve(items)));
@@ -536,7 +540,7 @@ const BATCH_UI_TEXT = {
     messagePromptTip: "每条文本都会附在这个消息 Prompt 后面发送。",
     pendingText: "待处理文本",
     pendingTextPlaceholder: "每行一条文本",
-    pendingTextTip: "这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近标题」后，最近的一个标题会和文本一起发送；可在设置页面关闭。",
+    pendingTextTip: "这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近两级标题」后，最近的两级标题会和文本一起发送；可在设置页面关闭。",
     copyDisciplineMapPrompt: "学科地图 Prompt",
     copyDisciplineMapPromptTitle: "点击可复制。\n需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。",
     copyDisciplineMapPromptCopied: "已复制",
@@ -559,13 +563,23 @@ const BATCH_UI_TEXT = {
     noBatchTask: "当前没有批量任务。",
     idleStatus: "等待任务开始。",
     hotkeyGuideTitle: "快捷消息使用说明",
-    openShortcutSettings: "打开快捷键设置",
-    saveHotkeySettings: "保存快捷消息设置",
-    hotkeyGuideStep1: "先给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。",
-    hotkeyGuideStep2: "点「保存快捷消息设置」，再点「打开快捷键设置」进入浏览器快捷键页面。",
+    openShortcutSettings: "快捷键设置",
+    saveHotkeySettings: "",
+    hotkeyGuideStep1: "给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。",
+    hotkeyGuideStep2: "点击「快捷键设置」进入浏览器快捷键页面。",
     hotkeyGuideStep3: "给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。",
-    hotkeyGuideNote1: "推荐流程：修改 Prompt 后先保存，再设置快捷键。设置完成以后，不需要一直停留在这个页面。",
+    hotkeyGuideNote1: "修改 Prompt、自动发送、新建会话时会自动保存。设置完成以后，不需要一直停留在这个页面。",
     hotkeyGuideNote2: "四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。",
+    selectionBubbleEnabled: "选中文本提示按钮",
+    selectionBubbleDesc: "开启后，在普通网页选中文本时会显示 GPT 发送按钮。点击按钮或数字预设后，会在后台发送给 ChatGPT，并在当前网页显示回答。",
+    selectionFilterButton: "过滤网址",
+    selectionFilterNone: "未设置过滤网址",
+    selectionFilterCount: "已过滤 {count} 个网址",
+    selectionFilterTitle: "过滤网址",
+    selectionFilterDesc: "在这些网址里，选中文本后不会显示发送按钮，快捷键也不会发送文本。",
+    selectionFilterPlaceholder: "notion.so",
+    selectionFilterAdd: "添加",
+    selectionFilterRemove: "移除",
     hotkeyPreset: "预设",
     hotkeyDefaultShortcut: "默认快捷键",
     hotkeyUsage: "使用方式：选中文本后按下快捷键",
@@ -594,8 +608,8 @@ const BATCH_UI_TEXT = {
     newChatUrlDesc: "这个链接决定新建对话在哪里创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议新建一个项目，再使用这个项目链接。",
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
-    includeNearestHeadingTitle: "发送最近标题",
-    includeNearestHeadingDesc: "开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上离它最近的上级标题，中间使用一个空格。",
+    includeNearestHeadingTitle: "发送最近两级标题",
+    includeNearestHeadingDesc: "开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上最近的两级上级标题，标题与正文之间都使用一个空格。",
     includeNearestHeadingLabel: "开启",
     delayTitle: "等待时间",
     delayDesc: "这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。",
@@ -619,7 +633,7 @@ const BATCH_UI_TEXT = {
     messagePromptTip: "Each item is appended after this message prompt before sending.",
     pendingText: "Pending Text",
     pendingTextPlaceholder: "One item per line",
-    pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading lines without ◆ are not sent as tasks by default. When “Send Nearest Heading” is enabled, the nearest heading is sent together with the item text; this can be turned off in Settings.",
+    pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading lines without ◆ are not sent as tasks by default. When “Send Nearest Two Headings” is enabled, the nearest two headings are sent together with the item text; this can be turned off in Settings.",
     copyDisciplineMapPrompt: "Map Prompt",
     copyDisciplineMapPromptTitle: "Click to copy.\nPaste it into an AI chat yourself. GPT Pro is recommended.",
     copyDisciplineMapPromptCopied: "Copied",
@@ -642,13 +656,23 @@ const BATCH_UI_TEXT = {
     noBatchTask: "No batch task is running.",
     idleStatus: "Waiting for task start.",
     hotkeyGuideTitle: "Quick Message Guide",
-    openShortcutSettings: "Open Shortcut Settings",
-    saveHotkeySettings: "Save Quick Message Settings",
+    openShortcutSettings: "Shortcut Settings",
+    saveHotkeySettings: "",
     hotkeyGuideStep1: "Write a message prompt for each of the four presets, then decide whether each preset sends automatically and opens a new chat.",
-    hotkeyGuideStep2: "Click “Save Quick Message Settings”, then click “Open Shortcut Settings” to open the browser shortcut settings page.",
+    hotkeyGuideStep2: "Click “Shortcut Settings” to open the browser shortcut settings page.",
     hotkeyGuideStep3: "Assign keys to the four commands. Then select text on any web page and press the corresponding shortcut to send it to ChatGPT.",
-    hotkeyGuideNote1: "Recommended flow: save after editing prompts, then set shortcuts. After setup, this page does not need to stay open.",
+    hotkeyGuideNote1: "Prompts, auto-send, and new-chat options are saved automatically. After setup, this page does not need to stay open.",
     hotkeyGuideNote2: "The four presets are independent. The two checkboxes below control whether the message is sent automatically and whether a new chat opens.",
+    selectionBubbleEnabled: "Selection Send Button",
+    selectionBubbleDesc: "When enabled, selecting text on regular web pages shows a GPT send button. Click the button or a preset number to send in the background and show the answer on the current page.",
+    selectionFilterButton: "Filter URLs",
+    selectionFilterNone: "No filtered URLs",
+    selectionFilterCount: "{count} filtered URLs",
+    selectionFilterTitle: "Filter URLs",
+    selectionFilterDesc: "On these URLs, selecting text will not show the send button, and shortcuts will not send text.",
+    selectionFilterPlaceholder: "notion.so",
+    selectionFilterAdd: "Add",
+    selectionFilterRemove: "Remove",
     hotkeyPreset: "Preset",
     hotkeyDefaultShortcut: "Default shortcut",
     hotkeyUsage: "Usage: select text, then press the shortcut",
@@ -677,8 +701,8 @@ const BATCH_UI_TEXT = {
     newChatUrlDesc: "This link controls where new chats are created. Leave it blank to create chats on the main GPT page. Enter a ChatGPT project link to create chats inside that project. Creating a dedicated project for this workflow is recommended.",
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
-    includeNearestHeadingTitle: "Send Nearest Heading",
-    includeNearestHeadingDesc: "When enabled, each ◆ item is sent with its nearest parent heading before the item text, separated by one space.",
+    includeNearestHeadingTitle: "Send Nearest Two Headings",
+    includeNearestHeadingDesc: "When enabled, each ◆ item is sent with its nearest two parent headings before the item text, with each part separated by one space.",
     includeNearestHeadingLabel: "On",
     delayTitle: "Delay",
     delayDesc: "This delay only applies after one item has been saved or marked as failed, before the next item is sent. GPT responses still wait for answer stability and are not limited by this number. Clicking Stop interrupts the delay.",
@@ -826,6 +850,15 @@ function applyBatchUiLanguage(language) {
   setElementText("#hotkeyGuideStep3", text.hotkeyGuideStep3);
   setElementText("#hotkeyGuideNote1", text.hotkeyGuideNote1);
   setElementText("#hotkeyGuideNote2", text.hotkeyGuideNote2);
+  setElementText("#selectionBubbleEnabledLabel", text.selectionBubbleEnabled);
+  setElementText("#selectionBubbleDesc", text.selectionBubbleDesc);
+  setElementText("#openSelectionFilterDialog", text.selectionFilterButton);
+  setElementText("#selectionFilterTitle", text.selectionFilterTitle);
+  setElementText("#selectionFilterDesc", text.selectionFilterDesc);
+  setElementText("#addSelectionFilterUrl", text.selectionFilterAdd);
+  const selectionFilterInput = document.getElementById("selectionFilterInput");
+  if (selectionFilterInput) selectionFilterInput.placeholder = text.selectionFilterPlaceholder;
+  renderSelectionFilterUrls();
   updateHotkeyGroupsUiText(text);
 
   setElementText("#exportTitle", text.exportTitle);
@@ -1000,20 +1033,32 @@ function cleanBatchPromptPart(value) {
     .trim();
 }
 
-function getNearestBatchHeading(stack) {
-  for (let index = stack.length - 1; index >= 0; index -= 1) {
-    const heading = cleanBatchPromptPart(stack[index]);
-    if (heading) return heading;
+function getNearestBatchHeadings(stack, inlineHeading = "", maxCount = 2) {
+  const headings = [];
+  for (const value of stack) {
+    const heading = cleanBatchPromptPart(value);
+    if (heading) headings.push(heading);
   }
-  return "";
+
+  const lineHeading = cleanBatchPromptPart(inlineHeading);
+  if (lineHeading) headings.push(lineHeading);
+
+  const result = [];
+  for (let index = headings.length - 1; index >= 0 && result.length < maxCount; index -= 1) {
+    const heading = headings[index];
+    if (!result.includes(heading)) {
+      result.unshift(heading);
+    }
+  }
+  return result;
 }
 
 function buildBatchSendText(text, stack, includeNearestHeading, inlineHeading = "") {
   const itemText = cleanBatchPromptPart(text) || String(text || "").trim();
   if (!includeNearestHeading) return itemText;
 
-  const heading = cleanBatchPromptPart(inlineHeading) || getNearestBatchHeading(stack);
-  return heading && itemText ? `${heading} ${itemText}` : itemText;
+  const headingText = getNearestBatchHeadings(stack, inlineHeading).join(" ");
+  return headingText && itemText ? `${headingText} ${itemText}` : itemText;
 }
 
 function parseBatchTreeItems(rawText, includeNearestHeading) {
@@ -1407,25 +1452,112 @@ async function loadHotkeySettings() {
     if (!element) continue;
     if (typeof HOTKEY_DEFAULTS[key] === "boolean") {
       element.checked = Boolean(config[key]);
+    } else if (Array.isArray(HOTKEY_DEFAULTS[key])) {
+      continue;
     } else {
       element.value = config[key] || HOTKEY_DEFAULTS[key];
     }
   }
+  currentSelectionFilterUrls = normalizeSelectionFilterUrls(config.selectionBubbleExcludedUrls);
+  renderSelectionFilterUrls();
 }
 
-function saveHotkeySettings() {
+function saveHotkeySettings(showTip = false) {
   const data = {};
   for (const key of Object.keys(HOTKEY_DEFAULTS)) {
     const element = document.getElementById(key);
     if (!element) continue;
     if (typeof HOTKEY_DEFAULTS[key] === "boolean") {
       data[key] = Boolean(element.checked);
+    } else if (Array.isArray(HOTKEY_DEFAULTS[key])) {
+      continue;
     } else {
       data[key] = element.value || HOTKEY_DEFAULTS[key];
     }
   }
 
-  chrome.storage.sync.set(data, () => flashTip("saved"));
+  chrome.storage.sync.set(data, () => {
+    if (showTip) flashTip("saved");
+  });
+}
+
+function scheduleHotkeySettingsSave() {
+  clearTimeout(hotkeySaveTimer);
+  hotkeySaveTimer = setTimeout(() => {
+    saveHotkeySettings(false);
+  }, 350);
+}
+
+function normalizeSelectionFilterUrl(value) {
+  return String(value || "").trim().replace(/\/+$/u, "");
+}
+
+function normalizeSelectionFilterUrls(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of Array.isArray(values) ? values : []) {
+    const text = normalizeSelectionFilterUrl(value);
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) continue;
+    seen.add(key);
+    result.push(text);
+  }
+  return result;
+}
+
+function renderSelectionFilterUrls() {
+  const text = getBatchUiText();
+  const summary = document.getElementById("selectionFilterSummary");
+  if (summary) {
+    summary.textContent = currentSelectionFilterUrls.length
+      ? formatUiText(text.selectionFilterCount, { count: currentSelectionFilterUrls.length })
+      : text.selectionFilterNone;
+  }
+
+  const list = document.getElementById("selectionFilterList");
+  if (!list) return;
+  list.replaceChildren();
+
+  for (const urlText of currentSelectionFilterUrls) {
+    const item = document.createElement("li");
+    const label = document.createElement("span");
+    label.className = "filter-url-text";
+    label.textContent = urlText;
+    label.title = urlText;
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "secondary-button";
+    removeButton.textContent = text.selectionFilterRemove;
+    removeButton.addEventListener("click", () => {
+      currentSelectionFilterUrls = currentSelectionFilterUrls.filter((itemUrl) => itemUrl !== urlText);
+      renderSelectionFilterUrls();
+      saveSelectionFilterUrls();
+    });
+
+    item.append(label, removeButton);
+    list.appendChild(item);
+  }
+}
+
+function saveSelectionFilterUrls() {
+  chrome.storage.sync.set({
+    selectionBubbleExcludedUrls: currentSelectionFilterUrls
+  });
+}
+
+function addSelectionFilterUrl() {
+  const input = document.getElementById("selectionFilterInput");
+  if (!input) return;
+
+  const nextUrl = normalizeSelectionFilterUrl(input.value);
+  if (!nextUrl) return;
+
+  currentSelectionFilterUrls = normalizeSelectionFilterUrls(currentSelectionFilterUrls.concat(nextUrl));
+  input.value = "";
+  renderSelectionFilterUrls();
+  saveSelectionFilterUrls();
+  input.focus();
 }
 
 async function persistBatchConfig(showTip = false) {
@@ -1961,6 +2093,53 @@ function bindExportEvents() {
   });
 }
 
+function bindHotkeyEvents() {
+  const groups = document.getElementById("groups");
+  const selectionBubbleEnabled = document.getElementById("selectionBubbleEnabled");
+  const filterDialog = document.getElementById("selectionFilterDialog");
+  const filterInput = document.getElementById("selectionFilterInput");
+  const openFilterDialog = document.getElementById("openSelectionFilterDialog");
+  const closeFilterDialog = document.getElementById("closeSelectionFilterDialog");
+  const addFilterUrl = document.getElementById("addSelectionFilterUrl");
+
+  if (groups) {
+    groups.addEventListener("input", scheduleHotkeySettingsSave);
+    groups.addEventListener("change", () => saveHotkeySettings(false));
+  }
+  if (selectionBubbleEnabled) {
+    selectionBubbleEnabled.addEventListener("change", () => saveHotkeySettings(false));
+  }
+  if (openFilterDialog && filterDialog) {
+    openFilterDialog.addEventListener("click", () => {
+      if (typeof filterDialog.showModal === "function") {
+        filterDialog.showModal();
+      } else {
+        filterDialog.setAttribute("open", "");
+      }
+      filterInput?.focus();
+    });
+  }
+  if (closeFilterDialog && filterDialog) {
+    closeFilterDialog.addEventListener("click", () => {
+      if (typeof filterDialog.close === "function") {
+        filterDialog.close();
+      } else {
+        filterDialog.removeAttribute("open");
+      }
+    });
+  }
+  if (addFilterUrl) {
+    addFilterUrl.addEventListener("click", addSelectionFilterUrl);
+  }
+  if (filterInput) {
+    filterInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addSelectionFilterUrl();
+    });
+  }
+}
+
 function bindRuntimeEvents() {
   chrome.runtime.onMessage.addListener((message) => {
     if (!message) return;
@@ -1979,8 +2158,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindTabEvents();
   bindBatchEvents();
   bindExportEvents();
+  bindHotkeyEvents();
   bindRuntimeEvents();
-  document.getElementById("save").addEventListener("click", saveHotkeySettings);
   document.getElementById("openShortcutSettings").addEventListener("click", openShortcutSettingsPage);
 
   await Promise.all([

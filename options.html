@@ -72,7 +72,7 @@
 
       --glow-display: none;
 
-      --icon-bg: rgb(46, 124, 209);
+      --icon-bg: rgb(56, 125, 201);
       --h1-gradient-from: #111827;
       --h1-gradient-to: #374151;
 
@@ -94,14 +94,14 @@
       --text-primary: #e8eaed;
       --text-secondary: #9aa0a6;
       --text-muted: #6b7280;
-      --accent: rgb(46, 124, 209);
-      --accent-dim: rgba(46, 124, 209, 0.18);
-      --accent-glow: rgba(46, 124, 209, 0.28);
+      --accent: rgb(56, 125, 201);
+      --accent-dim: rgba(56, 125, 201, 0.18);
+      --accent-glow: rgba(56, 125, 201, 0.28);
       --danger: #f87171;
       --danger-dim: rgba(248, 113, 113, 0.12);
       --danger-border: rgba(248, 113, 113, 0.3);
       --danger-text: #f87171;
-      --soft-blue-bg: rgba(46, 124, 209, 0.34);
+      --soft-blue-bg: rgba(56, 125, 201, 0.34);
       --soft-blue-text: #e8eaed;
       --directory-alert-border: rgba(248, 113, 113, 0.72);
       --directory-alert-shadow: rgba(248, 113, 113, 0.24);
@@ -112,20 +112,20 @@
       --tooltip-shadow: rgba(0, 0, 0, 0.52);
       --tooltip-border: rgba(255, 255, 255, 0.22);
 
-      --tab-active-bg: rgba(46, 124, 209, 0.2);
+      --tab-active-bg: rgba(56, 125, 201, 0.2);
       --tab-active-text: #8ec5ff;
       --tab-active-border: transparent;
-      --tab-active-shadow: 0 0 12px rgba(46, 124, 209, 0.28);
+      --tab-active-shadow: 0 0 12px rgba(56, 125, 201, 0.28);
       --tab-hover-bg: rgba(255, 255, 255, 0.07);
 
-      --primary-bg: rgb(46, 124, 209);
+      --primary-bg: rgb(56, 125, 201);
       --primary-border: transparent;
       --primary-text: #ffffff;
-      --primary-shadow: 0 0 16px rgba(46, 124, 209, 0.28);
-      --primary-hover-shadow: 0 0 24px rgba(46, 124, 209, 0.38);
+      --primary-shadow: 0 0 16px rgba(56, 125, 201, 0.28);
+      --primary-hover-shadow: 0 0 24px rgba(56, 125, 201, 0.38);
 
-      --toggle-active-bg: rgba(46, 124, 209, 0.2);
-      --toggle-active-border: rgb(46, 124, 209);
+      --toggle-active-bg: rgba(56, 125, 201, 0.2);
+      --toggle-active-border: rgb(56, 125, 201);
       --toggle-active-text: #8ec5ff;
 
       --select-option-bg: #1a1c2a;
@@ -141,13 +141,13 @@
 
       --glow-display: none;
 
-      --icon-bg: rgb(46, 124, 209);
+      --icon-bg: rgb(56, 125, 201);
       --h1-gradient-from: #e8eaed;
       --h1-gradient-to: #9aa0a6;
 
-      --help-hover-border: rgba(46, 124, 209, 0.8);
-      --toggle-hover-border: rgba(46, 124, 209, 0.8);
-      --btn-hover-border: rgba(46, 124, 209, 0.8);
+      --help-hover-border: rgba(56, 125, 201, 0.8);
+      --toggle-hover-border: rgba(56, 125, 201, 0.8);
+      --btn-hover-border: rgba(56, 125, 201, 0.8);
     }
 
     /* ═══════════════════════════════════════
@@ -689,6 +689,104 @@
       flex-wrap: wrap;
     }
 
+    .hotkey-feature-card {
+      margin-top: 16px;
+    }
+
+    .hotkey-feature-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hotkey-feature-desc {
+      flex: 1 1 360px;
+      min-width: 240px;
+      line-height: 1.6;
+    }
+
+    .hotkey-feature-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .filter-dialog {
+      width: min(520px, calc(100vw - 32px));
+      border: 1px solid var(--border-default);
+      border-radius: 16px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+      padding: 18px;
+    }
+
+    .filter-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.46);
+    }
+
+    .filter-dialog-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .filter-dialog-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .filter-dialog-desc {
+      margin-top: 4px;
+      color: var(--text-secondary);
+      font-size: var(--control-font-size);
+      line-height: 1.6;
+    }
+
+    .filter-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .filter-input-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .filter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .filter-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      background: var(--toolbar-bg);
+    }
+
+    .filter-url-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .secondary-button {
       border: 1px solid var(--border-default);
       background: var(--bg-elevated);
@@ -1123,8 +1221,8 @@
     .toolbar-actions button {
       height: calc(var(--control-height) + 14px);
       min-height: calc(var(--control-height) + 14px);
-      padding: 0 23px;
-      font-size: 14.4px;
+      padding: 0 14px;
+      font-size: var(--control-font-size);
     }
 
     .toolbar-focus-option {
@@ -1133,6 +1231,7 @@
 
     .toolbar-focus-option .toggle-label {
       min-height: var(--control-height);
+      font-size: var(--control-font-size);
     }
 
     /* ═══════════════════════════════════════
@@ -1306,7 +1405,7 @@
                     <span id="disciplineMapPromptTooltipBody" class="copy-prompt-tooltip-body"></span>
                   </span>
                 </button>
-                <button id="batchInputsHelp" type="button" class="help-button" data-tip="这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近标题」后，最近的一个标题会和文本一起发送；可在设置页面关闭。">?</button>
+                <button id="batchInputsHelp" type="button" class="help-button" data-tip="这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近两级标题」后，最近的两级标题会和文本一起发送；可在设置页面关闭。">?</button>
                 <button id="batchClearInputs" type="button" class="icon-button" aria-label="清除待处理文本" title="清除待处理文本">x</button>
               </div>
             </div>
@@ -1364,25 +1463,53 @@
       <div class="guide-card-head">
         <div id="hotkeyGuideTitle" class="guide-card-title">快捷消息使用说明</div>
         <div class="guide-actions">
-          <button id="openShortcutSettings" type="button" class="secondary-button">打开快捷键设置</button>
-          <button id="save" class="primary">保存快捷消息设置</button>
+          <button id="openShortcutSettings" type="button" class="secondary-button">快捷键设置</button>
           <span id="saved" class="hint" style="display: none;">已保存</span>
         </div>
       </div>
 
       <div class="guide-card-body">
         <ol class="guide-list">
-          <li id="hotkeyGuideStep1">先给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。</li>
-          <li id="hotkeyGuideStep2">点「保存快捷消息设置」，再点「打开快捷键设置」进入 Chrome 的快捷键页面。</li>
+          <li id="hotkeyGuideStep1">给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。</li>
+          <li id="hotkeyGuideStep2">点击「快捷键设置」进入 Chrome 的快捷键页面。</li>
           <li id="hotkeyGuideStep3">给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。</li>
         </ol>
 
         <div class="guide-side">
-          <div id="hotkeyGuideNote1" class="guide-note">推荐流程：修改 Prompt 后先保存，再设置快捷键。设置完成以后，不需要一直停留在这个页面。</div>
+          <div id="hotkeyGuideNote1" class="guide-note">修改 Prompt、自动发送、新建会话时会自动保存。设置完成以后，不需要一直停留在这个页面。</div>
           <div id="hotkeyGuideNote2" class="guide-note">四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。</div>
         </div>
       </div>
     </div>
+
+    <div class="group hotkey-feature-card">
+      <div class="hotkey-feature-row">
+        <label class="toggle-label option-box" for="selectionBubbleEnabled">
+          <span id="selectionBubbleEnabledLabel">选中文本提示按钮</span>
+          <input id="selectionBubbleEnabled" type="checkbox">
+        </label>
+        <div id="selectionBubbleDesc" class="hint hotkey-feature-desc">开启后，在普通网页选中文本时会显示 GPT 发送按钮。点击按钮或数字预设后，会在后台发送给 ChatGPT，并在当前网页显示回答。</div>
+      </div>
+      <div class="hotkey-feature-actions">
+        <button id="openSelectionFilterDialog" type="button" class="secondary-button">过滤网址</button>
+        <span id="selectionFilterSummary" class="hint">未设置过滤网址</span>
+      </div>
+    </div>
+
+    <dialog id="selectionFilterDialog" class="filter-dialog">
+      <div class="filter-dialog-head">
+        <div>
+          <div id="selectionFilterTitle" class="filter-dialog-title">过滤网址</div>
+          <div id="selectionFilterDesc" class="filter-dialog-desc">在这些网址里，选中文本后不会显示发送按钮，快捷键也不会发送文本。</div>
+        </div>
+        <button id="closeSelectionFilterDialog" type="button" class="icon-button" aria-label="关闭" title="关闭">x</button>
+      </div>
+      <div class="filter-input-row">
+        <input id="selectionFilterInput" type="text" placeholder="notion.so">
+        <button id="addSelectionFilterUrl" type="button" class="primary">添加</button>
+      </div>
+      <ul id="selectionFilterList" class="filter-list"></ul>
+    </dialog>
 
     <div id="groups"></div>
   </section>
@@ -1429,8 +1556,8 @@
 
         <div class="settings-item">
           <div class="settings-main">
-            <div id="includeNearestHeadingTitle" class="settings-title">发送最近标题</div>
-            <div id="includeNearestHeadingDesc" class="settings-desc">开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上离它最近的上级标题，中间使用一个空格。</div>
+            <div id="includeNearestHeadingTitle" class="settings-title">发送最近两级标题</div>
+            <div id="includeNearestHeadingDesc" class="settings-desc">开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上最近的两级上级标题，标题与正文之间都使用一个空格。</div>
           </div>
           <div class="settings-control">
             <label class="toggle-label" for="batchIncludeNearestHeading">
