@@ -7,20 +7,26 @@ const EXECUTION_URL_PATTERNS = [
 const INJECT_WORLD = "ISOLATED";
 
 const DEFAULT_PREFIX = "请将下列文本翻译成中文：";
+const LEGACY_EXPLAIN_PREFIX = "请展开解释以下文本";
+const EXPLAIN_PREFIX = "请展开解释以下文本：";
+const HOTKEY_PRESET_VERSION_KEY = "hotkeyPresetVersion";
+const HOTKEY_PRESET_VERSION = 3;
 const HOTKEY_DEFAULTS = {
   prefix1: DEFAULT_PREFIX,
   prefix2: DEFAULT_PREFIX,
-  prefix3: DEFAULT_PREFIX,
-  prefix4: DEFAULT_PREFIX,
+  prefix3: EXPLAIN_PREFIX,
+  prefix4: EXPLAIN_PREFIX,
   autoSend1: true,
   autoSend2: true,
   autoSend3: true,
   autoSend4: true,
   newChat1: true,
   newChat2: false,
-  newChat3: false,
+  newChat3: true,
   newChat4: false,
-  selectionBubbleEnabled: true,
+  selectionBubbleEnabled: false,
+  selectionBubbleUseCurrentChat: true,
+  quickMessageProjectUrl: "",
   selectionBubbleExcludedUrls: []
 };
 const PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户下面将要发送的文本。
@@ -138,7 +144,7 @@ const SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户
 格式要求：
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+const SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
 
 # 内容要求：
 
@@ -152,6 +158,25 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
 
 不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
 
 # 格式要求：
 
@@ -195,7 +220,7 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 Format requirements:
 
 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+const SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
@@ -209,6 +234,26 @@ Write a complete English article about the text, aiming for publishable quality.
 Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
 
 Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures.
+
+# Format Requirements:
+
+The first time a person appears, use English (Chinese). After that, use the English name.
+The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+
+# Content Requirements:
+
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+
+Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
+
+# Writing Requirements:
+
+Write one complete English article about the text, aiming for publishable quality. Use a blog-article style, add some prose style, and avoid translated-sounding or AI-sounding phrasing. Keep the article smooth and pleasant to read as a whole. Prefer short sentences.
+Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
+
+Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures.
+Use sentence openings with "if" sparingly. Do not use "more like". Do not open a sentence with a conclusion followed by a colon, such as "The meaning is clear:"; move into the content without judging whether it is clear.
 
 # Format Requirements:
 
@@ -237,6 +282,8 @@ const BATCH_DEFAULT_PROMPT = "请介绍：";
 const BATCH_EN_PROMPT = "Please introduce:";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
+const CHAT_EXPORT_MODE_SEPARATE = "separate";
+const CHAT_EXPORT_MODE_SINGLE = "single";
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
   batchPrompt: BATCH_DEFAULT_PROMPT,
@@ -292,11 +339,16 @@ const EMPTY_CHAT_EXPORT_STATE = {
   startedAt: "",
   finishedAt: "",
   logs: [],
-  directoryName: ""
+  directoryName: "",
+  exportMode: CHAT_EXPORT_MODE_SEPARATE
 };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function getSync(defaults) {
   return new Promise((resolve) => chrome.storage.sync.get(defaults, (items) => resolve(items)));
+}
+
+function getSyncItems(keys) {
+  return new Promise((resolve) => chrome.storage.sync.get(keys, (items) => resolve(items)));
 }
 
 function getLocal(defaults) {
@@ -525,8 +577,55 @@ async function appendBatchLogIfCurrent(batchId, message, level = "info") {
   return saveBatchState({ ...current, logs });
 }
 
+function normalizeHotkeyDefaultText(value) {
+  return String(value || "").replace(/\r\n?/g, "\n").trim();
+}
+
+function createHotkeySettings(items = {}) {
+  const settings = { ...HOTKEY_DEFAULTS, ...(items || {}) };
+  const patch = {};
+  const oldPresetVersion = Number(items?.[HOTKEY_PRESET_VERSION_KEY] || 0) < HOTKEY_PRESET_VERSION;
+  const translatePrefix = normalizeHotkeyDefaultText(DEFAULT_PREFIX);
+  const explainPrefixes = new Set([
+    normalizeHotkeyDefaultText(LEGACY_EXPLAIN_PREFIX),
+    normalizeHotkeyDefaultText(EXPLAIN_PREFIX)
+  ]);
+
+  if (oldPresetVersion) {
+    const prefix2 = normalizeHotkeyDefaultText(items.prefix2);
+    const prefix3 = normalizeHotkeyDefaultText(items.prefix3);
+    const prefix4 = normalizeHotkeyDefaultText(items.prefix4);
+
+    if (!prefix2 || prefix2 === translatePrefix || explainPrefixes.has(prefix2)) {
+      settings.prefix2 = DEFAULT_PREFIX;
+      settings.newChat2 = false;
+      patch.prefix2 = DEFAULT_PREFIX;
+      patch.newChat2 = false;
+    }
+
+    if (!prefix3 || prefix3 === translatePrefix || explainPrefixes.has(prefix3)) {
+      settings.prefix3 = EXPLAIN_PREFIX;
+      settings.newChat3 = true;
+      patch.prefix3 = EXPLAIN_PREFIX;
+      patch.newChat3 = true;
+    }
+
+    if (!prefix4 || prefix4 === translatePrefix || explainPrefixes.has(prefix4)) {
+      settings.prefix4 = EXPLAIN_PREFIX;
+      settings.newChat4 = false;
+      patch.prefix4 = EXPLAIN_PREFIX;
+      patch.newChat4 = false;
+    }
+
+    patch[HOTKEY_PRESET_VERSION_KEY] = HOTKEY_PRESET_VERSION;
+  }
+
+  return { settings, patch };
+}
+
 async function getHotkeySettings() {
-  return getSync(HOTKEY_DEFAULTS);
+  const items = await getSyncItems([...Object.keys(HOTKEY_DEFAULTS), HOTKEY_PRESET_VERSION_KEY]);
+  return createHotkeySettings(items).settings;
 }
 
 async function getSelectedTextOnActiveTab() {
@@ -783,7 +882,8 @@ async function handleBatchFocusAlarm() {
 }
 
 async function ensureChatTab(newChat, newChatUrl = "", options = {}) {
-  const launchUrl = normalizeChatLaunchUrl(newChatUrl) || CHAT_HOME;
+  const normalizedNewChatUrl = normalizeChatLaunchUrl(newChatUrl);
+  const launchUrl = normalizedNewChatUrl || CHAT_HOME;
   const activate = options.active !== false;
   if (newChat) {
     const existing = await findChatTab();
@@ -802,9 +902,18 @@ async function ensureChatTab(newChat, newChatUrl = "", options = {}) {
   }
 
   const existing = await findChatTab();
-  if (existing) return existing;
+  if (existing) {
+    if (normalizedNewChatUrl) {
+      const updateProperties = activate
+        ? { url: launchUrl, active: true }
+        : { url: launchUrl };
+      await chrome.tabs.update(existing.id, updateProperties);
+      await waitForTabComplete(existing.id);
+    }
+    return existing;
+  }
 
-  const created = await chrome.tabs.create({ url: CHAT_HOME, active: activate });
+  const created = await chrome.tabs.create({ url: launchUrl, active: activate });
   await waitForTabComplete(created.id);
   return created;
 }
@@ -915,6 +1024,9 @@ async function handleSelectionQuickMessage(payload, sender) {
   const requestId = typeof payload?.requestId === "string" && payload.requestId
     ? payload.requestId
     : crypto.randomUUID();
+  const action = payload?.action === "explain" || payload?.action === "translate"
+    ? payload.action
+    : "";
   const presetIndex = [1, 2, 3, 4].includes(Number(payload?.presetIndex))
     ? Number(payload.presetIndex)
     : 1;
@@ -924,7 +1036,13 @@ async function handleSelectionQuickMessage(payload, sender) {
   }
 
   const settings = await getHotkeySettings();
-  const config = getHotkeyPresetConfig(settings, presetIndex);
+  const quickMessageProjectUrl = settings.quickMessageProjectUrl || "";
+  const config = action
+    ? {
+        prefix: action === "explain" ? EXPLAIN_PREFIX : DEFAULT_PREFIX,
+        newChat: settings.selectionBubbleUseCurrentChat === false
+      }
+    : getHotkeyPresetConfig(settings, presetIndex);
 
   try {
     await sendQuickSelectionStatus(sourceTabId, {
@@ -933,17 +1051,19 @@ async function handleSelectionQuickMessage(payload, sender) {
       message: "正在打开或连接 ChatGPT 页面..."
     });
 
-    const chatTab = await ensureChatTab(config.newChat, "", { active: false });
+    const chatTab = await ensureChatTab(config.newChat, quickMessageProjectUrl, { active: false });
     await sendQuickSelectionStatus(sourceTabId, {
       requestId,
-      status: "sending",
-      message: "正在发送文本，等待 GPT 回答..."
+      status: "answering",
+      message: "GPT 正在回答..."
     });
 
     const result = await sendMessageToChatTabSafely(chatTab.id, "EXT_SEND_TO_GPT_AND_READ_REPLY", {
       text,
       prefix: config.prefix,
-      newChat: config.newChat
+      newChat: config.newChat,
+      progressTargetTabId: sourceTabId,
+      requestId
     });
 
     const reply = result?.reply || "";
@@ -1005,6 +1125,8 @@ async function getBatchPromptConfig() {
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
       BATCH_EN_GLOBAL_PROMPT,
+      SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
+      SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT,
       SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
       SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT,
       LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -1673,6 +1795,28 @@ function buildMarkdownContent(text, answer) {
   return body ? `${body}\n` : "";
 }
 
+function normalizeChatExportMode(value) {
+  return value === CHAT_EXPORT_MODE_SINGLE ? CHAT_EXPORT_MODE_SINGLE : CHAT_EXPORT_MODE_SEPARATE;
+}
+
+function buildSingleChatExportContent(pairs) {
+  const normalized = Array.isArray(pairs)
+    ? pairs
+      .map((pair) => ({
+        question: String(pair?.question || "").trim(),
+        answer: formatMarkdownBody(pair?.answer || "")
+      }))
+      .filter((pair) => pair.question && pair.answer)
+    : [];
+
+  const sections = normalized.map((pair, index) => [
+    `## ${index + 1}. ${pair.question}`,
+    pair.answer
+  ].join("\n\n"));
+
+  return `# 当前对话导出\n\n${sections.join("\n\n")}\n`;
+}
+
 function buildTermIndexContent(terms) {
   const normalized = Array.isArray(terms)
     ? terms.map((item) => String(item || "").trim()).filter(Boolean)
@@ -1918,6 +2062,7 @@ async function handleHotkeyCommand(command) {
   const settings = await getHotkeySettings();
   const presetIndex = getPresetIndexFromCommand(command);
   const presetConfig = getHotkeyPresetConfig(settings, presetIndex);
+  const quickMessageProjectUrl = settings.quickMessageProjectUrl || "";
 
   if (selection.canDisplayInPage && selection.tabId) {
     try {
@@ -1940,7 +2085,7 @@ async function handleHotkeyCommand(command) {
     newChat: presetConfig.newChat
   };
 
-  const chatTab = await ensureChatTab(presetConfig.newChat);
+  const chatTab = await ensureChatTab(presetConfig.newChat, quickMessageProjectUrl);
   await bringToFront(chatTab.id);
   await sendMessageToChatTabSafely(chatTab.id, "EXT_SEND_TO_GPT", payload);
 }
@@ -2079,6 +2224,7 @@ async function handleStartBatch(payload) {
 
 async function handleStartChatExport(payload) {
   const directoryName = typeof payload?.directoryName === "string" ? payload.directoryName : "";
+  const exportMode = normalizeChatExportMode(payload?.exportMode);
   const currentState = await getChatExportState();
   const exportId = crypto.randomUUID();
 
@@ -2103,10 +2249,13 @@ async function handleStartChatExport(payload) {
     startedAt,
     finishedAt: "",
     directoryName,
+    exportMode,
     logs: [{
       time: startedAt,
       level: "info",
-      message: "当前对话导出已开始。"
+      message: exportMode === CHAT_EXPORT_MODE_SINGLE
+        ? "当前对话导出已开始：同一个 MD。"
+        : "当前对话导出已开始：逐条 MD。"
     }]
   };
 
@@ -2157,6 +2306,61 @@ async function handleStartChatExport(payload) {
           }
         ]).slice(-80)
       });
+
+      if (exportMode === CHAT_EXPORT_MODE_SINGLE) {
+        let completed = 0;
+        let failed = 0;
+        let logLevel = "info";
+        let logMessage = "";
+
+        try {
+          const content = buildSingleChatExportContent(pairs);
+          const saveResult = await saveMarkdownResult("当前对话导出", content);
+          completed = pairs.length;
+          logLevel = "success";
+          logMessage = `已保存同一个 MD 文件，共 ${pairs.length} 组问答。${saveResult.locationText}`;
+        } catch (error) {
+          failed = pairs.length;
+          logLevel = "error";
+          logMessage = `同一个 MD 文件保存失败：${error && error.message ? error.message : String(error)}`;
+        }
+
+        runningState = await getChatExportState();
+        if (!isCurrentChatExportMessage(runningState, exportId)) {
+          return;
+        }
+
+        const finishedAt = new Date().toISOString();
+        const message = failed
+          ? `当前对话导出结束，成功 ${completed} 组，失败 ${failed} 组。`
+          : `当前对话导出结束，已保存同一个 MD 文件，共 ${completed} 组问答。`;
+
+        await saveChatExportState({
+          ...runningState,
+          running: false,
+          exportId: "",
+          total: pairs.length,
+          completed,
+          failed,
+          currentIndex: pairs.length,
+          currentText: "当前对话导出",
+          message,
+          finishedAt,
+          logs: runningState.logs.concat(
+            {
+              time: finishedAt,
+              level: logLevel,
+              message: logMessage
+            },
+            {
+              time: finishedAt,
+              level: failed ? "error" : "info",
+              message
+            }
+          ).slice(-80)
+        });
+        return;
+      }
 
       if (terms.length) {
         const indexContent = buildTermIndexContent(terms);
@@ -2700,6 +2904,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     handleSelectionQuickMessage(message.payload, _sender)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "SELECTION_REPLY_PROGRESS") {
+    const targetTabId = Number(message.payload?.targetTabId);
+    if (Number.isInteger(targetTabId) && targetTabId > 0) {
+      sendQuickSelectionStatus(targetTabId, {
+        requestId: message.payload?.requestId || "",
+        status: "answering",
+        message: "GPT 正在回答...",
+        reply: message.payload?.reply || ""
+      }).then(() => sendResponse({ ok: true }))
+        .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+      return true;
+    }
+    sendResponse({ ok: false, error: "缺少目标标签页。" });
     return true;
   }
 

@@ -22,9 +22,9 @@
   const BATCH_MAX_REFRESH_RETRIES = 5;
   const BATCH_NEW_TAB_RETRY_AFTER = 2;
   const BATCH_REPLY_TIMEOUT_MS = 600000;
-  const BATCH_REPLY_STABLE_MS = 5000;
-  const BATCH_REPLY_CONFIRM_MS = 1500;
-  const BATCH_REPLY_FINAL_CONFIRM_MS = 10000;
+  const BATCH_REPLY_STABLE_MS = 2000;
+  const BATCH_REPLY_CONFIRM_MS = 700;
+  const BATCH_REPLY_FINAL_CONFIRM_MS = 2000;
   const BATCH_RETRY_WATCHDOG_MS = 300000;
   const BATCH_CONVERSATION_ITEM_LIMIT = 30;
   const BATCH_HEARTBEAT_INTERVAL_MS = 15000;
@@ -2336,10 +2336,25 @@
     let lastText = "";
     let lastRawText = "";
     let stableSince = Date.now();
+    let lastProgressText = "";
+    let lastProgressAt = 0;
     const allowShortReply = Boolean(options.allowShortReply);
+    const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
     const minShortReplySignalLength = Number.isFinite(Number(options.minShortReplySignalLength))
       ? Math.max(1, Number(options.minShortReplySignalLength))
       : 1;
+    const reportProgress = async (text, force = false) => {
+      if (!onProgress) return;
+      const progressText = String(text || "");
+      if (!progressText || progressText === lastProgressText) return;
+      const now = Date.now();
+      if (!force && now - lastProgressAt < 250) return;
+      lastProgressText = progressText;
+      lastProgressAt = now;
+      try {
+        await onProgress(progressText);
+      } catch {}
+    };
 
     while (true) {
       throwIfBatchStopped(batchId);
@@ -2371,9 +2386,14 @@
       const timedOut = Date.now() - startedAt >= timeout;
       const currentlyGenerating = isGenerating();
 
+      if (hasNewReply) {
+        await reportProgress(replyText || latestText || latestRawText);
+      }
+
       if (hasUsableReply && !currentlyGenerating && stableEnough) {
         const confirmedReply = await confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength);
         if (confirmedReply) {
+          await reportProgress(confirmedReply, true);
           return confirmedReply;
         }
         stableSince = Date.now();
@@ -2387,7 +2407,7 @@
         stableSince = Date.now();
       }
 
-      await sleepWithStopCheck(500, batchId);
+      await sleepWithStopCheck(250, batchId);
     }
   }
 
@@ -3090,15 +3110,26 @@
     }
   }
 
-  async function handlePayloadAndReadReply({ text, prefix, newChat }) {
+  async function handlePayloadAndReadReply({ text, prefix, newChat, progressTargetTabId, requestId }) {
     try {
       if (batchRunning) {
         return { ok: false, error: "批量任务仍在执行中。" };
       }
+      const targetTabId = Number(progressTargetTabId);
+      const progressRequestId = typeof requestId === "string" ? requestId : "";
+      const reportSelectionProgress = async (reply) => {
+        if (!Number.isInteger(targetTabId) || targetTabId <= 0 || !progressRequestId) return;
+        await sendRuntimeMessage("SELECTION_REPLY_PROGRESS", {
+          targetTabId,
+          requestId: progressRequestId,
+          reply
+        });
+      };
       const reply = await sendPromptAndReadReply({
         text,
         prompt: prefix,
-        newChat: Boolean(newChat)
+        newChat: Boolean(newChat),
+        onProgress: reportSelectionProgress
       });
       return { ok: true, reply };
     } catch (error) {
@@ -3106,9 +3137,9 @@
     }
   }
 
-  async function sendPromptAndReadReply({ text, prompt, newChat, batchId, onSent }) {
+  async function sendPromptAndReadReply({ text, prompt, newChat, batchId, onSent, onProgress }) {
     const fullText = composeFullText(text, prompt);
-    return sendSingleMessageAndReadReply({ fullText, sentText: text, newChat, batchId, onSent });
+    return sendSingleMessageAndReadReply({ fullText, sentText: text, newChat, batchId, onSent, onProgress });
   }
 
   async function sendGlobalPromptAndReadReply({ globalPrompt, newChat, batchId, onSent }) {
@@ -3123,7 +3154,7 @@
     });
   }
 
-  async function sendSingleMessageAndReadReply({ fullText, sentText, newChat, batchId, onSent, allowShortReply, minShortReplySignalLength }) {
+  async function sendSingleMessageAndReadReply({ fullText, sentText, newChat, batchId, onSent, onProgress, allowShortReply, minShortReplySignalLength }) {
     const previousAssistantSnapshot = getAssistantSnapshot();
     throwIfBatchStopped(batchId);
     await fillEditorAndSend({
@@ -3147,7 +3178,8 @@
 
     const reply = await waitForAssistantReply(previousAssistantSnapshot, batchId, BATCH_REPLY_TIMEOUT_MS, {
       allowShortReply,
-      minShortReplySignalLength
+      minShortReplySignalLength,
+      onProgress
     });
     if (!reply) {
       throw new Error("没有提取到回答内容。");
@@ -3663,7 +3695,7 @@
           return "";
         }
 
-        await sleepWithStopCheck(500, batchId);
+        await sleepWithStopCheck(250, batchId);
       }
     };
 

@@ -1,17 +1,17 @@
 (function () {
   const DEFAULTS = {
-    selectionBubbleEnabled: true,
+    selectionBubbleEnabled: false,
     selectionBubbleExcludedUrls: []
   };
   const ROOT_ID = "gpt-quick-search-selection-root";
-  const BUTTON_LABEL = "Ask GPT";
+  const TRANSLATE_LABEL = "翻译";
+  const EXPLAIN_LABEL = "Ask GPT";
 
   let enabled = DEFAULTS.selectionBubbleEnabled;
   let excludedUrls = [];
   let root = null;
   let shadow = null;
   let bubble = null;
-  let statusText = null;
   let replyBox = null;
   let closeButton = null;
   let currentSelection = null;
@@ -137,12 +137,12 @@
           position: fixed;
           z-index: 2147483647;
           display: none;
-          max-width: min(420px, calc(100vw - 24px));
-          color: #172033;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          font-size: 13px;
+          max-width: min(540px, calc(100vw - 24px));
+          color: #111111;
+          font-family: "Microsoft YaHei", "微软雅黑", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-size: 15px;
           line-height: 1.5;
-          filter: drop-shadow(0 14px 28px rgba(15, 23, 42, .18));
+          filter: drop-shadow(0 18px 36px rgba(0, 0, 0, .2));
         }
 
         .bubble.is-visible {
@@ -151,56 +151,57 @@
 
         .bar,
         .result {
-          border: 1px solid rgba(56, 125, 201, .24);
+          border: 1px solid rgba(0, 0, 0, .18);
           border-radius: 14px;
-          background: rgba(255, 255, 255, .96);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
-          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, .9);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82), 0 18px 44px rgba(0, 0, 0, .14);
+          backdrop-filter: blur(18px) saturate(1.12);
+          -webkit-backdrop-filter: blur(18px) saturate(1.12);
         }
 
         .bar {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 6px;
+          gap: 8px;
+          padding: 7px;
         }
 
-        .label {
-          height: 28px;
-          padding: 0 10px;
-          border: 0;
+        .action {
+          height: 32px;
+          min-width: 96px;
+          padding: 0 14px;
+          border: 1px solid #111111;
           border-radius: 999px;
+          background: rgba(255, 255, 255, .95);
+          color: #111111;
+          font: inherit;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .action.primary {
+          border-color: rgb(56, 125, 201);
           background: rgb(56, 125, 201);
-          color: #fff;
-          font: inherit;
-          font-weight: 700;
-          cursor: pointer;
+          color: #ffffff;
         }
 
-        .preset {
-          width: 28px;
-          height: 28px;
-          border: 1px solid rgba(56, 125, 201, .28);
-          border-radius: 999px;
-          background: rgba(56, 125, 201, .12);
-          color: rgb(56, 125, 201);
-          font: inherit;
-          font-weight: 700;
-          cursor: pointer;
+        .action.ask {
+          border-color: #111111;
+          background: #111111;
+          color: #ffffff;
         }
 
-        .label:hover,
-        .preset:hover,
-        .label:focus-visible,
-        .preset:focus-visible {
-          outline: 2px solid rgba(56, 125, 201, .22);
+        .action:hover,
+        .action:focus-visible {
+          outline: 2px solid rgba(0, 0, 0, .18);
           outline-offset: 2px;
         }
 
         .result {
           display: none;
-          width: min(420px, calc(100vw - 24px));
+          width: min(540px, calc(100vw - 24px));
           overflow: hidden;
+          position: relative;
         }
 
         .bubble.has-result .bar {
@@ -211,73 +212,61 @@
           display: block;
         }
 
-        .result-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          padding: 10px 12px;
-          border-bottom: 1px solid rgba(56, 125, 201, .16);
-          background: #f8fbff;
-        }
-
-        .status {
-          color: #1e3a8a;
-          font-weight: 700;
-        }
-
         .close {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          z-index: 2;
           width: 26px;
           height: 26px;
-          border: 1px solid rgba(15, 23, 42, .16);
+          border: 1px solid rgba(0, 0, 0, .24);
           border-radius: 999px;
-          background: #fff;
-          color: #334155;
+          background: rgba(255, 255, 255, .9);
+          color: #111111;
           font: inherit;
           line-height: 1;
           cursor: pointer;
         }
 
         .reply {
-          max-height: min(360px, 52vh);
+          max-height: min(468px, 68vh);
           overflow: auto;
-          padding: 12px;
+          padding: 22px 54px 22px 24px;
           white-space: pre-wrap;
           overflow-wrap: anywhere;
-          color: #172033;
+          color: #111111;
+          font-size: 16px;
+          line-height: 1.72;
+        }
+
+        .reply strong {
+          font-weight: 800;
         }
 
         .reply.is-muted {
-          color: #64748b;
+          color: #6b7280;
         }
       </style>
       <div class="bubble" part="bubble">
         <div class="bar">
-          <button class="label" type="button" data-preset="1" title="使用预设 1 发送">${BUTTON_LABEL}</button>
-          <button class="preset" type="button" data-preset="1" title="使用预设 1">1</button>
-          <button class="preset" type="button" data-preset="2" title="使用预设 2">2</button>
-          <button class="preset" type="button" data-preset="3" title="使用预设 3">3</button>
-          <button class="preset" type="button" data-preset="4" title="使用预设 4">4</button>
+          <button class="action primary" type="button" data-action="translate" title="翻译成中文">${TRANSLATE_LABEL}</button>
+          <button class="action ask" type="button" data-action="explain" title="Ask GPT">${EXPLAIN_LABEL}</button>
         </div>
         <div class="result">
-          <div class="result-head">
-            <div class="status">正在发送到 GPT...</div>
-            <button class="close" type="button" aria-label="关闭">x</button>
-          </div>
+          <button class="close" type="button" aria-label="关闭">x</button>
           <div class="reply is-muted">等待回答返回...</div>
         </div>
       </div>
     `;
 
     bubble = shadow.querySelector(".bubble");
-    statusText = shadow.querySelector(".status");
     replyBox = shadow.querySelector(".reply");
     closeButton = shadow.querySelector(".close");
 
-    shadow.querySelectorAll("[data-preset]").forEach((button) => {
+    shadow.querySelectorAll("[data-action], [data-preset]").forEach((button) => {
       button.addEventListener("click", () => {
-        const presetIndex = Number(button.dataset.preset || 1);
-        sendSelection(presetIndex);
+        const action = button.dataset.action || "";
+        sendSelection(action || Number(button.dataset.preset || 1));
       });
     });
 
@@ -322,8 +311,7 @@
     currentRequestId = "";
     const element = ensureBubble();
     element.classList.remove("has-result");
-    statusText.textContent = "正在发送到 GPT...";
-    replyBox.textContent = "等待回答返回...";
+    renderReplyText("等待回答返回...");
     replyBox.classList.add("is-muted");
     positionBubble(details.rect);
   }
@@ -348,12 +336,36 @@
     }, delay);
   }
 
+  function renderReplyText(message) {
+    const text = String(message || "");
+    replyBox.replaceChildren();
+
+    const parts = text.split("**");
+    for (let index = 0; index < parts.length; index += 1) {
+      const part = parts[index];
+      if (!part) continue;
+
+      const isBold = index % 2 === 1 && index < parts.length - 1;
+      if (isBold) {
+        const strong = document.createElement("strong");
+        strong.textContent = part;
+        replyBox.appendChild(strong);
+      } else {
+        replyBox.appendChild(document.createTextNode(part));
+      }
+    }
+
+    if (!replyBox.childNodes.length) {
+      replyBox.appendChild(document.createTextNode(""));
+    }
+  }
+
   function setResultState(status, message) {
     const element = ensureBubble();
     element.classList.add("is-visible", "has-result");
-    statusText.textContent = status;
-    replyBox.textContent = message;
-    replyBox.classList.toggle("is-muted", !message || status.includes("正在"));
+    renderReplyText(status === "发送失败" && message ? `${status}\n${message}` : message);
+    const waitingText = !message || message === "GPT 正在回答..." || message === "等待回答返回..." || message.includes("正在");
+    replyBox.classList.toggle("is-muted", waitingText);
     if (currentSelection?.rect) {
       positionBubble(currentSelection.rect);
     }
@@ -371,7 +383,7 @@
     });
   }
 
-  async function sendSelection(presetIndex, forcedText, forcedRequestId) {
+  async function sendSelection(target, forcedText, forcedRequestId) {
     const text = String(forcedText || currentSelection?.text || "").trim();
     if (!text) {
       hideBubble();
@@ -379,14 +391,14 @@
     }
 
     currentRequestId = forcedRequestId || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-    setResultState("正在发送到 GPT...", "等待回答返回...");
+    setResultState("GPT 正在回答", "GPT 正在回答...");
 
     try {
       const response = await sendRuntimeMessage({
         type: "SELECTION_BUBBLE_SEND_TO_GPT",
         payload: {
           requestId: currentRequestId,
-          presetIndex,
+          ...(typeof target === "string" ? { action: target } : { presetIndex: Number(target || 1) }),
           text
         }
       });
@@ -396,7 +408,7 @@
       }
 
       if (response.reply && response.requestId === currentRequestId) {
-        setResultState("GPT 回答完成", response.reply);
+        setResultState("", response.reply);
       }
     } catch (error) {
       if (!currentRequestId) return;
@@ -468,9 +480,11 @@
       }
       if (payload.requestId) currentRequestId = payload.requestId;
       if (payload.status === "done") {
-        setResultState("GPT 回答完成", payload.reply || "");
+        setResultState("", payload.reply || "");
       } else if (payload.status === "error") {
         setResultState("发送失败", payload.error || "发送失败。");
+      } else if (payload.status === "answering") {
+        setResultState("GPT 正在回答", payload.reply || payload.message || "GPT 正在回答...");
       } else if (payload.message) {
         setResultState("正在发送到 GPT...", payload.message);
       }

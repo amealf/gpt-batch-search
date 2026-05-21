@@ -1,4 +1,8 @@
 const HOTKEY_DEFAULT_PREFIX = "请将下列文本翻译成中文：";
+const HOTKEY_LEGACY_EXPLAIN_PREFIX = "请展开解释以下文本";
+const HOTKEY_EXPLAIN_PREFIX = "请展开解释以下文本：";
+const HOTKEY_PRESET_VERSION_KEY = "hotkeyPresetVersion";
+const HOTKEY_PRESET_VERSION = 3;
 const PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户下面将要发送的文本。
 
 要求：
@@ -114,7 +118,7 @@ const SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户
 格式要求：
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+const SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
 
 # 内容要求：
 
@@ -128,6 +132,25 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
 
 不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+在文章开头写一个简洁的一级标题概括全文。考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
 
 # 格式要求：
 
@@ -171,7 +194,7 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 Format requirements:
 
 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
-const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+const SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
@@ -185,6 +208,26 @@ Write a complete English article about the text, aiming for publishable quality.
 Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
 
 Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures.
+
+# Format Requirements:
+
+The first time a person appears, use English (Chinese). After that, use the English name.
+The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
+
+# Content Requirements:
+
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+
+Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
+
+# Writing Requirements:
+
+Write one complete English article about the text, aiming for publishable quality. Use a blog-article style, add some prose style, and avoid translated-sounding or AI-sounding phrasing. Keep the article smooth and pleasant to read as a whole. Prefer short sentences.
+Begin with a concise H1 heading that summarizes the article. Consider opening through background context before gradually introducing the topic, and end without extension questions or editorial suggestions. Do not habitually open the final paragraph with formulaic transitions such as "In summary"; close the piece like a publishable article.
+
+Avoid "not...but...", "not so much...as...", and similar negative-first sentence structures.
+Use sentence openings with "if" sparingly. Do not use "more like". Do not open a sentence with a conclusion followed by a colon, such as "The meaning is clear:"; move into the content without judging whether it is clear.
 
 # Format Requirements:
 
@@ -244,21 +287,25 @@ const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
 const BATCH_DEFAULT_DELAY_SECONDS = 3;
 const BATCH_CONVERSATION_MODE_NEW = "new";
 const BATCH_CONVERSATION_MODE_CURRENT = "current";
+const CHAT_EXPORT_MODE_SEPARATE = "separate";
+const CHAT_EXPORT_MODE_SINGLE = "single";
 const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
 const HOTKEY_DEFAULTS = {
   prefix1: HOTKEY_DEFAULT_PREFIX,
   prefix2: HOTKEY_DEFAULT_PREFIX,
-  prefix3: HOTKEY_DEFAULT_PREFIX,
-  prefix4: HOTKEY_DEFAULT_PREFIX,
+  prefix3: HOTKEY_EXPLAIN_PREFIX,
+  prefix4: HOTKEY_EXPLAIN_PREFIX,
   autoSend1: true,
   autoSend2: true,
   autoSend3: true,
   autoSend4: true,
   newChat1: true,
   newChat2: false,
-  newChat3: false,
+  newChat3: true,
   newChat4: false,
-  selectionBubbleEnabled: true,
+  selectionBubbleEnabled: false,
+  selectionBubbleUseCurrentChat: true,
+  quickMessageProjectUrl: "",
   selectionBubbleExcludedUrls: []
 };
 const BATCH_CONFIG_DEFAULTS = {
@@ -271,6 +318,7 @@ const BATCH_CONFIG_DEFAULTS = {
   batchIncludeNearestHeading: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   batchFocusWhenStuck: false,
+  chatExportMode: CHAT_EXPORT_MODE_SEPARATE,
   batchDirectoryName: "",
   optionsActivePage: "batch"
 };
@@ -309,7 +357,8 @@ const CHAT_EXPORT_STATE_DEFAULT = {
   message: "等待任务开始。",
   startedAt: "",
   finishedAt: "",
-  logs: []
+  logs: [],
+  exportMode: CHAT_EXPORT_MODE_SEPARATE
 };
 const DIRECTORY_DB_NAME = "batch-export-db";
 const DIRECTORY_STORE_NAME = "handles";
@@ -337,6 +386,10 @@ let currentSelectionFilterUrls = [];
 
 function getSync(defaults) {
   return new Promise((resolve) => chrome.storage.sync.get(defaults, (items) => resolve(items)));
+}
+
+function getSyncItems(keys) {
+  return new Promise((resolve) => chrome.storage.sync.get(keys, (items) => resolve(items)));
 }
 
 function getLocal(defaults) {
@@ -556,7 +609,9 @@ const BATCH_UI_TEXT = {
     deleteProgressChats: "清理进度对话",
     deleteProgressChatsTitle: "删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。",
     focusWhenStuck: "保持网页焦点",
-    focusWhenStuckTip: "批量任务依赖网页里的计时器和页面更新。窗口长时间失去焦点时，浏览器可能降低页面运行频率，导致等待回答、重试或保存进度变慢。开启后，任务心跳约 5 分钟没有更新时，会刷新 ChatGPT 网页恢复任务；刷新后约 2 分钟当前条目仍没有推进时，才会激活 ChatGPT 网页。两次激活之间至少间隔 10 分钟。默认关闭，避免影响当前操作。",
+    focusWhenStuckDesc: "实验性功能。任务卡住时刷新页面，必要时激活网页。默认关闭。",
+    focusWhenStuckLabel: "",
+    focusWhenStuckTip: "实验性功能。浏览器可能降低后台页面运行频率，导致批量任务停顿。开启后，插件会在任务长时间没有推进时刷新页面；刷新后仍没有推进时才激活网页。默认关闭。",
     saved: "已保存",
     runStatus: "运行状态",
     failureTitle: "保存失败",
@@ -571,7 +626,12 @@ const BATCH_UI_TEXT = {
     hotkeyGuideNote1: "修改 Prompt、自动发送、新建会话时会自动保存。设置完成以后，不需要一直停留在这个页面。",
     hotkeyGuideNote2: "四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。",
     selectionBubbleEnabled: "选中文本提示按钮",
-    selectionBubbleDesc: "开启后，在普通网页选中文本时会显示 GPT 发送按钮。点击按钮或数字预设后，会在后台发送给 ChatGPT，并在当前网页显示回答。",
+    selectionBubbleUseCurrentChat: "使用现有 GPT 页面（推荐）",
+    selectionBubbleDesc: "开启后，在普通网页选中文本时会显示翻译和解释按钮，并在当前网页显示回答。",
+    quickMessageProjectUrlTitle: "快捷消息项目链接",
+    quickMessageProjectUrlDesc: "填写 ChatGPT Project 链接后，快捷消息和选中文本按钮会在这个项目里提问。留空时使用 GPT 主页面。",
+    quickMessageProjectUrlPlaceholder: "https://chatgpt.com/g/.../project",
+    quickMessageProjectUrlInputTitle: "用于快捷消息和选中文本按钮的 ChatGPT Project 链接。",
     selectionFilterButton: "过滤网址",
     selectionFilterNone: "未设置过滤网址",
     selectionFilterCount: "已过滤 {count} 个网址",
@@ -586,9 +646,12 @@ const BATCH_UI_TEXT = {
     hotkeyAutoSend: "完成后自动发送",
     hotkeyNewChat: "新建会话页",
     exportTitle: "当前对话导出",
-    exportHint: "读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答逐条导出。每个 md 文件沿用批量处理的保存格式，标题使用用户问题，正文使用 GPT 回答。",
+    exportHint: "读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答导出。可保存到同一个 MD 文件，也可逐条保存为多个 MD 文件。",
     exportCurrentChat: "导出当前对话",
     exportStop: "停止（重置）",
+    exportModeTitle: "选择当前对话导出为一个 Markdown 文件，或逐条导出为多个 Markdown 文件。",
+    exportModeSingle: "同一个 MD",
+    exportModeSeparate: "逐条 MD",
     exportNoTask: "当前没有导出任务。",
     exportRunning: "导出执行中，共 {total} 组问答",
     exportFinished: "导出已结束，共 {total} 组问答",
@@ -600,7 +663,7 @@ const BATCH_UI_TEXT = {
     exportCurrentQuestion: "当前问题：{question}",
     batchSettingsTitle: "批量信息相关设置项",
     taskModeTitle: "任务模式",
-    taskModeDesc: "选择批量任务开始时新建对话，或沿用当前 ChatGPT 窗口。",
+    taskModeDesc: "批量任务的对话使用方式。",
     taskModeSelectTitle: "选择任务开始时是新建对话，还是沿用当前窗口。",
     taskModeNew: "新建对话",
     taskModeCurrent: "当前窗口",
@@ -609,10 +672,10 @@ const BATCH_UI_TEXT = {
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
     includeNearestHeadingTitle: "发送最近两级标题",
-    includeNearestHeadingDesc: "开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上最近的两级上级标题，标题与正文之间都使用一个空格。",
-    includeNearestHeadingLabel: "开启",
+    includeNearestHeadingDesc: "发送正文时附加最近两级上级标题。",
+    includeNearestHeadingLabel: "",
     delayTitle: "等待时间",
-    delayDesc: "这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。",
+    delayDesc: "两条任务之间的间隔时间。",
     delayInputTitle: "每条文本之间的等待时长。",
     delayUnit: "秒"
   },
@@ -649,7 +712,9 @@ const BATCH_UI_TEXT = {
     deleteProgressChats: "Clear Progress Chats",
     deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles contain progress, for example “CPTSD 4/70” or “当前进度 256/321”.",
     focusWhenStuck: "Keep Web Page Focus",
-    focusWhenStuckTip: "Batch tasks rely on timers and page updates inside the web page. When the window stays unfocused for a long time, the browser may reduce page activity, which can slow waiting, retrying, or saving progress. When enabled, the ChatGPT page is refreshed after the task heartbeat has not updated for about 5 minutes. If the current item has still not moved forward about 2 minutes after the refresh, the ChatGPT page is activated. Activations are spaced at least 10 minutes apart. Off by default to avoid interrupting current work.",
+    focusWhenStuckDesc: "Experimental feature. Refreshes the page when a task stalls, then activates it if needed. Off by default.",
+    focusWhenStuckLabel: "",
+    focusWhenStuckTip: "Experimental feature. Browsers may reduce background page activity, causing batch tasks to pause. When enabled, the extension refreshes the page after a long stall; if the task still does not move forward, it activates the page. Off by default.",
     saved: "Saved",
     runStatus: "Run Status",
     failureTitle: "Save Failed",
@@ -664,7 +729,12 @@ const BATCH_UI_TEXT = {
     hotkeyGuideNote1: "Prompts, auto-send, and new-chat options are saved automatically. After setup, this page does not need to stay open.",
     hotkeyGuideNote2: "The four presets are independent. The two checkboxes below control whether the message is sent automatically and whether a new chat opens.",
     selectionBubbleEnabled: "Selection Send Button",
-    selectionBubbleDesc: "When enabled, selecting text on regular web pages shows a GPT send button. Click the button or a preset number to send in the background and show the answer on the current page.",
+    selectionBubbleUseCurrentChat: "Use Existing GPT Page (Recommended)",
+    selectionBubbleDesc: "When enabled, selecting text on regular web pages shows translate and explain buttons, then displays the answer on the current page.",
+    quickMessageProjectUrlTitle: "Quick Message Project URL",
+    quickMessageProjectUrlDesc: "Enter a ChatGPT Project URL to ask quick messages and selection-button prompts inside that project. Leave it blank to use the main GPT page.",
+    quickMessageProjectUrlPlaceholder: "https://chatgpt.com/g/.../project",
+    quickMessageProjectUrlInputTitle: "ChatGPT Project URL for quick messages and the selection buttons.",
     selectionFilterButton: "Filter URLs",
     selectionFilterNone: "No filtered URLs",
     selectionFilterCount: "{count} filtered URLs",
@@ -679,9 +749,12 @@ const BATCH_UI_TEXT = {
     hotkeyAutoSend: "Auto-send after completion",
     hotkeyNewChat: "Open a new chat",
     exportTitle: "Current Chat Export",
-    exportHint: "Read the currently open ChatGPT conversation and export each question-answer pair from first to last. Each Markdown file uses the same save format as batch processing: the user question becomes the title, and the GPT answer becomes the body.",
+    exportHint: "Read the currently open ChatGPT conversation and export question-answer pairs from first to last. Save them in one Markdown file, or save each pair as its own Markdown file.",
     exportCurrentChat: "Export Current Chat",
     exportStop: "Stop (Reset)",
+    exportModeTitle: "Choose whether the current chat is exported as one Markdown file or as separate Markdown files.",
+    exportModeSingle: "Single MD",
+    exportModeSeparate: "One MD Each",
     exportNoTask: "No export task is running.",
     exportRunning: "Export running, {total} question-answer pairs",
     exportFinished: "Export finished, {total} question-answer pairs",
@@ -693,7 +766,7 @@ const BATCH_UI_TEXT = {
     exportCurrentQuestion: "Current question: {question}",
     batchSettingsTitle: "Batch Information Settings",
     taskModeTitle: "Task Mode",
-    taskModeDesc: "Choose whether a batch task starts in a new chat or uses the current ChatGPT window.",
+    taskModeDesc: "How batch tasks use ChatGPT chats.",
     taskModeSelectTitle: "Choose whether the task starts in a new chat or uses the current window.",
     taskModeNew: "New Chat",
     taskModeCurrent: "Current Window",
@@ -702,10 +775,10 @@ const BATCH_UI_TEXT = {
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
     includeNearestHeadingTitle: "Send Nearest Two Headings",
-    includeNearestHeadingDesc: "When enabled, each ◆ item is sent with its nearest two parent headings before the item text, with each part separated by one space.",
-    includeNearestHeadingLabel: "On",
+    includeNearestHeadingDesc: "Adds the nearest two parent headings before each item.",
+    includeNearestHeadingLabel: "",
     delayTitle: "Delay",
-    delayDesc: "This delay only applies after one item has been saved or marked as failed, before the next item is sent. GPT responses still wait for answer stability and are not limited by this number. Clicking Stop interrupts the delay.",
+    delayDesc: "The interval between two batch items.",
     delayInputTitle: "Delay between items.",
     delayUnit: "sec"
   }
@@ -819,7 +892,9 @@ function applyBatchUiLanguage(language) {
   setElementText("#batchStop", text.stop);
   setElementText("#deleteProgressChats", text.deleteProgressChats);
   setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
-  setElementText("#batchFocusWhenStuckLabel", text.focusWhenStuck);
+  setElementText("#focusWhenStuckTitle", text.focusWhenStuck);
+  setElementText("#focusWhenStuckDesc", text.focusWhenStuckDesc);
+  setElementText("#batchFocusWhenStuckLabel", text.focusWhenStuckLabel);
   const focusWhenStuckHelp = document.getElementById("batchFocusWhenStuckHelp");
   setHelpTip(focusWhenStuckHelp, text.focusWhenStuckTip);
   setElementText("#batchSaved", text.saved);
@@ -851,7 +926,14 @@ function applyBatchUiLanguage(language) {
   setElementText("#hotkeyGuideNote1", text.hotkeyGuideNote1);
   setElementText("#hotkeyGuideNote2", text.hotkeyGuideNote2);
   setElementText("#selectionBubbleEnabledLabel", text.selectionBubbleEnabled);
+  setElementText("#selectionBubbleUseCurrentChatLabel", text.selectionBubbleUseCurrentChat);
   setElementText("#selectionBubbleDesc", text.selectionBubbleDesc);
+  setElementText("#quickMessageProjectUrlTitle", text.quickMessageProjectUrlTitle);
+  setElementTitle("#quickMessageProjectUrl", text.quickMessageProjectUrlInputTitle);
+  const quickMessageProjectUrlInput = document.getElementById("quickMessageProjectUrl");
+  if (quickMessageProjectUrlInput) quickMessageProjectUrlInput.placeholder = text.quickMessageProjectUrlPlaceholder;
+  const quickMessageProjectUrlHelp = document.getElementById("quickMessageProjectUrlHelp");
+  setHelpTip(quickMessageProjectUrlHelp, text.quickMessageProjectUrlDesc);
   setElementText("#openSelectionFilterDialog", text.selectionFilterButton);
   setElementText("#selectionFilterTitle", text.selectionFilterTitle);
   setElementText("#selectionFilterDesc", text.selectionFilterDesc);
@@ -865,6 +947,9 @@ function applyBatchUiLanguage(language) {
   setElementText("#exportHint", text.exportHint);
   setElementText("#exportCurrentChat", text.exportCurrentChat);
   setElementText("#exportStop", text.exportStop);
+  setElementTitle("#chatExportMode", text.exportModeTitle);
+  setElementText("#chatExportModeSingle", text.exportModeSingle);
+  setElementText("#chatExportModeSeparate", text.exportModeSeparate);
   setElementText("#exportRunStatusTitle", text.runStatus);
 
   setElementText("#batchSettingsTitle", text.batchSettingsTitle);
@@ -900,6 +985,8 @@ function isKnownBatchDefaultGlobalPrompt(value) {
   return [
     BATCH_DEFAULT_GLOBAL_PROMPT,
     BATCH_EN_GLOBAL_PROMPT,
+    SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
+    SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT,
     SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
     SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT,
     LITERARY_THEORY_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -947,6 +1034,9 @@ function updateChatExportActionButtons() {
   if (exportStopButton) {
     exportStopButton.disabled = exportStopPending || (!currentChatExportState.running && !exportPending);
   }
+  document.querySelectorAll("#chatExportMode [data-chat-export-mode]").forEach((button) => {
+    button.disabled = exportPending || exportStopPending || currentChatExportState.running;
+  });
 }
 
 function normalizeBatchDelaySeconds(value) {
@@ -964,14 +1054,35 @@ function normalizeBatchConversationMode(value, legacyBatchNewChat = true) {
 }
 
 function getSelectedBatchConversationMode() {
-  const select = document.getElementById("batchConversationMode");
-  return normalizeBatchConversationMode(select && select.value);
+  const activeButton = document.querySelector("#batchConversationMode [data-batch-conversation-mode].is-active");
+  return normalizeBatchConversationMode(activeButton?.dataset.batchConversationMode);
 }
 
 function setBatchConversationMode(mode) {
   const normalized = normalizeBatchConversationMode(mode);
-  const select = document.getElementById("batchConversationMode");
-  if (select) select.value = normalized;
+  document.querySelectorAll("#batchConversationMode [data-batch-conversation-mode]").forEach((button) => {
+    const active = button.dataset.batchConversationMode === normalized;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function normalizeChatExportMode(value) {
+  return value === CHAT_EXPORT_MODE_SINGLE ? CHAT_EXPORT_MODE_SINGLE : CHAT_EXPORT_MODE_SEPARATE;
+}
+
+function getSelectedChatExportMode() {
+  const activeButton = document.querySelector("#chatExportMode [data-chat-export-mode].is-active");
+  return normalizeChatExportMode(activeButton?.dataset.chatExportMode);
+}
+
+function setChatExportMode(mode) {
+  const normalized = normalizeChatExportMode(mode);
+  document.querySelectorAll("#chatExportMode [data-chat-export-mode]").forEach((button) => {
+    const active = button.dataset.chatExportMode === normalized;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
 }
 
 function shouldIgnoreBatchLine(line) {
@@ -1029,6 +1140,7 @@ function cleanBatchPromptPart(value) {
     .replace(/^\+\s*/u, "")
     .replace(/^(?:\d+(?:[._]\d+)*|[IVXLC]+)$/iu, "")
     .replace(/^(?:\d+(?:[._]\d+)*|[IVXLC]+)[\s._-]+/iu, "")
+    .replace(/\s*\.(?:md|markdown|txt|rtf|docx?|pdf|html?|epub)\s*$/iu, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -1145,7 +1257,7 @@ function renderHotkeyGroups() {
     const promptInput = document.createElement("textarea");
     promptInput.id = `prefix${index}`;
     promptInput.className = "hotkey-prompt";
-    promptInput.placeholder = HOTKEY_DEFAULT_PREFIX;
+    promptInput.placeholder = HOTKEY_DEFAULTS[`prefix${index}`] || HOTKEY_DEFAULT_PREFIX;
     promptRow.append(promptLabel, promptInput);
 
     const inlineRow = document.createElement("div");
@@ -1445,8 +1557,58 @@ async function forceResetChatExportState() {
   return nextState;
 }
 
+function normalizeHotkeyDefaultText(value) {
+  return String(value || "").replace(/\r\n?/g, "\n").trim();
+}
+
+function createHotkeySettings(items = {}) {
+  const settings = { ...HOTKEY_DEFAULTS, ...(items || {}) };
+  const patch = {};
+  const oldPresetVersion = Number(items?.[HOTKEY_PRESET_VERSION_KEY] || 0) < HOTKEY_PRESET_VERSION;
+  const translatePrefix = normalizeHotkeyDefaultText(HOTKEY_DEFAULT_PREFIX);
+  const explainPrefixes = new Set([
+    normalizeHotkeyDefaultText(HOTKEY_LEGACY_EXPLAIN_PREFIX),
+    normalizeHotkeyDefaultText(HOTKEY_EXPLAIN_PREFIX)
+  ]);
+
+  if (oldPresetVersion) {
+    const prefix2 = normalizeHotkeyDefaultText(items.prefix2);
+    const prefix3 = normalizeHotkeyDefaultText(items.prefix3);
+    const prefix4 = normalizeHotkeyDefaultText(items.prefix4);
+
+    if (!prefix2 || prefix2 === translatePrefix || explainPrefixes.has(prefix2)) {
+      settings.prefix2 = HOTKEY_DEFAULT_PREFIX;
+      settings.newChat2 = false;
+      patch.prefix2 = HOTKEY_DEFAULT_PREFIX;
+      patch.newChat2 = false;
+    }
+
+    if (!prefix3 || prefix3 === translatePrefix || explainPrefixes.has(prefix3)) {
+      settings.prefix3 = HOTKEY_EXPLAIN_PREFIX;
+      settings.newChat3 = true;
+      patch.prefix3 = HOTKEY_EXPLAIN_PREFIX;
+      patch.newChat3 = true;
+    }
+
+    if (!prefix4 || prefix4 === translatePrefix || explainPrefixes.has(prefix4)) {
+      settings.prefix4 = HOTKEY_EXPLAIN_PREFIX;
+      settings.newChat4 = false;
+      patch.prefix4 = HOTKEY_EXPLAIN_PREFIX;
+      patch.newChat4 = false;
+    }
+
+    patch[HOTKEY_PRESET_VERSION_KEY] = HOTKEY_PRESET_VERSION;
+  }
+
+  return { settings, patch };
+}
+
 async function loadHotkeySettings() {
-  const config = await getSync(HOTKEY_DEFAULTS);
+  const stored = await getSyncItems([...Object.keys(HOTKEY_DEFAULTS), HOTKEY_PRESET_VERSION_KEY]);
+  const { settings: config, patch } = createHotkeySettings(stored);
+  if (Object.keys(patch).length) {
+    chrome.storage.sync.set(patch);
+  }
   for (const key of Object.keys(HOTKEY_DEFAULTS)) {
     const element = document.getElementById(key);
     if (!element) continue;
@@ -1576,6 +1738,7 @@ async function persistBatchConfig(showTip = false) {
     batchIncludeNearestHeading: Boolean(includeNearestHeading && includeNearestHeading.checked),
     batchDelaySeconds: delaySeconds,
     batchFocusWhenStuck: Boolean(focusWhenStuck && focusWhenStuck.checked),
+    chatExportMode: getSelectedChatExportMode(),
     batchDirectoryName: currentBatchDirectoryName
   };
   await setLocal(payload);
@@ -1608,6 +1771,7 @@ async function loadBatchConfig() {
     ? languageDefaults.globalPrompt
     : config.batchGlobalPrompt;
   const batchConversationMode = normalizeBatchConversationMode(config.batchConversationMode, config.batchNewChat);
+  const chatExportMode = normalizeChatExportMode(config.chatExportMode);
   const batchIncludeNearestHeading = config.batchIncludeNearestHeading !== false;
   const batchPrompt = !config.batchPrompt || isKnownBatchDefaultPrompt(config.batchPrompt)
     ? languageDefaults.prompt
@@ -1620,6 +1784,7 @@ async function loadBatchConfig() {
   setBatchPromptLanguage(batchPromptLanguage);
   document.getElementById("batchInputs").value = config.batchInputs || "";
   setBatchConversationMode(batchConversationMode);
+  setChatExportMode(chatExportMode);
   document.getElementById("batchNewChatUrl").value = typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "";
   document.getElementById("batchIncludeNearestHeading").checked = batchIncludeNearestHeading;
   document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
@@ -1633,6 +1798,7 @@ async function loadBatchConfig() {
     batchGlobalPrompt !== config.batchGlobalPrompt ||
     batchPromptLanguage !== config.batchPromptLanguage ||
     batchConversationMode !== config.batchConversationMode ||
+    chatExportMode !== config.chatExportMode ||
     typeof config.batchNewChatUrl !== "string" ||
     batchIncludeNearestHeading !== (config.batchIncludeNearestHeading !== false) ||
     batchPrompt !== config.batchPrompt ||
@@ -1643,6 +1809,7 @@ async function loadBatchConfig() {
       batchGlobalPrompt,
       batchPromptLanguage,
       batchConversationMode,
+      chatExportMode,
       batchNewChatUrl: typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "",
       batchIncludeNearestHeading,
       batchPrompt,
@@ -1821,7 +1988,8 @@ async function startChatExport() {
     const response = await sendRuntimeMessage({
       type: "START_CHAT_EXPORT",
       payload: {
-        directoryName: currentBatchDirectoryName
+        directoryName: currentBatchDirectoryName,
+        exportMode: getSelectedChatExportMode()
       }
     });
     if (requestToken !== chatExportRequestToken) return;
@@ -2059,7 +2227,18 @@ function bindBatchEvents() {
   delaySeconds.addEventListener("input", scheduleBatchConfigSave);
   newChatUrl.addEventListener("input", scheduleBatchConfigSave);
   focusWhenStuck.addEventListener("change", () => persistBatchConfig(true));
-  conversationMode.addEventListener("change", () => persistBatchConfig(true));
+  conversationMode.querySelectorAll("[data-batch-conversation-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setBatchConversationMode(button.dataset.batchConversationMode);
+      persistBatchConfig(true).catch(() => {});
+    });
+  });
+  document.querySelectorAll("#chatExportMode [data-chat-export-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setChatExportMode(button.dataset.chatExportMode);
+      persistBatchConfig(true).catch(() => {});
+    });
+  });
   includeNearestHeading.addEventListener("change", () => persistBatchConfig(true));
   globalPrompt.addEventListener("change", () => persistBatchConfig(true));
   prompt.addEventListener("change", () => persistBatchConfig(true));
@@ -2096,6 +2275,8 @@ function bindExportEvents() {
 function bindHotkeyEvents() {
   const groups = document.getElementById("groups");
   const selectionBubbleEnabled = document.getElementById("selectionBubbleEnabled");
+  const selectionBubbleUseCurrentChat = document.getElementById("selectionBubbleUseCurrentChat");
+  const quickMessageProjectUrl = document.getElementById("quickMessageProjectUrl");
   const filterDialog = document.getElementById("selectionFilterDialog");
   const filterInput = document.getElementById("selectionFilterInput");
   const openFilterDialog = document.getElementById("openSelectionFilterDialog");
@@ -2108,6 +2289,13 @@ function bindHotkeyEvents() {
   }
   if (selectionBubbleEnabled) {
     selectionBubbleEnabled.addEventListener("change", () => saveHotkeySettings(false));
+  }
+  if (selectionBubbleUseCurrentChat) {
+    selectionBubbleUseCurrentChat.addEventListener("change", () => saveHotkeySettings(false));
+  }
+  if (quickMessageProjectUrl) {
+    quickMessageProjectUrl.addEventListener("input", scheduleHotkeySettingsSave);
+    quickMessageProjectUrl.addEventListener("change", () => saveHotkeySettings(false));
   }
   if (openFilterDialog && filterDialog) {
     openFilterDialog.addEventListener("click", () => {

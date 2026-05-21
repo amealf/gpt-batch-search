@@ -1,18 +1,13 @@
 const DEFAULTS = {
-  selectionBubbleEnabled: true,
+  selectionBubbleEnabled: false,
+  selectionBubbleUseCurrentChat: true,
   selectionBubbleExcludedUrls: []
 };
 
 const selectionBubbleEnabled = document.getElementById("selectionBubbleEnabled");
-const statusText = document.getElementById("status");
+const selectionBubbleUseCurrentChat = document.getElementById("selectionBubbleUseCurrentChat");
 const openOptions = document.getElementById("openOptions");
 const openShortcuts = document.getElementById("openShortcuts");
-
-function setStatus(enabled) {
-  statusText.textContent = enabled
-    ? "当前已开启。选中文本后会显示发送按钮。"
-    : "当前已关闭。普通网页不会显示发送按钮。";
-}
 
 function getShortcutSettingsUrl() {
   const userAgent = navigator.userAgent || "";
@@ -26,18 +21,21 @@ function loadSettings() {
   chrome.storage.sync.get(DEFAULTS, (items) => {
     const enabled = items.selectionBubbleEnabled !== false;
     selectionBubbleEnabled.checked = enabled;
-    setStatus(enabled);
+    selectionBubbleUseCurrentChat.checked = items.selectionBubbleUseCurrentChat !== false;
   });
 }
 
 function saveSettings() {
   const enabled = selectionBubbleEnabled.checked;
-  chrome.storage.sync.set({ selectionBubbleEnabled: enabled }, () => {
+  const useCurrentChat = selectionBubbleUseCurrentChat.checked;
+  chrome.storage.sync.set({
+    selectionBubbleEnabled: enabled,
+    selectionBubbleUseCurrentChat: useCurrentChat
+  }, () => {
     if (chrome.runtime.lastError) {
-      statusText.textContent = "保存失败，请重新打开弹窗再试。";
-      return;
+      selectionBubbleEnabled.checked = !enabled;
+      selectionBubbleUseCurrentChat.checked = !useCurrentChat;
     }
-    setStatus(enabled);
   });
 }
 
@@ -52,6 +50,7 @@ function openShortcutSettingsPage() {
 }
 
 selectionBubbleEnabled.addEventListener("change", saveSettings);
+selectionBubbleUseCurrentChat.addEventListener("change", saveSettings);
 openOptions.addEventListener("click", openOptionsPage);
 openShortcuts.addEventListener("click", openShortcutSettingsPage);
 

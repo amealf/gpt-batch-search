@@ -32,8 +32,8 @@
       --danger-dim: #fdf1f1;
       --danger-border: #ebb1b1;
       --danger-text: #8f4949;
-      --soft-blue-bg: #bfdbfe;
-      --soft-blue-text: #111827;
+      --soft-blue-bg: rgb(56, 125, 201);
+      --soft-blue-text: #ffffff;
       --directory-alert-border: #f4aaaa;
       --directory-alert-shadow: rgba(244, 170, 170, 0.35);
 
@@ -76,7 +76,7 @@
       --h1-gradient-from: #111827;
       --h1-gradient-to: #374151;
 
-      --help-hover-border: #111827;
+      --help-hover-border: rgba(56, 125, 201, 0.8);
       --toggle-hover-border: #111827;
       --btn-hover-border: #111827;
     }
@@ -101,8 +101,8 @@
       --danger-dim: rgba(248, 113, 113, 0.12);
       --danger-border: rgba(248, 113, 113, 0.3);
       --danger-text: #f87171;
-      --soft-blue-bg: rgba(56, 125, 201, 0.34);
-      --soft-blue-text: #e8eaed;
+      --soft-blue-bg: rgb(56, 125, 201);
+      --soft-blue-text: #ffffff;
       --directory-alert-border: rgba(248, 113, 113, 0.72);
       --directory-alert-shadow: rgba(248, 113, 113, 0.24);
 
@@ -410,6 +410,20 @@
       color: var(--text-primary);
     }
 
+    .settings-title-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-title-row .help-button {
+      width: 22px;
+      height: 22px;
+      min-height: 22px;
+      border-radius: 7px;
+      font-size: 12.4px;
+    }
+
     .settings-desc {
       margin-top: 4px;
       color: var(--text-muted);
@@ -424,6 +438,50 @@
       flex: 0 0 auto;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    .settings-control .toggle-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .settings-control .toggle-label span:empty {
+      display: none;
+    }
+
+    .settings-segmented-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--control-radius);
+      background: var(--bg-elevated);
+    }
+
+    .segmented-option {
+      min-height: var(--control-height);
+      padding: 0 16px;
+      border: 1px solid transparent;
+      border-radius: calc(var(--control-radius) - 2px);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: var(--control-font-size);
+      font-weight: 500;
+    }
+
+    .segmented-option:hover {
+      border-color: var(--border-default);
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+
+    .segmented-option.is-active {
+      background: var(--icon-bg);
+      border-color: var(--icon-bg);
+      color: #ffffff;
+      box-shadow: var(--primary-shadow);
     }
 
     /* ═══════════════════════════════════════
@@ -602,6 +660,35 @@
       min-width: 0;
     }
 
+    .export-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .export-directory-row,
+    .export-control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .export-control-row {
+      justify-content: space-between;
+    }
+
+    .export-main-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .export-mode-control {
+      margin-left: auto;
+    }
+
     .toggle-label {
       display: inline-flex;
       gap: 8px;
@@ -713,6 +800,23 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-top: 12px;
+    }
+
+    .hotkey-project-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      background: var(--toolbar-bg);
+    }
+
+    .hotkey-project-row input {
+      flex: 1 1 360px;
+      min-width: 240px;
     }
 
     .filter-dialog {
@@ -902,7 +1006,12 @@
 
     .help-button {
       position: relative;
+      color: rgb(56, 125, 201);
       font-weight: 600;
+    }
+
+    .help-button:hover {
+      color: rgb(56, 125, 201);
     }
 
     .help-button::before,
@@ -955,7 +1064,7 @@
       background: var(--bg-elevated);
       color: var(--text-primary);
       font-size: 12.4px;
-      font-weight: 600;
+      font-weight: 400;
       line-height: 1;
       cursor: pointer;
       transition: all 0.15s ease;
@@ -1009,7 +1118,7 @@
     .copy-prompt-tooltip strong {
       display: block;
       margin-bottom: 8px;
-      font-size: 15.2px;
+      font-size: 16.2px;
       font-weight: 700;
       line-height: 1.45;
       white-space: pre-line;
@@ -1085,6 +1194,13 @@
       color: var(--text-secondary);
       font-size: var(--control-font-size);
       white-space: nowrap;
+    }
+
+    .toolbar-group-directory .toolbar-label,
+    #newChatUrlTitle,
+    #batchStop,
+    #deleteProgressChats {
+      color: var(--text-primary);
     }
 
     .compact-select,
@@ -1223,6 +1339,12 @@
       min-height: calc(var(--control-height) + 14px);
       padding: 0 14px;
       font-size: var(--control-font-size);
+    }
+
+    #batchStart,
+    #batchStop {
+      padding-left: 20px;
+      padding-right: 20px;
     }
 
     .toolbar-focus-option {
@@ -1428,13 +1550,6 @@
           </div>
         </div>
         <div class="toolbar-row toolbar-row-focus toolbar-row-actions">
-          <div class="toolbar-group toolbar-focus-option">
-            <label class="toggle-label" for="batchFocusWhenStuck">
-              <input id="batchFocusWhenStuck" type="checkbox">
-              <span id="batchFocusWhenStuckLabel">保持网页焦点</span>
-            </label>
-            <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="批量任务依赖网页里的计时器和页面更新。窗口长时间失去焦点时，浏览器可能降低页面运行频率，导致等待回答、重试或保存进度变慢。开启后，任务心跳约 5 分钟没有更新时，会刷新 ChatGPT 网页恢复任务；刷新后约 2 分钟当前条目仍没有推进时，才会激活 ChatGPT 网页。两次激活之间至少间隔 10 分钟。默认关闭，避免影响当前操作。">?</button>
-          </div>
           <div class="toolbar-spacer"></div>
           <div class="toolbar-actions">
             <button id="batchStart" class="primary">开始</button>
@@ -1488,11 +1603,20 @@
           <span id="selectionBubbleEnabledLabel">选中文本提示按钮</span>
           <input id="selectionBubbleEnabled" type="checkbox">
         </label>
-        <div id="selectionBubbleDesc" class="hint hotkey-feature-desc">开启后，在普通网页选中文本时会显示 GPT 发送按钮。点击按钮或数字预设后，会在后台发送给 ChatGPT，并在当前网页显示回答。</div>
+        <label class="toggle-label option-box" for="selectionBubbleUseCurrentChat">
+          <span id="selectionBubbleUseCurrentChatLabel">使用现有 GPT 页面（推荐）</span>
+          <input id="selectionBubbleUseCurrentChat" type="checkbox">
+        </label>
+        <div id="selectionBubbleDesc" class="hint hotkey-feature-desc">开启后，在普通网页选中文本时会显示翻译和解释按钮，并在当前网页显示回答。</div>
       </div>
       <div class="hotkey-feature-actions">
         <button id="openSelectionFilterDialog" type="button" class="secondary-button">过滤网址</button>
         <span id="selectionFilterSummary" class="hint">未设置过滤网址</span>
+      </div>
+      <div class="hotkey-project-row">
+        <span id="quickMessageProjectUrlTitle" class="toolbar-label">快捷消息项目链接</span>
+        <input id="quickMessageProjectUrl" class="compact-text" type="url" placeholder="https://chatgpt.com/g/.../project" title="用于快捷消息和选中文本按钮的 ChatGPT Project 链接。">
+        <button id="quickMessageProjectUrlHelp" type="button" class="help-button" data-tip="填写 ChatGPT Project 链接后，快捷消息和选中文本按钮会在这个项目里提问。留空时使用 GPT 主页面。">?</button>
       </div>
     </div>
 
@@ -1518,14 +1642,24 @@
     <div class="group">
       <div class="row"><strong id="exportTitle">当前对话导出</strong></div>
       <p id="exportHint" class="hint">读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答逐条导出。每个 md 文件沿用批量处理的保存格式，标题使用用户问题，正文使用 GPT 回答。</p>
-      <div class="actions export-actions">
-        <div class="toolbar-group toolbar-group-directory">
-          <span class="toolbar-label">保存目录</span>
-          <button id="pickExportDirectory" type="button" class="directory-button is-required" title="导出的 Markdown 文件会保存到这里。">选择目录</button>
-          <span id="exportDirectoryText" class="directory-chip required-hint">必选</span>
+      <div class="export-toolbar">
+        <div class="export-directory-row">
+          <div class="toolbar-group toolbar-group-directory">
+            <span class="toolbar-label">保存目录</span>
+            <button id="pickExportDirectory" type="button" class="directory-button is-required" title="导出的 Markdown 文件会保存到这里。">选择目录</button>
+            <span id="exportDirectoryText" class="directory-chip required-hint">必选</span>
+          </div>
         </div>
-        <button id="exportCurrentChat" type="button" class="primary">导出当前对话</button>
-        <button id="exportStop" type="button">停止（重置）</button>
+        <div class="export-control-row">
+          <div class="export-main-actions">
+            <button id="exportCurrentChat" type="button" class="primary">导出当前对话</button>
+            <button id="exportStop" type="button">停止（重置）</button>
+          </div>
+          <div id="chatExportMode" class="settings-segmented-control export-mode-control" role="group" title="选择当前对话导出为一个 Markdown 文件，或逐条导出为多个 Markdown 文件。">
+            <button id="chatExportModeSingle" type="button" class="segmented-option" data-chat-export-mode="single" aria-pressed="false">同一个 MD</button>
+            <button id="chatExportModeSeparate" type="button" class="segmented-option is-active" data-chat-export-mode="separate" aria-pressed="true">逐条 MD</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1544,25 +1678,41 @@
         <div class="settings-item">
           <div class="settings-main">
             <div id="taskModeTitle" class="settings-title">任务模式</div>
-            <div id="taskModeDesc" class="settings-desc">选择批量任务开始时新建对话，或沿用当前 ChatGPT 窗口。</div>
+            <div id="taskModeDesc" class="settings-desc">批量任务的对话使用方式。</div>
           </div>
           <div class="settings-control">
-            <select id="batchConversationMode" class="compact-select" title="选择任务开始时是新建对话，还是沿用当前窗口。">
-              <option id="batchConversationModeNew" value="new">新建对话</option>
-              <option id="batchConversationModeCurrent" value="current">当前窗口</option>
-            </select>
+            <div id="batchConversationMode" class="settings-segmented-control" role="group" title="选择任务开始时是新建对话，还是沿用当前窗口。">
+              <button id="batchConversationModeNew" type="button" class="segmented-option is-active" data-batch-conversation-mode="new" aria-pressed="true">新建对话</button>
+              <button id="batchConversationModeCurrent" type="button" class="segmented-option" data-batch-conversation-mode="current" aria-pressed="false">当前窗口</button>
+            </div>
           </div>
         </div>
 
         <div class="settings-item">
           <div class="settings-main">
             <div id="includeNearestHeadingTitle" class="settings-title">发送最近两级标题</div>
-            <div id="includeNearestHeadingDesc" class="settings-desc">开启后，带 ◆ 的正文发送给 ChatGPT 时，会在正文前附上最近的两级上级标题，标题与正文之间都使用一个空格。</div>
+            <div id="includeNearestHeadingDesc" class="settings-desc">发送正文时附加最近两级上级标题。</div>
           </div>
           <div class="settings-control">
             <label class="toggle-label" for="batchIncludeNearestHeading">
               <input id="batchIncludeNearestHeading" type="checkbox">
-              <span id="batchIncludeNearestHeadingLabel">开启</span>
+              <span id="batchIncludeNearestHeadingLabel"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-item">
+          <div class="settings-main">
+            <div class="settings-title-row">
+              <div id="focusWhenStuckTitle" class="settings-title">保持网页焦点</div>
+              <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="实验性功能。浏览器可能降低后台页面运行频率，导致批量任务停顿。开启后，插件会在任务长时间没有推进时刷新页面；刷新后仍没有推进时才激活网页。默认关闭。">?</button>
+            </div>
+            <div id="focusWhenStuckDesc" class="settings-desc">实验性功能。任务卡住时刷新页面，必要时激活网页。默认关闭。</div>
+          </div>
+          <div class="settings-control">
+            <label class="toggle-label" for="batchFocusWhenStuck">
+              <input id="batchFocusWhenStuck" type="checkbox">
+              <span id="batchFocusWhenStuckLabel"></span>
             </label>
           </div>
         </div>
@@ -1570,7 +1720,7 @@
         <div class="settings-item">
           <div class="settings-main">
             <div id="delayTitle" class="settings-title">等待时间</div>
-            <div id="delayDesc" class="settings-desc">这个时间只在一条内容完成保存或记为失败后、下一条发送前生效。GPT 回答期间会另行等待回答稳定，不受这个秒数限制；点击停止时，等待会被中断。</div>
+            <div id="delayDesc" class="settings-desc">两条任务之间的间隔时间。</div>
           </div>
           <div class="settings-control">
             <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
