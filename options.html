@@ -636,6 +636,7 @@
     .batch-column-inputs textarea.large {
       flex: 1 1 auto;
       min-height: 0;
+      padding-top: 14px;
     }
 
     /* ═══════════════════════════════════════
@@ -683,10 +684,11 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
+      margin-left: auto;
     }
 
     .export-mode-control {
-      margin-left: auto;
+      margin-left: 0;
     }
 
     .toggle-label {
@@ -714,9 +716,9 @@
     }
 
     .guide-card {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      display: grid;
+      grid-template-columns: minmax(260px, 1.2fr) minmax(240px, 1fr);
+      gap: 12px 18px;
       padding: 16px 18px;
       border: 1px solid var(--border-default);
       border-radius: 14px;
@@ -730,6 +732,8 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
+      grid-column: 1;
+      grid-row: 1;
     }
 
     .guide-card-title {
@@ -739,13 +743,12 @@
     }
 
     .guide-card-body {
-      display: grid;
-      grid-template-columns: minmax(260px, 1.2fr) minmax(240px, 1fr);
-      gap: 18px;
-      align-items: start;
+      display: contents;
     }
 
     .guide-list {
+      grid-column: 1;
+      grid-row: 2;
       margin: 0;
       padding-left: 18px;
       color: var(--text-secondary);
@@ -754,6 +757,8 @@
     }
 
     .guide-side {
+      grid-column: 2;
+      grid-row: 1 / span 2;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -902,6 +907,23 @@
       background: var(--bg-surface-hover);
     }
 
+    .preset-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .hotkey-preset-title {
+      line-height: var(--control-height);
+    }
+
+    .open-shortcuts-btn {
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
     .preset-meta {
       display: flex;
       gap: 8px;
@@ -1019,40 +1041,46 @@
       position: absolute;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.16s ease;
+      left: 50%;
+      width: min(360px, calc(100vw - 48px));
+      box-sizing: border-box;
+      text-align: left;
+      transform: translateX(-50%) translateY(-6px) scale(0.98);
+      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 40;
+      backdrop-filter: blur(18px) saturate(1.25);
+      -webkit-backdrop-filter: blur(18px) saturate(1.25);
     }
 
     .help-button::before {
-      content: "";
-      left: 50%;
-      bottom: calc(100% + 4px);
-      transform: translateX(-50%);
-      border-width: 6px;
-      border-style: solid;
-      border-color: var(--tooltip-arrow) transparent transparent transparent;
+      content: "提示";
+      top: calc(100% + 10px);
+      padding: 12px 14px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-bottom: 0;
+      border-radius: 14px 14px 0 0;
+      background: rgba(15, 17, 23, 0.92);
+      color: rgb(56, 125, 201);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+      letter-spacing: 0.04em;
     }
 
     .help-button::after {
       content: attr(data-tip);
-      left: 50%;
-      bottom: calc(100% + 10px);
-      transform: translateX(-50%);
-      width: max-content;
-      max-width: 320px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: var(--tooltip-bg);
-      color: var(--tooltip-text);
+      top: calc(100% + 42px);
+      padding: 8px 14px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-top: 0;
+      border-radius: 0 0 14px 14px;
+      background: rgba(15, 17, 23, 0.92);
+      color: rgba(232, 234, 237, 0.88);
       font-size: 12.4px;
       font-weight: 400;
-      line-height: 1.55;
-      text-align: left;
+      line-height: 1.65;
       white-space: pre-line;
-      box-shadow: 0 10px 30px var(--tooltip-shadow);
-      z-index: 20;
-      border: 1px solid var(--tooltip-border);
-      backdrop-filter: blur(14px) saturate(1.35);
-      -webkit-backdrop-filter: blur(14px) saturate(1.35);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255,255,255,0.06);
     }
 
     .copy-prompt-button {
@@ -1092,51 +1120,149 @@
       position: absolute;
       right: 0;
       top: calc(100% + 10px);
-      width: min(560px, calc(100vw - 48px));
-      max-height: 360px;
-      overflow: auto;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--tooltip-border);
-      background: var(--tooltip-bg);
-      color: var(--tooltip-text);
-      box-shadow: 0 10px 30px var(--tooltip-shadow);
+      width: min(580px, calc(100vw - 48px));
+      max-height: 480px;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      padding: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(15, 17, 23, 0.92);
+      color: #e8eaed;
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255,255,255,0.06);
       font-size: 12.4px;
       font-weight: 400;
       line-height: 1.55;
       text-align: left !important;
-      white-space: pre-line;
       opacity: 0;
       pointer-events: none;
-      transform: translateY(-4px);
-      transition: opacity 0.16s ease, transform 0.16s ease;
+      transform: translateY(-6px) scale(0.98);
+      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 30;
-      backdrop-filter: blur(14px) saturate(1.35);
-      -webkit-backdrop-filter: blur(14px) saturate(1.35);
+      backdrop-filter: blur(18px) saturate(1.25);
+      -webkit-backdrop-filter: blur(18px) saturate(1.25);
     }
 
-    .copy-prompt-tooltip strong {
+    .copy-prompt-tooltip::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -14px;
+      height: 14px;
+      background: transparent;
+    }
+
+    /* Tooltip header bar */
+    .copy-prompt-tooltip > strong {
       display: block;
-      margin-bottom: 8px;
-      font-size: 16.2px;
-      font-weight: 700;
-      line-height: 1.45;
-      white-space: pre-line;
+      padding: 14px 20px 13px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 18px 18px 0 0;
+      letter-spacing: 0.01em;
+    }
+
+    .copy-prompt-tooltip-action {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .copy-prompt-tooltip-note {
+      color: rgba(255, 255, 255, 0.66);
     }
 
     .copy-prompt-tooltip-body {
       display: block;
       margin: 0;
-      padding: 0;
+      padding: 16px 20px 20px;
       text-indent: 0;
-      white-space: pre-line;
+      white-space: normal;
+      word-break: break-word;
+      overflow-y: auto;
+      line-height: 1.7;
+      font-size: 12.4px;
+      color: #e8eaed;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .copy-prompt-tooltip-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .copy-prompt-tooltip-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .copy-prompt-tooltip-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+    }
+
+    .copy-prompt-tooltip-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 学科地图 Prompt 专属精致排版 */
+    .discipline-prompt-section {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      position: relative;
+    }
+    .discipline-prompt-section:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .discipline-prompt-title {
+      font-weight: 700;
+      font-size: 13.2px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #60a5fa;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.9;
+    }
+    .discipline-prompt-content {
+      font-size: 12.4px;
+      line-height: 1.65;
+      color: rgba(232, 234, 237, 0.88);
+    }
+    .discipline-prompt-content strong {
+      color: #93c5fd;
+      font-weight: 600;
+    }
+    .discipline-prompt-content em {
+      color: #fca5a5;
+      font-style: normal;
+    }
+    .discipline-hierarchy-box {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 11.4px;
+      color: #6ee7b7;
+      line-height: 1.7;
+      margin-top: 7px;
+      border: 1px solid rgba(110, 231, 183, 0.12);
+      white-space: pre;
     }
 
     .copy-prompt-button:hover .copy-prompt-tooltip,
-    .copy-prompt-button:focus-visible .copy-prompt-tooltip {
+    .copy-prompt-button:focus-visible .copy-prompt-tooltip,
+    .copy-prompt-tooltip:hover {
       opacity: 1;
       pointer-events: auto;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
 
     .help-button:hover::before,
@@ -1144,6 +1270,7 @@
     .help-button:focus-visible::before,
     .help-button:focus-visible::after {
       opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
     }
 
     /* ═══════════════════════════════════════
@@ -1157,6 +1284,10 @@
       border-top: 1px solid var(--border-subtle);
     }
 
+    .batch-pre-toolbar {
+      display: flex;
+    }
+
     .toolbar-row {
       display: flex;
       flex-wrap: wrap;
@@ -1168,11 +1299,9 @@
       flex-wrap: nowrap;
     }
 
-    .toolbar-row-focus {
-      align-items: flex-start;
-    }
-
-    .toolbar-row-actions {
+    .toolbar-row-primary,
+    .toolbar-row-secondary {
+      flex-wrap: nowrap;
       justify-content: space-between;
     }
 
@@ -1210,7 +1339,7 @@
       font-size: var(--control-font-size);
       border: 1px solid var(--border-default);
       border-radius: var(--control-radius);
-      background: var(--bg-base);
+      background: var(--bg-elevated);
       color: var(--text-primary);
       box-sizing: border-box;
       min-height: var(--control-height);
@@ -1221,6 +1350,7 @@
     input.compact-number:focus,
     input.compact-text:focus {
       border-color: var(--accent);
+      background: var(--bg-base);
       outline: none;
     }
 
@@ -1269,12 +1399,12 @@
     }
 
     #batchDirectoryGroup {
-      flex: 0 1 360px;
-      max-width: min(360px, 100%);
+      flex: 1 1 560px;
+      max-width: min(680px, 58vw);
     }
 
     #batchDirectoryGroup .directory-chip {
-      max-width: 86px;
+      max-width: 170px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1282,13 +1412,13 @@
     }
 
     .toolbar-new-chat {
-      flex: 1 1 680px;
-      max-width: 900px;
+      flex: 1 1 auto;
+      max-width: none;
     }
 
     .toolbar-new-chat input.compact-text {
       flex: 1 1 560px;
-      width: min(680px, 56vw);
+      width: auto;
       min-width: 320px;
     }
 
@@ -1330,7 +1460,8 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex: 0 0 auto;
+      flex-wrap: nowrap;
       margin-left: auto;
     }
 
@@ -1347,8 +1478,8 @@
       padding-right: 20px;
     }
 
-    .toolbar-focus-option {
-      flex: 0 1 auto;
+    .toolbar-progress-actions {
+      min-width: min(220px, 28vw);
     }
 
     .toolbar-focus-option .toggle-label {
@@ -1520,10 +1651,12 @@
               <label for="batchInputs">待处理文本</label>
               <div class="panel-tools">
                 <button id="copyDisciplineMapPrompt" type="button" class="copy-prompt-button" aria-describedby="disciplineMapPromptTooltip">
-                  <span id="copyDisciplineMapPromptLabel">学科地图 Prompt</span>
+                  <span id="copyDisciplineMapPromptLabel">生成学科地图 Prompt</span>
                   <span id="disciplineMapPromptTooltip" class="copy-prompt-tooltip" role="tooltip">
-                    <strong id="disciplineMapPromptTooltipLead">点击可复制。
-需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。</strong>
+                    <strong id="disciplineMapPromptTooltipLead">
+                      <span id="disciplineMapPromptTooltipAction" class="copy-prompt-tooltip-action">点击可复制。</span>
+                      <span id="disciplineMapPromptTooltipNote" class="copy-prompt-tooltip-note">需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。</span>
+                    </strong>
                     <span id="disciplineMapPromptTooltipBody" class="copy-prompt-tooltip-body"></span>
                   </span>
                 </button>
@@ -1536,25 +1669,24 @@
         </div>
       </div>
 
+      <div class="batch-pre-toolbar">
+        <div class="toolbar-group toolbar-new-chat">
+          <span id="newChatUrlTitle" class="toolbar-label">指定对话创建位置</span>
+          <input id="batchNewChatUrl" class="compact-text" type="url" placeholder="建议在GPT新建一个项目专门存放本插件的问答，例如：https://chatgpt.com/g/.../project" title="用于指定对话创建位置的 ChatGPT 项目链接。">
+          <button id="batchNewChatUrlHelp" type="button" class="help-button" data-tip="这个链接决定新建对话在哪个区域创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议在 GPT 新建一个项目专门存放本插件的问答。">?</button>
+        </div>
+      </div>
+
       <div class="batch-toolbar">
-        <div class="toolbar-row">
+        <div class="toolbar-row toolbar-row-primary">
           <div id="batchDirectoryGroup" class="toolbar-group toolbar-group-directory">
             <span class="toolbar-label">保存目录</span>
             <button id="pickBatchDirectory" type="button" class="directory-button is-required" title="导出的 Markdown 文件会保存到这里。">选择目录</button>
             <span id="batchDirectoryText" class="directory-chip required-hint">必选</span>
           </div>
-          <div class="toolbar-group toolbar-new-chat">
-            <span id="newChatUrlTitle" class="toolbar-label">新建对话链接</span>
-            <input id="batchNewChatUrl" class="compact-text" type="url" placeholder="https://chatgpt.com/g/.../project" title="用于新建对话的 ChatGPT 项目链接。">
-            <button id="batchNewChatUrlHelp" type="button" class="help-button" data-tip="这个链接决定新建对话在哪里创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议新建一个项目，再使用这个项目链接。">?</button>
-          </div>
-        </div>
-        <div class="toolbar-row toolbar-row-focus toolbar-row-actions">
-          <div class="toolbar-spacer"></div>
-          <div class="toolbar-actions">
+          <div class="toolbar-actions toolbar-main-actions">
             <button id="batchStart" class="primary">开始</button>
             <button id="batchStop" type="button">停止</button>
-            <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
             <span id="batchSaved" class="hint" style="display: none;">已保存</span>
           </div>
         </div>
@@ -1578,7 +1710,6 @@
       <div class="guide-card-head">
         <div id="hotkeyGuideTitle" class="guide-card-title">快捷消息使用说明</div>
         <div class="guide-actions">
-          <button id="openShortcutSettings" type="button" class="secondary-button">快捷键设置</button>
           <span id="saved" class="hint" style="display: none;">已保存</span>
         </div>
       </div>
@@ -1586,7 +1717,7 @@
       <div class="guide-card-body">
         <ol class="guide-list">
           <li id="hotkeyGuideStep1">给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。</li>
-          <li id="hotkeyGuideStep2">点击「快捷键设置」进入 Chrome 的快捷键页面。</li>
+          <li id="hotkeyGuideStep2">在任意预设右上角点击「快捷键设置」进入 Chrome 的快捷键页面。</li>
           <li id="hotkeyGuideStep3">给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。</li>
         </ol>
 
@@ -1651,13 +1782,13 @@
           </div>
         </div>
         <div class="export-control-row">
-          <div class="export-main-actions">
-            <button id="exportCurrentChat" type="button" class="primary">导出当前对话</button>
-            <button id="exportStop" type="button">停止（重置）</button>
-          </div>
           <div id="chatExportMode" class="settings-segmented-control export-mode-control" role="group" title="选择当前对话导出为一个 Markdown 文件，或逐条导出为多个 Markdown 文件。">
             <button id="chatExportModeSingle" type="button" class="segmented-option" data-chat-export-mode="single" aria-pressed="false">同一个 MD</button>
             <button id="chatExportModeSeparate" type="button" class="segmented-option is-active" data-chat-export-mode="separate" aria-pressed="true">逐条 MD</button>
+          </div>
+          <div class="export-main-actions">
+            <button id="exportCurrentChat" type="button" class="primary">导出当前对话</button>
+            <button id="exportStop" type="button">停止（重置）</button>
           </div>
         </div>
       </div>
@@ -1725,6 +1856,16 @@
           <div class="settings-control">
             <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
             <span id="delaySecondsUnit" class="toolbar-unit">秒</span>
+          </div>
+        </div>
+
+        <div class="settings-item">
+          <div class="settings-main">
+            <div id="deleteProgressChatsSettingTitle" class="settings-title">清理进度对话</div>
+            <div id="deleteProgressChatsDesc" class="settings-desc">删除标题里带有进度的 ChatGPT 对话。</div>
+          </div>
+          <div class="settings-control">
+            <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
           </div>
         </div>
       </div>

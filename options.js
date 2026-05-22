@@ -266,7 +266,7 @@ const DISCIPLINE_MAP_PROMPT = `我想用obsidian梳理「社会学当前热门�
 
 包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。我的想法是：如果是初步了解，阅读「介绍」是最高效的。在读者希望深入了解时，可以再看其他部分。
 
-一级标题用中文（英文）这样的格式，其他级的标题都使用 「英文（中文）」 这样的格式
+各级标题使用中文（英文）格式
 
 不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。
 
@@ -594,8 +594,10 @@ const BATCH_UI_TEXT = {
     pendingText: "待处理文本",
     pendingTextPlaceholder: "每行一条文本",
     pendingTextTip: "这里粘贴批量任务要处理的文本。带有 ◆ 的行会作为正文任务发送给 ChatGPT；没有 ◆ 的标题行会作为保存目录路径。任务开始后，插件会按层级解析目录，逐条发送带 ◆ 的内容，并将回答保存为 Markdown 文件。没有 ◆ 的标题行默认不会作为任务发送。开启「发送最近两级标题」后，最近的两级标题会和文本一起发送；可在设置页面关闭。",
-    copyDisciplineMapPrompt: "学科地图 Prompt",
-    copyDisciplineMapPromptTitle: "点击可复制。\n需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。",
+    copyDisciplineMapPrompt: "生成学科地图 Prompt",
+    copyDisciplineMapPromptCopyAction: "点击可复制。",
+    copyDisciplineMapPromptCopyNote: "需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。",
+    copyDisciplineMapPromptTitle: "点击可复制。需要自行粘贴到 AI 对话，推荐使用 GPT Pro 模型。",
     copyDisciplineMapPromptCopied: "已复制",
     copyDisciplineMapPromptCopyFailed: "复制失败，请手动复制。",
     clearPendingText: "清除待处理文本",
@@ -607,6 +609,7 @@ const BATCH_UI_TEXT = {
     start: "开始",
     stop: "停止",
     deleteProgressChats: "清理进度对话",
+    deleteProgressChatsDesc: "删除标题里带有进度的 ChatGPT 对话。",
     deleteProgressChatsTitle: "删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。",
     focusWhenStuck: "保持网页焦点",
     focusWhenStuckDesc: "实验性功能。任务卡住时刷新页面，必要时激活网页。默认关闭。",
@@ -621,7 +624,7 @@ const BATCH_UI_TEXT = {
     openShortcutSettings: "快捷键设置",
     saveHotkeySettings: "",
     hotkeyGuideStep1: "给四个预设分别写好消息 Prompt，并决定是否自动发送、是否新建会话。",
-    hotkeyGuideStep2: "点击「快捷键设置」进入浏览器快捷键页面。",
+    hotkeyGuideStep2: "在任意预设右上角点击「快捷键设置」进入浏览器快捷键页面。",
     hotkeyGuideStep3: "给四个命令设置按键后，回到任意网页选中文本，按对应快捷键就会发送到 ChatGPT。",
     hotkeyGuideNote1: "修改 Prompt、自动发送、新建会话时会自动保存。设置完成以后，不需要一直停留在这个页面。",
     hotkeyGuideNote2: "四个预设彼此独立。下面的两个勾选决定的是：是否自动发送、是否打开新会话。",
@@ -646,12 +649,12 @@ const BATCH_UI_TEXT = {
     hotkeyAutoSend: "完成后自动发送",
     hotkeyNewChat: "新建会话页",
     exportTitle: "当前对话导出",
-    exportHint: "读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答导出。可保存到同一个 MD 文件，也可逐条保存为多个 MD 文件。",
+    exportHint: "读取当前已打开的 ChatGPT 对话页面，从第一条到最后一条问答导出。可整页保存到同一个 MD 文件，也可逐条保存为多个 MD 文件。",
     exportCurrentChat: "导出当前对话",
     exportStop: "停止（重置）",
     exportModeTitle: "选择当前对话导出为一个 Markdown 文件，或逐条导出为多个 Markdown 文件。",
-    exportModeSingle: "同一个 MD",
-    exportModeSeparate: "逐条 MD",
+    exportModeSingle: "整页保存",
+    exportModeSeparate: "逐条保存",
     exportNoTask: "当前没有导出任务。",
     exportRunning: "导出执行中，共 {total} 组问答",
     exportFinished: "导出已结束，共 {total} 组问答",
@@ -667,7 +670,7 @@ const BATCH_UI_TEXT = {
     taskModeSelectTitle: "选择任务开始时是新建对话，还是沿用当前窗口。",
     taskModeNew: "新建对话",
     taskModeCurrent: "当前窗口",
-    newChatUrlTitle: "新建对话链接",
+    newChatUrlTitle: "指定对话创建位置",
     newChatUrlDesc: "这个链接决定新建对话在哪里创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议新建一个项目，再使用这个项目链接。",
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
@@ -697,8 +700,10 @@ const BATCH_UI_TEXT = {
     pendingText: "Pending Text",
     pendingTextPlaceholder: "One item per line",
     pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading lines without ◆ are not sent as tasks by default. When “Send Nearest Two Headings” is enabled, the nearest two headings are sent together with the item text; this can be turned off in Settings.",
-    copyDisciplineMapPrompt: "Map Prompt",
-    copyDisciplineMapPromptTitle: "Click to copy.\nPaste it into an AI chat yourself. GPT Pro is recommended.",
+    copyDisciplineMapPrompt: "Generate Map Prompt",
+    copyDisciplineMapPromptCopyAction: "Click to copy.",
+    copyDisciplineMapPromptCopyNote: "Paste it into an AI chat yourself. GPT Pro is recommended.",
+    copyDisciplineMapPromptTitle: "Click to copy. Paste it into an AI chat yourself. GPT Pro is recommended.",
     copyDisciplineMapPromptCopied: "Copied",
     copyDisciplineMapPromptCopyFailed: "Copy failed. Please copy it manually.",
     clearPendingText: "Clear pending text",
@@ -710,6 +715,7 @@ const BATCH_UI_TEXT = {
     start: "Start",
     stop: "Stop",
     deleteProgressChats: "Clear Progress Chats",
+    deleteProgressChatsDesc: "Delete ChatGPT conversations whose titles contain progress.",
     deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles contain progress, for example “CPTSD 4/70” or “当前进度 256/321”.",
     focusWhenStuck: "Keep Web Page Focus",
     focusWhenStuckDesc: "Experimental feature. Refreshes the page when a task stalls, then activates it if needed. Off by default.",
@@ -724,7 +730,7 @@ const BATCH_UI_TEXT = {
     openShortcutSettings: "Shortcut Settings",
     saveHotkeySettings: "",
     hotkeyGuideStep1: "Write a message prompt for each of the four presets, then decide whether each preset sends automatically and opens a new chat.",
-    hotkeyGuideStep2: "Click “Shortcut Settings” to open the browser shortcut settings page.",
+    hotkeyGuideStep2: "Click “Shortcut Settings” in the top-right corner of any preset to open the browser shortcut settings page.",
     hotkeyGuideStep3: "Assign keys to the four commands. Then select text on any web page and press the corresponding shortcut to send it to ChatGPT.",
     hotkeyGuideNote1: "Prompts, auto-send, and new-chat options are saved automatically. After setup, this page does not need to stay open.",
     hotkeyGuideNote2: "The four presets are independent. The two checkboxes below control whether the message is sent automatically and whether a new chat opens.",
@@ -749,12 +755,12 @@ const BATCH_UI_TEXT = {
     hotkeyAutoSend: "Auto-send after completion",
     hotkeyNewChat: "Open a new chat",
     exportTitle: "Current Chat Export",
-    exportHint: "Read the currently open ChatGPT conversation and export question-answer pairs from first to last. Save them in one Markdown file, or save each pair as its own Markdown file.",
+    exportHint: "Read the currently open ChatGPT conversation and export question-answer pairs from first to last. Save the whole page in one Markdown file, or save each pair separately.",
     exportCurrentChat: "Export Current Chat",
     exportStop: "Stop (Reset)",
     exportModeTitle: "Choose whether the current chat is exported as one Markdown file or as separate Markdown files.",
-    exportModeSingle: "Single MD",
-    exportModeSeparate: "One MD Each",
+    exportModeSingle: "Whole Page",
+    exportModeSeparate: "Item by Item",
     exportNoTask: "No export task is running.",
     exportRunning: "Export running, {total} question-answer pairs",
     exportFinished: "Export finished, {total} question-answer pairs",
@@ -770,7 +776,7 @@ const BATCH_UI_TEXT = {
     taskModeSelectTitle: "Choose whether the task starts in a new chat or uses the current window.",
     taskModeNew: "New Chat",
     taskModeCurrent: "Current Window",
-    newChatUrlTitle: "New Chat URL",
+    newChatUrlTitle: "Chat Creation Location",
     newChatUrlDesc: "This link controls where new chats are created. Leave it blank to create chats on the main GPT page. Enter a ChatGPT project link to create chats inside that project. Creating a dedicated project for this workflow is recommended.",
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
@@ -791,6 +797,19 @@ function getBatchUiText(language = getSelectedBatchPromptLanguage()) {
 function setElementText(selector, text) {
   const element = document.querySelector(selector);
   if (element) element.textContent = text;
+}
+
+function bindElementEvent(element, eventName, handler) {
+  if (element) element.addEventListener(eventName, handler);
+}
+
+function runStartupStep(stepName, action) {
+  try {
+    return Promise.resolve(action());
+  } catch (error) {
+    console.warn(`初始化失败：${stepName}`, error);
+    return Promise.resolve();
+  }
 }
 
 function setElementTitle(selector, text) {
@@ -842,6 +861,9 @@ function updateHotkeyGroupsUiText(text) {
   document.querySelectorAll(".hotkey-new-chat-label").forEach((element) => {
     element.textContent = text.hotkeyNewChat;
   });
+  document.querySelectorAll(".open-shortcuts-btn").forEach((element) => {
+    element.textContent = text.openShortcutSettings;
+  });
 }
 
 function applyBatchUiLanguage(language) {
@@ -870,9 +892,11 @@ function applyBatchUiLanguage(language) {
   if (batchPrompt) batchPrompt.placeholder = getBatchPromptDefaults(language).prompt;
   setElementText('label[for="batchInputs"]', text.pendingText);
   setElementText("#copyDisciplineMapPromptLabel", text.copyDisciplineMapPrompt);
-  setElementText("#disciplineMapPromptTooltipLead", formatHelpTipText(text.copyDisciplineMapPromptTitle));
-  setElementTitle("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
+  setElementText("#disciplineMapPromptTooltipAction", text.copyDisciplineMapPromptCopyAction);
+  setElementText("#disciplineMapPromptTooltipNote", text.copyDisciplineMapPromptCopyNote);
   setElementAriaLabel("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
+  const copyDisciplineMapPrompt = document.getElementById("copyDisciplineMapPrompt");
+  if (copyDisciplineMapPrompt) copyDisciplineMapPrompt.removeAttribute("title");
   const pendingTextHelp = document.getElementById("batchInputsHelp");
   setHelpTip(pendingTextHelp, text.pendingTextTip);
 
@@ -891,6 +915,8 @@ function applyBatchUiLanguage(language) {
   setElementText("#batchStart", text.start);
   setElementText("#batchStop", text.stop);
   setElementText("#deleteProgressChats", text.deleteProgressChats);
+  setElementText("#deleteProgressChatsSettingTitle", text.deleteProgressChats);
+  setElementText("#deleteProgressChatsDesc", text.deleteProgressChatsDesc);
   setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
   setElementText("#focusWhenStuckTitle", text.focusWhenStuck);
   setElementText("#focusWhenStuckDesc", text.focusWhenStuckDesc);
@@ -917,7 +943,7 @@ function applyBatchUiLanguage(language) {
   }
 
   setElementText("#hotkeyGuideTitle", text.hotkeyGuideTitle);
-  setElementText("#openShortcutSettings", text.openShortcutSettings);
+
   setElementText("#save", text.saveHotkeySettings);
   setElementText("#saved", text.saved);
   setElementText("#hotkeyGuideStep1", text.hotkeyGuideStep1);
@@ -1230,11 +1256,20 @@ function renderHotkeyGroups() {
     group.className = "group";
 
     const titleRow = document.createElement("div");
-    titleRow.className = "row";
+    titleRow.className = "preset-title-row";
     const title = document.createElement("strong");
     title.className = "hotkey-preset-title";
     title.textContent = `${text.hotkeyPreset} ${index}`;
     titleRow.appendChild(title);
+
+    const shortcutBtn = document.createElement("button");
+    shortcutBtn.type = "button";
+    shortcutBtn.className = "secondary-button open-shortcuts-btn";
+    shortcutBtn.textContent = text.openShortcutSettings;
+    shortcutBtn.addEventListener("click", () => {
+      chrome.tabs.create({ url: getShortcutSettingsUrl() });
+    });
+    titleRow.appendChild(shortcutBtn);
 
     const meta = document.createElement("div");
     meta.className = "preset-meta";
@@ -1609,6 +1644,7 @@ async function loadHotkeySettings() {
   if (Object.keys(patch).length) {
     chrome.storage.sync.set(patch);
   }
+  config.selectionBubbleUseCurrentChat = true;
   for (const key of Object.keys(HOTKEY_DEFAULTS)) {
     const element = document.getElementById(key);
     if (!element) continue;
@@ -1637,6 +1673,8 @@ function saveHotkeySettings(showTip = false) {
       data[key] = element.value || HOTKEY_DEFAULTS[key];
     }
   }
+
+  data.selectionBubbleUseCurrentChat = true;
 
   chrome.storage.sync.set(data, () => {
     if (showTip) flashTip("saved");
@@ -2195,7 +2233,38 @@ function showDisciplineMapPromptCopyState(success) {
 function bindDisciplineMapPromptButton() {
   const button = document.getElementById("copyDisciplineMapPrompt");
   const tooltipBody = document.getElementById("disciplineMapPromptTooltipBody");
-  if (tooltipBody) tooltipBody.textContent = formatHelpTipText(DISCIPLINE_MAP_PROMPT.trim());
+  if (tooltipBody) {
+    tooltipBody.innerHTML = `
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">核心任务</div>
+        <div class="discipline-prompt-content">我想用 Obsidian 梳理「社会学当前热门领域/议题」的思想地图，请帮我设计一个文件夹的架构。</div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">数据来源</div>
+        <div class="discipline-prompt-content">请搜索各培养计划和主流信息源、顶级刊物后回答。</div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">内容与结构要求</div>
+        <div class="discipline-prompt-content">
+          包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。初步了解时阅读「介绍」是最高效的；希望深入了解时，再看其他部分。另外，使用「综合索引（Integration Indexes）」作为最后一个章节。
+        </div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">格式与命名规范</div>
+        <div class="discipline-prompt-content">
+          各级标题使用「<strong>中文</strong>（<strong>英文</strong>）」格式。<br>
+          <em>不用解释原因，不用专门进行文字回答，仅输出详细的文件夹架构。使用 code 框输出答案。</em>
+        </div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">三级架构规范</div>
+        <div class="discipline-hierarchy-box">1. 大章节 (中文(英文))
+└─ 1_1 二级章节 (英文(中文))
+   └─ 1_2_1 三级标题 (英文(中文))
+      └─ 1_2_1 ◆ 正文内容</div>
+      </div>
+    `;
+  }
   if (!button) return;
 
   button.addEventListener("click", () => {
@@ -2221,13 +2290,13 @@ function bindBatchEvents() {
   const delaySeconds = document.getElementById("batchDelaySeconds");
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
 
-  globalPrompt.addEventListener("input", scheduleBatchConfigSave);
-  prompt.addEventListener("input", scheduleBatchConfigSave);
-  inputs.addEventListener("input", scheduleBatchConfigSave);
-  delaySeconds.addEventListener("input", scheduleBatchConfigSave);
-  newChatUrl.addEventListener("input", scheduleBatchConfigSave);
-  focusWhenStuck.addEventListener("change", () => persistBatchConfig(true));
-  conversationMode.querySelectorAll("[data-batch-conversation-mode]").forEach((button) => {
+  bindElementEvent(globalPrompt, "input", scheduleBatchConfigSave);
+  bindElementEvent(prompt, "input", scheduleBatchConfigSave);
+  bindElementEvent(inputs, "input", scheduleBatchConfigSave);
+  bindElementEvent(delaySeconds, "input", scheduleBatchConfigSave);
+  bindElementEvent(newChatUrl, "input", scheduleBatchConfigSave);
+  bindElementEvent(focusWhenStuck, "change", () => persistBatchConfig(true));
+  conversationMode?.querySelectorAll("[data-batch-conversation-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       setBatchConversationMode(button.dataset.batchConversationMode);
       persistBatchConfig(true).catch(() => {});
@@ -2239,22 +2308,22 @@ function bindBatchEvents() {
       persistBatchConfig(true).catch(() => {});
     });
   });
-  includeNearestHeading.addEventListener("change", () => persistBatchConfig(true));
-  globalPrompt.addEventListener("change", () => persistBatchConfig(true));
-  prompt.addEventListener("change", () => persistBatchConfig(true));
-  inputs.addEventListener("change", () => persistBatchConfig(true));
-  newChatUrl.addEventListener("change", () => persistBatchConfig(true));
-  delaySeconds.addEventListener("change", () => persistBatchConfig(true));
-  document.getElementById("batchStart").addEventListener("click", startBatch);
-  document.getElementById("batchStop").addEventListener("click", stopBatch);
-  document.getElementById("deleteProgressChats").addEventListener("click", () => {
+  bindElementEvent(includeNearestHeading, "change", () => persistBatchConfig(true));
+  bindElementEvent(globalPrompt, "change", () => persistBatchConfig(true));
+  bindElementEvent(prompt, "change", () => persistBatchConfig(true));
+  bindElementEvent(inputs, "change", () => persistBatchConfig(true));
+  bindElementEvent(newChatUrl, "change", () => persistBatchConfig(true));
+  bindElementEvent(delaySeconds, "change", () => persistBatchConfig(true));
+  bindElementEvent(document.getElementById("batchStart"), "click", startBatch);
+  bindElementEvent(document.getElementById("batchStop"), "click", stopBatch);
+  bindElementEvent(document.getElementById("deleteProgressChats"), "click", () => {
     deleteProgressConversations().catch(() => {});
   });
-  document.getElementById("batchClearInputs").addEventListener("click", () => {
+  bindElementEvent(document.getElementById("batchClearInputs"), "click", () => {
     clearBatchInputs().catch(() => {});
   });
   bindDisciplineMapPromptButton();
-  document.getElementById("pickBatchDirectory").addEventListener("click", pickBatchDirectory);
+  bindElementEvent(document.getElementById("pickBatchDirectory"), "click", pickBatchDirectory);
   document.querySelectorAll("[data-batch-language]").forEach((button) => {
     button.addEventListener("click", () => {
       switchBatchPromptLanguage(button.dataset.batchLanguage).catch(() => {});
@@ -2263,11 +2332,11 @@ function bindBatchEvents() {
 }
 
 function bindExportEvents() {
-  document.getElementById("pickExportDirectory").addEventListener("click", pickBatchDirectory);
-  document.getElementById("exportCurrentChat").addEventListener("click", () => {
+  bindElementEvent(document.getElementById("pickExportDirectory"), "click", pickBatchDirectory);
+  bindElementEvent(document.getElementById("exportCurrentChat"), "click", () => {
     startChatExport().catch(() => {});
   });
-  document.getElementById("exportStop").addEventListener("click", () => {
+  bindElementEvent(document.getElementById("exportStop"), "click", () => {
     stopChatExport().catch(() => {});
   });
 }
@@ -2282,6 +2351,14 @@ function bindHotkeyEvents() {
   const openFilterDialog = document.getElementById("openSelectionFilterDialog");
   const closeFilterDialog = document.getElementById("closeSelectionFilterDialog");
   const addFilterUrl = document.getElementById("addSelectionFilterUrl");
+  const closeSelectionFilterDialog = () => {
+    if (!filterDialog) return;
+    if (typeof filterDialog.close === "function") {
+      filterDialog.close();
+    } else {
+      filterDialog.removeAttribute("open");
+    }
+  };
 
   if (groups) {
     groups.addEventListener("input", scheduleHotkeySettingsSave);
@@ -2308,12 +2385,16 @@ function bindHotkeyEvents() {
     });
   }
   if (closeFilterDialog && filterDialog) {
-    closeFilterDialog.addEventListener("click", () => {
-      if (typeof filterDialog.close === "function") {
-        filterDialog.close();
-      } else {
-        filterDialog.removeAttribute("open");
-      }
+    closeFilterDialog.addEventListener("click", closeSelectionFilterDialog);
+    filterDialog.addEventListener("click", (event) => {
+      if (event.target !== filterDialog) return;
+      const rect = filterDialog.getBoundingClientRect();
+      const outsideDialog =
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom;
+      if (outsideDialog) closeSelectionFilterDialog();
     });
   }
   if (addFilterUrl) {
@@ -2342,18 +2423,17 @@ function bindRuntimeEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  renderHotkeyGroups();
-  bindTabEvents();
-  bindBatchEvents();
-  bindExportEvents();
-  bindHotkeyEvents();
-  bindRuntimeEvents();
-  document.getElementById("openShortcutSettings").addEventListener("click", openShortcutSettingsPage);
+  await runStartupStep("渲染快捷消息预设", renderHotkeyGroups);
+  await runStartupStep("绑定顶部导航", bindTabEvents);
+  await runStartupStep("绑定批量消息", bindBatchEvents);
+  await runStartupStep("绑定对话导出", bindExportEvents);
+  await runStartupStep("绑定快捷消息", bindHotkeyEvents);
+  await runStartupStep("绑定运行状态", bindRuntimeEvents);
 
   await Promise.all([
-    loadHotkeySettings(),
-    loadBatchConfig(),
-    loadBatchState(),
-    loadChatExportState()
+    runStartupStep("读取快捷消息设置", loadHotkeySettings),
+    runStartupStep("读取批量设置", loadBatchConfig),
+    runStartupStep("读取批量状态", loadBatchState),
+    runStartupStep("读取导出状态", loadChatExportState)
   ]);
 });
