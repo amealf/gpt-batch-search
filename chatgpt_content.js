@@ -2612,6 +2612,64 @@
     return { id, title };
   }
 
+  function isProjectConversationListPage() {
+    return /\/project(?:$|[/?#])/i.test(String(window.location.pathname || ""));
+  }
+
+  function getConversationIdFromHref(href) {
+    try {
+      const url = new URL(String(href || ""), window.location.origin);
+      const match = url.pathname.match(/\/c\/([^/?#]+)/i);
+      return match ? match[1] : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function getProjectConversationTitleFromAnchor(anchor) {
+    const lines = getTextFromNode(anchor)
+      .split(/\n+/)
+      .map((line) => normalizeConversationTitle(line))
+      .filter(Boolean);
+    return lines[0] || normalizeConversationTitle(anchor.getAttribute("aria-label") || anchor.getAttribute("title") || "");
+  }
+
+  function readProjectConversationTargetsFromDom() {
+    const scope = document.querySelector("main") || document;
+    const anchors = Array.from(scope.querySelectorAll('section ol li a[href*="/c/"], a[href*="/c/"]'))
+      .filter((anchor) => isElementVisible(anchor));
+    const seenIds = new Set();
+    let scanned = 0;
+    const targets = [];
+
+    for (const anchor of anchors) {
+      const id = getConversationIdFromHref(anchor.href);
+      if (!id || seenIds.has(id)) continue;
+      seenIds.add(id);
+      const title = getProjectConversationTitleFromAnchor(anchor);
+      if (!title) continue;
+      scanned += 1;
+      if (isProgressConversationTitle(title)) {
+        targets.push({ id, title });
+      }
+    }
+
+    return {
+      source: "project",
+      scanned,
+      matched: targets.length,
+      targets
+    };
+  }
+
+  async function findProjectProgressTitleConversations() {
+    await reportDeleteProgress("开始读取项目页当前显示的对话列表。");
+    await until(() => readProjectConversationTargetsFromDom().scanned > 0, 8000, 200);
+    const result = readProjectConversationTargetsFromDom();
+    await reportDeleteProgress(`项目页列表读取完成：扫描 ${result.scanned} 个，匹配 ${result.targets.length} 个进度标题对话，等待确认。`);
+    return result;
+  }
+
   async function fetchConversationListPage(offset, limit) {
     const url = new URL(`${getApiBaseUrl()}/conversations`);
     url.searchParams.set("offset", String(offset));
@@ -2640,6 +2698,10 @@
   }
 
   async function findProgressTitleConversations() {
+    if (isProjectConversationListPage()) {
+      return findProjectProgressTitleConversations();
+    }
+
     const limit = 100;
     let offset = 0;
     let scanned = 0;
@@ -2674,6 +2736,7 @@
 
     await reportDeleteProgress(`列表读取完成：扫描 ${scanned} 个，匹配 ${targets.length} 个进度标题对话，等待确认。`);
     return {
+      source: "recent",
       scanned,
       matched: targets.length,
       targets
@@ -2697,6 +2760,7 @@
         .filter((item) => item && isProgressConversationTitle(item.title))
       : [];
     const scanned = Number.isFinite(Number(payload.scanned)) ? Math.max(0, Number(payload.scanned)) : 0;
+    const sourceText = payload.source === "project" ? "项目页" : "最近 3 页";
 
     await reportDeleteProgress(`用户已确认，开始删除 ${targets.length} 个进度标题对话。`);
     let deleted = 0;
@@ -2713,9 +2777,10 @@
       }
     }
 
-    await reportDeleteProgress(`清理完成：最近 3 页扫描 ${scanned} 个，确认 ${targets.length} 个，删除 ${deleted} 个，失败 ${failed} 个。`);
+    await reportDeleteProgress(`清理完成：${sourceText}扫描 ${scanned} 个，确认 ${targets.length} 个，删除 ${deleted} 个，失败 ${failed} 个。`);
     return {
       ok: true,
+      source: payload.source === "project" ? "project" : "recent",
       scanned,
       matched: targets.length,
       deleted,
@@ -3348,6 +3413,7 @@
             total: originalTotal,
             currentIndex: resumeDisplayIndex,
             currentText: batchItems[startIndex]?.text || "",
+            itemNumber: batchItems[startIndex]?.itemNumber || "",
             sentText: batchItems[startIndex]?.sendText || batchItems[startIndex]?.text || "",
             retryAttempt: storedAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3417,6 +3483,7 @@
           total: originalTotal,
           currentIndex: resumeDisplayIndex,
           currentText: batchItems[startIndex]?.text || "",
+          itemNumber: batchItems[startIndex]?.itemNumber || "",
           retryAttempt: retryPayload.resumeRetryAttempt,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
           message: `第 ${resumeDisplayIndex}/${originalTotal} 条刷新后仍未继续，正在第 ${retryPayload.resumeRetryAttempt}/${BATCH_MAX_REFRESH_RETRIES} 次刷新重试。`
@@ -3446,6 +3513,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: batchItems[index]?.text || "",
+        itemNumber: batchItems[index]?.itemNumber || "",
         sentText: "",
         retryAttempt: index === startIndex ? initialRetryAttempt : 0,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3464,6 +3532,7 @@
           total: originalTotal,
           currentIndex: displayIndex,
           currentText: batchItems[index]?.text || "",
+          itemNumber: batchItems[index]?.itemNumber || "",
           sentText: "",
           retryAttempt: index === startIndex ? initialRetryAttempt : 0,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3476,6 +3545,7 @@
           total: originalTotal,
           currentIndex: displayIndex,
           currentText: batchItems[index]?.text || "",
+          itemNumber: batchItems[index]?.itemNumber || "",
           sentText: "",
           retryAttempt: index === startIndex ? initialRetryAttempt : 0,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3600,6 +3670,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: text,
+        itemNumber: batchItems[index]?.itemNumber || "",
         sentText: sentText || text,
         retryAttempt: nextRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3717,6 +3788,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: item.text,
+        itemNumber: item.itemNumber,
         sentText: sendText,
         retryAttempt: initialRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3750,6 +3822,7 @@
         total: originalTotal,
         currentIndex: displayIndex,
         currentText: item.text,
+        itemNumber: item.itemNumber,
         sentText: sendText,
         retryAttempt: initialRetryAttempt,
         maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3930,6 +4003,7 @@
           total: originalTotal,
           currentIndex: displayIndex,
           currentText: text,
+          itemNumber: item.itemNumber,
           sentText: "",
           retryAttempt,
           maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3971,6 +4045,7 @@
             total: originalTotal,
             currentIndex: displayIndex,
             currentText: text,
+            itemNumber: item.itemNumber,
             sentText: "",
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -3992,6 +4067,7 @@
             total: originalTotal,
             currentIndex: displayIndex,
             currentText: text,
+            itemNumber: item.itemNumber,
             sentText: sendText,
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
@@ -4021,6 +4097,7 @@
             total: originalTotal,
             currentIndex: displayIndex,
             currentText: text,
+            itemNumber: item.itemNumber,
             sentText: sendText,
             retryAttempt,
             maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,

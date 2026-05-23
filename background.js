@@ -278,10 +278,11 @@ Structure requirements:
 Format requirements:
 
 5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
-const BATCH_DEFAULT_PROMPT = "请介绍：";
+const BATCH_DEFAULT_PROMPT = "请介绍以下文本。前两项是学科地图中的位置，用来理解语境；最后一项是本次需要介绍的文本。";
 const BATCH_EN_PROMPT = "Please introduce:";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
+const RECENT_BATCH_DEFAULT_PROMPT = "请介绍：";
 const CHAT_EXPORT_MODE_SEPARATE = "separate";
 const CHAT_EXPORT_MODE_SINGLE = "single";
 const BATCH_CONFIG_DEFAULTS = {
@@ -301,6 +302,15 @@ const BATCH_FOCUS_ALARM_NAME = "batch-focus-when-stuck";
 const BATCH_FOCUS_STUCK_MS = 5 * 60 * 1000;
 const BATCH_FOCUS_AFTER_REFRESH_MS = 2 * 60 * 1000;
 const BATCH_FOCUS_COOLDOWN_MS = 10 * 60 * 1000;
+
+if (chrome.action?.onClicked) {
+  chrome.action.onClicked.addListener(() => {
+    chrome.storage.local.set({ optionsActivePage: "batch" }, () => {
+      chrome.runtime.openOptionsPage();
+    });
+  });
+}
+
 const EMPTY_BATCH_STATE = {
   running: false,
   batchId: "",
@@ -310,6 +320,7 @@ const EMPTY_BATCH_STATE = {
   skipped: 0,
   currentIndex: 0,
   currentText: "",
+  currentItemNumber: "",
   sentText: "",
   message: "等待任务开始。",
   startedAt: "",
@@ -396,6 +407,7 @@ function createBatchState(state) {
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
   next.sentText = typeof next.sentText === "string" ? next.sentText : "";
+  next.currentItemNumber = normalizeBatchItemNumber(next.currentItemNumber);
   next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
@@ -785,7 +797,7 @@ function getBatchProgressKey(state) {
 
 async function syncBatchFocusAlarm(state) {
   if (!chrome.alarms) return;
-  if (state && state.running && state.batchId && state.focusWhenStuck) {
+  if (state && state.running && state.batchId) {
     await chrome.alarms.create(BATCH_FOCUS_ALARM_NAME, {
       delayInMinutes: 1,
       periodInMinutes: 1
@@ -797,7 +809,7 @@ async function syncBatchFocusAlarm(state) {
 
 async function handleBatchFocusAlarm() {
   const current = await getBatchState();
-  if (!current.running || !current.batchId || !current.focusWhenStuck) {
+  if (!current.running || !current.batchId) {
     await syncBatchFocusAlarm(current);
     return;
   }
@@ -823,6 +835,7 @@ async function handleBatchFocusAlarm() {
     }
 
     if (now - lastStuckRefreshAt < BATCH_FOCUS_AFTER_REFRESH_MS) return;
+    if (!current.focusWhenStuck) return;
     if (lastFocusAt && now - lastFocusAt < BATCH_FOCUS_COOLDOWN_MS) return;
 
     await bringToFront(chatTab.id);
@@ -863,6 +876,21 @@ async function handleBatchFocusAlarm() {
     });
     return;
   } catch {}
+
+  if (!current.focusWhenStuck) {
+    const latest = await getBatchState();
+    if (!isCurrentBatchMessage(latest, current.batchId)) return;
+    await saveBatchState({
+      ...latest,
+      message: "刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。",
+      logs: latest.logs.concat({
+        time: new Date().toISOString(),
+        level: "error",
+        message: "刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。"
+      }).slice(-60)
+    });
+    return;
+  }
 
   if (lastFocusAt && now - lastFocusAt < BATCH_FOCUS_COOLDOWN_MS) return;
   await bringToFront(chatTab.id);
@@ -918,10 +946,53 @@ async function ensureChatTab(newChat, newChatUrl = "", options = {}) {
   return created;
 }
 
-async function getChatMaintenanceTab() {
-  const created = await chrome.tabs.create({ url: CHAT_HOME, active: false });
+function getChatLaunchKey(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return `${url.origin}${url.pathname.replace(/\/$/, "")}`;
+  } catch {
+    return "";
+  }
+}
+
+async function findChatMaintenanceTab(launchUrl = "") {
+  const tabs = await chrome.tabs.query({ url: ["https://chatgpt.com/*", "https://chat.openai.com/*"] });
+  if (!tabs.length) return null;
+  const launchKey = getChatLaunchKey(launchUrl);
+  if (launchKey) {
+    return tabs.find((tab) => getChatLaunchKey(tab.url) === launchKey) || null;
+  }
+  return tabs.find((tab) => tab.active) || tabs[0] || null;
+}
+
+async function getChatMaintenanceTab(newChatUrl = "", options = {}) {
+  const launchUrl = normalizeChatLaunchUrl(newChatUrl) || CHAT_HOME;
+  const requestedTabId = Number(options.tabId) || 0;
+  if (requestedTabId > 0) {
+    try {
+      const tab = await chrome.tabs.get(requestedTabId);
+      if (tab && isChatTabUrl(tab.url)) {
+        return { tab, temporary: false };
+      }
+    } catch {}
+  }
+
+  const existing = await findChatMaintenanceTab(launchUrl);
+  if (existing) {
+    return { tab: existing, temporary: false };
+  }
+
+  const created = await chrome.tabs.create({ url: launchUrl, active: false });
   await waitForTabComplete(created.id, 20000);
-  return created;
+  return { tab: created, temporary: true };
+}
+
+async function closeTabIfExists(tabId) {
+  const id = Number(tabId) || 0;
+  if (id <= 0) return;
+  try {
+    await chrome.tabs.remove(id);
+  } catch {}
 }
 
 function sendMessageToTab(tabId, message) {
@@ -1144,6 +1215,7 @@ async function getBatchPromptConfig() {
       items.batchPrompt,
       BATCH_DEFAULT_PROMPT,
       BATCH_EN_PROMPT,
+      RECENT_BATCH_DEFAULT_PROMPT,
       LEGACY_BATCH_DEFAULT_PROMPT
     ].map(normalizePromptText).filter(Boolean)
   };
@@ -2495,6 +2567,7 @@ async function handleBatchProgress(payload) {
   if (typeof payload?.total === "number") patch.total = payload.total;
   if (typeof payload?.currentIndex === "number") patch.currentIndex = payload.currentIndex;
   if (typeof payload?.currentText === "string") patch.currentText = payload.currentText;
+  if (typeof payload?.itemNumber === "string") patch.currentItemNumber = normalizeBatchItemNumber(payload.itemNumber);
   if (typeof payload?.sentText === "string") patch.sentText = payload.sentText;
   if (typeof payload?.message === "string") patch.message = payload.message;
   if (typeof payload?.startedAt === "string") patch.startedAt = payload.startedAt;
@@ -2622,6 +2695,7 @@ async function handleBatchItemResult(payload) {
     failed: nextFailed,
     currentIndex: index,
     currentText: text,
+    currentItemNumber: itemNumber,
     retryAttempt: retry ? retryAttempt + 1 : 0,
     maxRefreshRetries: maxRetries,
     message: logMessage,
@@ -2764,6 +2838,7 @@ async function handleDeleteProgressConversationsProgress(payload) {
 
 async function handleDeleteProgressConversations(payload) {
   let maintenanceTab = null;
+  let closeMaintenanceTab = false;
   const current = await getBatchState();
   if (current.running) {
     return { ok: false, error: "批量任务仍在执行中。" };
@@ -2771,18 +2846,32 @@ async function handleDeleteProgressConversations(payload) {
 
   const mode = payload?.mode === "delete" ? "delete" : "list";
   const actionText = mode === "delete" ? "删除已确认的进度标题对话" : "读取进度标题对话列表";
+  const launchUrl = normalizeChatLaunchUrl(payload?.newChatUrl);
+  const locationText = launchUrl ? "指定位置" : "新的 ChatGPT";
 
   try {
-    await handleDeleteProgressConversationsProgress({ message: `正在打开新的 ChatGPT 标签页，用于${actionText}……` });
-    maintenanceTab = await getChatMaintenanceTab();
-    await handleDeleteProgressConversationsProgress({ message: "新的 ChatGPT 标签页已打开，正在注入脚本……" });
+    await handleDeleteProgressConversationsProgress({ message: `正在打开${locationText}标签页，用于${actionText}……` });
+    const maintenance = await getChatMaintenanceTab(launchUrl, {
+      tabId: payload?.maintenanceTabId
+    });
+    maintenanceTab = maintenance.tab;
+    closeMaintenanceTab = maintenance.temporary || payload?.closeMaintenanceTab === true;
+    await handleDeleteProgressConversationsProgress({ message: `${locationText}标签页已打开，正在注入脚本……` });
     await ensureChatContentScript(maintenanceTab.id);
     await handleDeleteProgressConversationsProgress({ message: `脚本已注入，正在${actionText}……` });
     const result = await sendMessageToChatTabSafely(maintenanceTab.id, "EXT_DELETE_PROGRESS_CONVERSATIONS", payload || {});
+    if (mode === "list" && maintenance.temporary && result?.ok) {
+      closeMaintenanceTab = false;
+      return {
+        ...result,
+        maintenanceTabId: maintenanceTab.id,
+        closeMaintenanceTab: true
+      };
+    }
     return result;
   } finally {
-    if (maintenanceTab?.id) {
-      chrome.tabs.remove(maintenanceTab.id).catch(() => {});
+    if (maintenanceTab?.id && closeMaintenanceTab) {
+      await closeTabIfExists(maintenanceTab.id);
     }
   }
 }
@@ -3017,6 +3106,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "DELETE_PROGRESS_CONVERSATIONS") {
     handleDeleteProgressConversations(message.payload)
       .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
+    return true;
+  }
+
+  if (message.type === "CLOSE_DELETE_PROGRESS_TAB") {
+    closeTabIfExists(message.payload?.tabId)
+      .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;
   }

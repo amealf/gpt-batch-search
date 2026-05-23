@@ -3,7 +3,7 @@
   const root = document.documentElement;
   const btn = document.getElementById('themeToggle');
   const KEY = 'gbs-theme';
-  const DEFAULT_THEME = 'light';
+  const DEFAULT_THEME = 'dark';
 
   function applyTheme(theme) {
     root.setAttribute('data-theme', theme);
@@ -20,7 +20,7 @@
 
   if (btn) {
     btn.addEventListener('click', function () {
-      const current = root.getAttribute('data-theme') || 'light';
+      const current = root.getAttribute('data-theme') || DEFAULT_THEME;
       applyTheme(current === 'light' ? 'dark' : 'light');
     });
   }

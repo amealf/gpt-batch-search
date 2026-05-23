@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-theme="light">
+<html data-theme="dark">
 <head>
   <meta charset="utf-8">
   <title>GPT Batch Search</title>
@@ -200,7 +200,8 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 24px;
+      width: 980px;
+      margin: 0 auto 24px;
       position: relative;
     }
 
@@ -236,7 +237,7 @@
     /* ─── header actions ─── */
     .header-actions {
       position: absolute;
-      right: -36px;
+      right: 0;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
@@ -838,6 +839,14 @@
       background: rgba(0, 0, 0, 0.46);
     }
 
+    .delete-progress-dialog {
+      background: #ffffff;
+    }
+
+    [data-theme="dark"] .delete-progress-dialog {
+      background: rgb(35, 35, 35);
+    }
+
     .filter-dialog-head {
       display: flex;
       align-items: flex-start;
@@ -867,6 +876,27 @@
     .filter-input-row input {
       flex: 1;
       min-width: 0;
+    }
+
+    .confirm-dialog-body {
+      max-height: min(360px, 48vh);
+      overflow: auto;
+      margin: 12px 0 16px;
+      padding: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      background: var(--status-bg);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: var(--control-font-size);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .confirm-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
     }
 
     .filter-list {
@@ -1641,7 +1671,7 @@
                 <button type="button" class="help-button" data-tip="每条文本都会附在这个消息 Prompt 后面发送。">?</button>
               </div>
             </div>
-            <textarea id="batchPrompt" class="batch-prompt" placeholder="请介绍："></textarea>
+            <textarea id="batchPrompt" class="batch-prompt" placeholder="请介绍以下文本。前两项是学科地图中的位置，用来理解语境；最后一项是本次需要介绍的文本。"></textarea>
           </div>
         </div>
 
@@ -1674,6 +1704,7 @@
           <span id="newChatUrlTitle" class="toolbar-label">指定对话创建位置</span>
           <input id="batchNewChatUrl" class="compact-text" type="url" placeholder="建议在GPT新建一个项目专门存放本插件的问答，例如：https://chatgpt.com/g/.../project" title="用于指定对话创建位置的 ChatGPT 项目链接。">
           <button id="batchNewChatUrlHelp" type="button" class="help-button" data-tip="这个链接决定新建对话在哪个区域创建。留空时，默认在 GPT 主页面新建对话；填写 ChatGPT 项目链接时，会在该项目里新建对话。建议在 GPT 新建一个项目专门存放本插件的问答。">?</button>
+          <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
         </div>
       </div>
 
@@ -1836,9 +1867,9 @@
           <div class="settings-main">
             <div class="settings-title-row">
               <div id="focusWhenStuckTitle" class="settings-title">保持网页焦点</div>
-              <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="实验性功能。浏览器可能降低后台页面运行频率，导致批量任务停顿。开启后，插件会在任务长时间没有推进时刷新页面；刷新后仍没有推进时才激活网页。默认关闭。">?</button>
+              <button id="batchFocusWhenStuckHelp" type="button" class="help-button" data-tip="实验性功能。任务卡住时抢占屏幕焦点回到网页。自动刷新会始终进行，不需要开启这个选项。">?</button>
             </div>
-            <div id="focusWhenStuckDesc" class="settings-desc">实验性功能。任务卡住时刷新页面，必要时激活网页。默认关闭。</div>
+            <div id="focusWhenStuckDesc" class="settings-desc">实验性功能。任务卡住时抢占屏幕焦点回到网页。</div>
           </div>
           <div class="settings-control">
             <label class="toggle-label" for="batchFocusWhenStuck">
@@ -1859,15 +1890,6 @@
           </div>
         </div>
 
-        <div class="settings-item">
-          <div class="settings-main">
-            <div id="deleteProgressChatsSettingTitle" class="settings-title">清理进度对话</div>
-            <div id="deleteProgressChatsDesc" class="settings-desc">删除标题里带有进度的 ChatGPT 对话。</div>
-          </div>
-          <div class="settings-control">
-            <button id="deleteProgressChats" type="button" title="删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。">清理进度对话</button>
-          </div>
-        </div>
       </div>
     </div>
   </section>

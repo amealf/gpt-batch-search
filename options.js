@@ -252,7 +252,7 @@ Structure requirements:
 Format requirements:
 
 5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
-const BATCH_DEFAULT_PROMPT = "请介绍：";
+const BATCH_DEFAULT_PROMPT = "请介绍以下文本。前两项是学科地图中的位置，用来理解语境；最后一项是本次需要介绍的文本。";
 const BATCH_EN_PROMPT = "Please introduce:";
 const BATCH_DEFAULT_INPUTS = `├─ 1. 古典诗学时期（Classical Poetics）
 │  ├─ 1_1 Debates, Paradigm Shifts, and Contexts（论战、范式更新与时代背景）
@@ -267,6 +267,7 @@ const DISCIPLINE_MAP_PROMPT = `我想用obsidian梳理「社会学当前热门�
 包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。我的想法是：如果是初步了解，阅读「介绍」是最高效的。在读者希望深入了解时，可以再看其他部分。
 
 各级标题使用中文（英文）格式
+作品名、文章名的中文需要加书名号
 
 不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。
 
@@ -283,6 +284,7 @@ const BATCH_PROMPT_LANGUAGE_CN = "cn";
 const BATCH_PROMPT_LANGUAGE_EN = "en";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
+const RECENT_BATCH_DEFAULT_PROMPT = "请介绍：";
 const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
 const BATCH_DEFAULT_DELAY_SECONDS = 3;
 const BATCH_CONVERSATION_MODE_NEW = "new";
@@ -333,6 +335,7 @@ const BATCH_STATE_DEFAULT = {
   skipped: 0,
   currentIndex: 0,
   currentText: "",
+  currentItemNumber: "",
   sentText: "",
   message: "等待任务开始。",
   startedAt: "",
@@ -486,6 +489,7 @@ function createBatchState(state) {
   next.logs = Array.isArray(next.logs) ? next.logs.slice(-60) : [];
   next.failedItems = Array.isArray(next.failedItems) ? next.failedItems.slice(-100) : [];
   next.sentText = typeof next.sentText === "string" ? next.sentText : "";
+  next.currentItemNumber = extractBatchItemNumber(next.currentItemNumber || "");
   next.retryAttempt = Number.isFinite(Number(next.retryAttempt)) ? Math.max(0, Number(next.retryAttempt)) : 0;
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
@@ -612,9 +616,9 @@ const BATCH_UI_TEXT = {
     deleteProgressChatsDesc: "删除标题里带有进度的 ChatGPT 对话。",
     deleteProgressChatsTitle: "删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。",
     focusWhenStuck: "保持网页焦点",
-    focusWhenStuckDesc: "实验性功能。任务卡住时刷新页面，必要时激活网页。默认关闭。",
+    focusWhenStuckDesc: "实验性功能。任务卡住时抢占屏幕焦点回到网页。",
     focusWhenStuckLabel: "",
-    focusWhenStuckTip: "实验性功能。浏览器可能降低后台页面运行频率，导致批量任务停顿。开启后，插件会在任务长时间没有推进时刷新页面；刷新后仍没有推进时才激活网页。默认关闭。",
+    focusWhenStuckTip: "实验性功能。任务卡住时抢占屏幕焦点回到网页。自动刷新会始终进行，不需要开启这个选项。",
     saved: "已保存",
     runStatus: "运行状态",
     failureTitle: "保存失败",
@@ -718,9 +722,9 @@ const BATCH_UI_TEXT = {
     deleteProgressChatsDesc: "Delete ChatGPT conversations whose titles contain progress.",
     deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles contain progress, for example “CPTSD 4/70” or “当前进度 256/321”.",
     focusWhenStuck: "Keep Web Page Focus",
-    focusWhenStuckDesc: "Experimental feature. Refreshes the page when a task stalls, then activates it if needed. Off by default.",
+    focusWhenStuckDesc: "Experimental feature. Brings the web page back to the screen when a task stalls.",
     focusWhenStuckLabel: "",
-    focusWhenStuckTip: "Experimental feature. Browsers may reduce background page activity, causing batch tasks to pause. When enabled, the extension refreshes the page after a long stall; if the task still does not move forward, it activates the page. Off by default.",
+    focusWhenStuckTip: "Experimental feature. Brings the web page back to the screen when a task stalls. Auto-refresh always runs without enabling this option.",
     saved: "Saved",
     runStatus: "Run Status",
     failureTitle: "Save Failed",
@@ -915,8 +919,6 @@ function applyBatchUiLanguage(language) {
   setElementText("#batchStart", text.start);
   setElementText("#batchStop", text.stop);
   setElementText("#deleteProgressChats", text.deleteProgressChats);
-  setElementText("#deleteProgressChatsSettingTitle", text.deleteProgressChats);
-  setElementText("#deleteProgressChatsDesc", text.deleteProgressChatsDesc);
   setElementTitle("#deleteProgressChats", text.deleteProgressChatsTitle);
   setElementText("#focusWhenStuckTitle", text.focusWhenStuck);
   setElementText("#focusWhenStuckDesc", text.focusWhenStuckDesc);
@@ -1032,6 +1034,7 @@ function isKnownBatchDefaultPrompt(value) {
   return [
     BATCH_DEFAULT_PROMPT,
     BATCH_EN_PROMPT,
+    RECENT_BATCH_DEFAULT_PROMPT,
     LEGACY_BATCH_DEFAULT_PROMPT
   ].includes(value);
 }
@@ -1391,6 +1394,13 @@ function formatFailedBatchItemForRetry(item) {
   return lines.join("\n");
 }
 
+function formatCurrentBatchText(state) {
+  const text = String(state && state.currentText ? state.currentText : "").trim();
+  if (!text) return "";
+  const itemNumber = extractBatchItemNumber(state && state.currentItemNumber ? state.currentItemNumber : "");
+  return itemNumber ? `${itemNumber} ${text}` : text;
+}
+
 function renderBatchDirectoryText() {
   const hasDirectory = Boolean(currentBatchDirectoryName);
   const text = getBatchUiText();
@@ -1450,8 +1460,9 @@ function renderBatchState(state) {
   if (currentBatchState.running && currentBatchState.retryAttempt > 0) {
     lines.push(`刷新重试：${currentBatchState.retryAttempt}/${currentBatchState.maxRefreshRetries || BATCH_DEFAULT_MAX_REFRESH_RETRIES}`);
   }
-  if (currentBatchState.currentText) {
-    lines.push(`当前文本：${currentBatchState.currentText}`);
+  const currentText = formatCurrentBatchText(currentBatchState);
+  if (currentText) {
+    lines.push(`当前文本：${currentText}`);
   }
   document.getElementById("batchStatus").textContent = lines.join("\n");
 
@@ -1830,7 +1841,7 @@ async function loadBatchConfig() {
   document.getElementById("batchFocusWhenStuck").checked = batchFocusWhenStuck;
   currentBatchDirectoryName = config.batchDirectoryName || "";
   renderBatchDirectoryText();
-  setActivePage(["batch", "hotkeys", "export", "settings"].includes(config.optionsActivePage) ? config.optionsActivePage : "batch");
+  setActivePage("batch");
 
   if (
     batchGlobalPrompt !== config.batchGlobalPrompt ||
@@ -2111,17 +2122,27 @@ async function stopBatch() {
 async function deleteProgressConversations() {
   if (deleteProgressPending || currentBatchState.running) return;
 
+  const newChatUrl = document.getElementById("batchNewChatUrl")?.value.trim() || "";
+  const closeDeleteProgressTab = async (response) => {
+    if (!response?.closeMaintenanceTab || !response?.maintenanceTabId) return;
+    await sendRuntimeMessage({
+      type: "CLOSE_DELETE_PROGRESS_TAB",
+      payload: { tabId: response.maintenanceTabId }
+    }).catch(() => {});
+  };
   deleteProgressPending = true;
   updateBatchActionButtons();
   renderBatchState({
     ...currentBatchState,
-    message: "正在读取最近 3 页进度标题对话……"
+    message: newChatUrl
+      ? "正在指定对话创建位置读取进度标题对话……"
+      : "正在读取最近 3 页进度标题对话……"
   });
 
   try {
     const listResponse = await sendRuntimeMessage({
       type: "DELETE_PROGRESS_CONVERSATIONS",
-      payload: { mode: "list" }
+      payload: { mode: "list", newChatUrl }
     });
     if (!listResponse || !listResponse.ok) {
       throw new Error(listResponse && listResponse.error ? listResponse.error : "读取进度标题对话失败。");
@@ -2129,21 +2150,24 @@ async function deleteProgressConversations() {
 
     const targets = Array.isArray(listResponse.targets) ? listResponse.targets : [];
     if (!targets.length) {
+      await closeDeleteProgressTab(listResponse);
       renderBatchState({
         ...currentBatchState,
-        message: `最近 3 页没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
+        message: newChatUrl
+          ? `指定对话创建位置没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
+          : `最近 3 页没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
       });
       return;
     }
 
-    const listText = targets
-      .map((item, index) => `${index + 1}. ${item.title}`)
-      .join("\n");
-    const confirmed = confirm(`将删除以下 ${targets.length} 个进度标题对话：\n\n${listText}\n\n确定删除吗？`);
+    const confirmed = await showDeleteProgressConfirmDialog(targets);
     if (!confirmed) {
+      await closeDeleteProgressTab(listResponse);
       renderBatchState({
         ...currentBatchState,
-        message: `已取消删除，最近 3 页匹配 ${targets.length} 个进度标题对话。`
+        message: newChatUrl
+          ? `已取消删除，指定对话创建位置匹配 ${targets.length} 个进度标题对话。`
+          : `已取消删除，最近 3 页匹配 ${targets.length} 个进度标题对话。`
       });
       return;
     }
@@ -2157,8 +2181,12 @@ async function deleteProgressConversations() {
       type: "DELETE_PROGRESS_CONVERSATIONS",
       payload: {
         mode: "delete",
+        newChatUrl,
+        maintenanceTabId: listResponse.maintenanceTabId || 0,
+        closeMaintenanceTab: listResponse.closeMaintenanceTab === true,
         targets,
-        scanned: listResponse.scanned || 0
+        scanned: listResponse.scanned || 0,
+        source: listResponse.source || ""
       }
     });
     if (!response || !response.ok) {
@@ -2211,6 +2239,69 @@ function copyTextToClipboard(text) {
   return Promise.resolve();
 }
 
+function showDeleteProgressConfirmDialog(targets) {
+  const items = Array.isArray(targets) ? targets : [];
+  const dialog = document.createElement("dialog");
+  dialog.className = "filter-dialog delete-progress-dialog";
+
+  const head = document.createElement("div");
+  head.className = "filter-dialog-head";
+  const titleGroup = document.createElement("div");
+  const title = document.createElement("div");
+  title.className = "filter-dialog-title";
+  title.textContent = `清理 ${items.length} 个进度标题对话`;
+  const desc = document.createElement("div");
+  desc.className = "filter-dialog-desc";
+  desc.textContent = "以下对话会从 ChatGPT 列表中隐藏。";
+  titleGroup.append(title, desc);
+  head.appendChild(titleGroup);
+
+  const body = document.createElement("div");
+  body.className = "confirm-dialog-body";
+  body.textContent = items.map((item, index) => `${index + 1}. ${item.title}`).join("\n");
+
+  const actions = document.createElement("div");
+  actions.className = "confirm-dialog-actions";
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "取消";
+  const confirmButton = document.createElement("button");
+  confirmButton.type = "button";
+  confirmButton.className = "primary";
+  confirmButton.textContent = "确定删除";
+  actions.append(cancelButton, confirmButton);
+
+  dialog.append(head, body, actions);
+  document.body.appendChild(dialog);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      resolve(confirmed);
+      dialog.close();
+      dialog.remove();
+    };
+
+    cancelButton.addEventListener("click", () => finish(false));
+    confirmButton.addEventListener("click", () => finish(true));
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      finish(false);
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) finish(false);
+    });
+
+    if (typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+  });
+}
+
 function showDisciplineMapPromptCopyState(success) {
   const label = document.getElementById("copyDisciplineMapPromptLabel");
   const button = document.getElementById("copyDisciplineMapPrompt");
@@ -2252,7 +2343,7 @@ function bindDisciplineMapPromptButton() {
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">格式与命名规范</div>
         <div class="discipline-prompt-content">
-          各级标题使用「<strong>中文</strong>（<strong>英文</strong>）」格式。<br>
+          各级标题使用「<strong>中文</strong>（<strong>英文</strong>）」格式。作品名、文章名的中文需要加书名号。<br>
           <em>不用解释原因，不用专门进行文字回答，仅输出详细的文件夹架构。使用 code 框输出答案。</em>
         </div>
       </div>
