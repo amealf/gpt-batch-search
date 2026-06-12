@@ -22,12 +22,27 @@
   const BATCH_MAX_REFRESH_RETRIES = 5;
   const BATCH_NEW_TAB_RETRY_AFTER = 2;
   const BATCH_REPLY_TIMEOUT_MS = 600000;
-  const BATCH_REPLY_STABLE_MS = 2000;
-  const BATCH_REPLY_CONFIRM_MS = 700;
-  const BATCH_REPLY_FINAL_CONFIRM_MS = 2000;
+  const BATCH_REPLY_STABLE_MS = 900;
+  const BATCH_REPLY_COPY_READY_STABLE_MS = 300;
+  const BATCH_REPLY_CONFIRM_MS = 350;
+  const BATCH_REPLY_FINAL_CONFIRM_MS = 600;
   const BATCH_RETRY_WATCHDOG_MS = 300000;
   const BATCH_CONVERSATION_ITEM_LIMIT = 30;
   const BATCH_HEARTBEAT_INTERVAL_MS = 15000;
+  const BATCH_MODEL_DEFAULT = "default";
+  const BATCH_MODEL_INSTANT = "instant";
+  const BATCH_MODEL_THINKING = "thinking";
+  const BATCH_MODEL_PRO = "pro";
+  const BATCH_MODEL_LABELS = {
+    [BATCH_MODEL_INSTANT]: "Instant",
+    [BATCH_MODEL_THINKING]: "Thinking",
+    [BATCH_MODEL_PRO]: "Pro"
+  };
+  const BATCH_MODEL_SEARCH_LABELS = {
+    [BATCH_MODEL_INSTANT]: ["Instant"],
+    [BATCH_MODEL_THINKING]: ["Thinking", "Extended"],
+    [BATCH_MODEL_PRO]: ["Extended Pro", "Pro"]
+  };
   let lastBatchHeartbeatAt = 0;
   let exportRunning = false;
   let currentExportId = "";
@@ -67,6 +82,17 @@
     const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
     if (style && (style.display === "none" || style.visibility === "hidden")) return false;
     return element.offsetParent !== null || element.getClientRects().length > 0;
+  }
+
+  function isElementVisibleInViewport(element) {
+    if (!isElementVisible(element)) return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 &&
+      rect.height > 0 &&
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth;
   }
 
   function composeFullText(text, prefix) {
@@ -115,6 +141,26 @@
     return { text, sendText: text, itemNumber: "", directoryPath: [] };
   }
 
+  function normalizeBatchModel(value) {
+    const text = String(value || "").toLowerCase();
+    if (text === BATCH_MODEL_INSTANT) return BATCH_MODEL_INSTANT;
+    if (text === BATCH_MODEL_THINKING) return BATCH_MODEL_THINKING;
+    if (text === BATCH_MODEL_PRO) return BATCH_MODEL_PRO;
+    return BATCH_MODEL_DEFAULT;
+  }
+
+  function getBatchModelLabel(model) {
+    return BATCH_MODEL_LABELS[normalizeBatchModel(model)] || "";
+  }
+
+  function getBatchModelSearchLabels(model) {
+    return BATCH_MODEL_SEARCH_LABELS[normalizeBatchModel(model)] || [];
+  }
+
+  function escapeRegExp(text) {
+    return String(text || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   function getTextFromNode(node) {
     if (!node) return "";
     const clone = node.cloneNode(true);
@@ -141,6 +187,70 @@
       element.getAttribute("aria-label") || "",
       element.getAttribute("title") || ""
     ].join(" "));
+  }
+
+  function findChatGptModelButton() {
+    const buttons = Array.from(document.querySelectorAll("button.__composer-pill, button[aria-haspopup='menu']"));
+    return buttons.find((button) => {
+      if (!isElementVisibleInViewport(button)) return false;
+      const className = String(button.className || "");
+      const text = getElementTextWithControls(button);
+      return className.includes("__composer-pill") ||
+        /\b(?:Instant|Thinking|Pro|Auto|Default)\b/i.test(text) ||
+        /模型|思考|快速/u.test(text);
+    }) || null;
+  }
+
+  function matchesChatGptModelLabel(text, label, model) {
+    const normalizedText = normalizeChatGptPageErrorText(text);
+    if (!normalizedText || !label) return false;
+    if (normalizeBatchModel(model) === BATCH_MODEL_THINKING && /^Extended$/i.test(label) && /\bExtended\s+Pro\b/i.test(normalizedText)) {
+      return false;
+    }
+    const pattern = new RegExp(`(^|\\s)${escapeRegExp(label)}(\\s|$)`, "i");
+    return pattern.test(normalizedText);
+  }
+
+  function findChatGptModelOption(labels, model) {
+    const candidates = Array.from(document.querySelectorAll([
+      "[role='menuitem']",
+      "[role='menuitemradio']",
+      "[role='option']",
+      "[aria-selected]",
+      "button",
+      "[cmdk-item]"
+    ].join(",")));
+    return candidates.find((element) => {
+      if (!isElementVisibleInViewport(element)) return false;
+      const text = getElementTextWithControls(element);
+      return labels.some((label) => matchesChatGptModelLabel(text, label, model));
+    }) || null;
+  }
+
+  async function selectChatGptBatchModel(model, batchId = "") {
+    const normalizedModel = normalizeBatchModel(model);
+    if (normalizedModel === BATCH_MODEL_DEFAULT) return;
+
+    const label = getBatchModelLabel(normalizedModel);
+    if (!label) return;
+    const searchLabels = getBatchModelSearchLabels(normalizedModel);
+
+    const modelButton = await until(findChatGptModelButton, 8000, 150);
+    if (!modelButton) {
+      throw new Error("没有找到 ChatGPT 模型选择按钮。");
+    }
+
+    const currentText = getElementTextWithControls(modelButton);
+    if (searchLabels.some((searchLabel) => matchesChatGptModelLabel(currentText, searchLabel, normalizedModel))) return;
+
+    modelButton.click();
+    const option = await until(() => findChatGptModelOption(searchLabels, normalizedModel), 8000, 150);
+    if (!option) {
+      throw new Error(`没有找到 ChatGPT 模型选项：${searchLabels.join(" / ")}。`);
+    }
+
+    option.click();
+    await sleepWithStopCheck(300, batchId);
   }
 
   function isChatGptTransientPageErrorText(text) {
@@ -174,6 +284,7 @@
     const normalized = normalizeChatGptPageErrorText(text);
     if (!normalized || normalized.length > 140) return false;
     if (/^已思考/u.test(normalized) || /^Thought for\b/i.test(normalized)) return false;
+    if (/^(?:Thinking|Instant|Pro|Extended|Extended Pro)$/i.test(normalized)) return false;
     return /正在思考/u.test(normalized) ||
       /正在推理/u.test(normalized) ||
       /正在生成/u.test(normalized) ||
@@ -196,6 +307,8 @@
 
     for (const element of candidates) {
       if (!isElementVisible(element)) continue;
+      if (element.closest("form, [data-type='unified-composer'], [data-testid*='composer' i], button.__composer-pill")) continue;
+      if (element.querySelector("form, [data-type='unified-composer'], [data-testid*='composer' i], button.__composer-pill")) continue;
       if (!isElementForLatestChatGptResponse(element)) continue;
       const text = normalizeChatGptPageErrorText(element.innerText || element.textContent || "");
       if (isActiveThinkingStatusText(text)) {
@@ -1292,6 +1405,9 @@
   function getAssistantSnapshot() {
     const messages = getAssistantMessages();
     const latestMessage = messages[messages.length - 1] || null;
+    const actionContainer = latestMessage
+      ? latestMessage.closest("article, [data-testid^='conversation-turn']") || latestMessage
+      : null;
     const key = latestMessage
       ? (
         latestMessage.getAttribute("data-message-id") ||
@@ -1305,7 +1421,8 @@
       count: messages.length,
       key,
       text: getAssistantText(latestMessage),
-      rawText: getTextFromNode(latestMessage)
+      rawText: getTextFromNode(latestMessage),
+      hasCopyResponse: hasCopyResponseButton(actionContainer)
     };
   }
 
@@ -1845,6 +1962,45 @@
     }
   }
 
+  async function getBatchConversationMessagesFromApi() {
+    const conversationId = getConversationIdFromLocation();
+    if (!conversationId) return [];
+
+    const accessToken = await getAccessToken().catch(() => "");
+    const accountId = await getWorkspaceAccountId().catch(() => null);
+    const response = await fetch(`${getApiBaseUrl()}/conversation/${conversationId}`, {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        ...(accessToken
+          ? {
+            Authorization: `Bearer ${accessToken}`,
+            "X-Authorization": `Bearer ${accessToken}`
+          }
+          : {}),
+        ...(accountId
+          ? {
+            "Chatgpt-Account-Id": accountId
+          }
+          : {})
+      }
+    });
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const mapping = data && typeof data.mapping === "object" ? data.mapping : null;
+    const currentNode = typeof data?.current_node === "string" ? data.current_node : "";
+    if (!mapping) return [];
+
+    const startNodeId = (currentNode && mapping[currentNode] ? currentNode : "") || Object.values(mapping).find((node) => {
+      const children = Array.isArray(node?.children) ? node.children : [];
+      return children.length === 0;
+    })?.id || "";
+    if (!startNodeId) return [];
+
+    return mergeContinuationMessages(buildMessagesFromApiPath(buildConversationPath(mapping, startNodeId), ""));
+  }
+
   async function getFullConversationMessages(exportId) {
     const ready = await until(() => getConversationMessages().length > 0, 10000, 150);
     if (!ready) return [];
@@ -2189,6 +2345,22 @@
     return ownLabels.concat(childLabels).join(" ").replace(/\s+/g, " ").trim().toLowerCase();
   }
 
+  function isCopyResponseButton(button) {
+    if (!button || !isElementVisible(button) || button.disabled) return false;
+    const label = getButtonLabel(button);
+    return label.includes("copy response") ||
+      label.includes("copy answer") ||
+      label.includes("copy message") ||
+      label.includes("copy-turn-action") ||
+      label.includes("复制回答") ||
+      label.includes("复制回复");
+  }
+
+  function hasCopyResponseButton(container) {
+    if (!container) return false;
+    return Array.from(container.querySelectorAll("button")).some((button) => isCopyResponseButton(button));
+  }
+
   function hasStopIcon(button) {
     if (!button) return false;
     if (button.querySelector("svg rect")) return true;
@@ -2273,24 +2445,25 @@
     throwIfChatGptTransientPageError();
     const firstSnapshot = getAssistantSnapshot();
     const firstText = getReplyTextFromSnapshot(firstSnapshot, allowShortReply, minShortReplySignalLength);
-    if (!hasUsableAssistantReply(firstText, allowShortReply, minShortReplySignalLength) || isGenerating()) return "";
+    if (!hasUsableAssistantReply(firstText, allowShortReply, minShortReplySignalLength)) return "";
+    if (!firstSnapshot.hasCopyResponse && isGenerating()) return "";
 
     await sleepWithStopCheck(BATCH_REPLY_CONFIRM_MS, batchId);
     throwIfChatGptTransientPageError();
-    if (isGenerating()) return "";
 
     const secondSnapshot = getAssistantSnapshot();
     const secondText = getReplyTextFromSnapshot(secondSnapshot, allowShortReply, minShortReplySignalLength);
+    if (!secondSnapshot.hasCopyResponse && isGenerating()) return "";
     if (!hasUsableAssistantReply(secondText, allowShortReply, minShortReplySignalLength)) return "";
     if (secondSnapshot.text !== firstSnapshot.text) return "";
     if ((secondSnapshot.rawText || "") !== (firstSnapshot.rawText || "")) return "";
 
     await sleepWithStopCheck(BATCH_REPLY_FINAL_CONFIRM_MS, batchId);
     throwIfChatGptTransientPageError();
-    if (isGenerating()) return "";
 
     const finalSnapshot = getAssistantSnapshot();
     const finalText = getReplyTextFromSnapshot(finalSnapshot, allowShortReply, minShortReplySignalLength);
+    if (!finalSnapshot.hasCopyResponse && isGenerating()) return "";
     if (!hasUsableAssistantReply(finalText, allowShortReply, minShortReplySignalLength)) return "";
     if (finalSnapshot.text !== secondSnapshot.text) return "";
     if ((finalSnapshot.rawText || "") !== (secondSnapshot.rawText || "")) return "";
@@ -2300,13 +2473,13 @@
   async function isAssistantReplyChanging(batchId, waitMs = BATCH_REPLY_CONFIRM_MS) {
     if (getVisibleChatGptTransientPageErrorText()) return false;
     const firstSnapshot = getAssistantSnapshot();
-    if (isGenerating()) return true;
+    if (!firstSnapshot.hasCopyResponse && isGenerating()) return true;
 
     await sleepWithStopCheck(waitMs, batchId);
     if (getVisibleChatGptTransientPageErrorText()) return false;
-    if (isGenerating()) return true;
 
     const secondSnapshot = getAssistantSnapshot();
+    if (!secondSnapshot.hasCopyResponse && isGenerating()) return true;
     return firstSnapshot.count !== secondSnapshot.count ||
       firstSnapshot.key !== secondSnapshot.key ||
       firstSnapshot.text !== secondSnapshot.text ||
@@ -2327,7 +2500,7 @@
     while (Date.now() - startedAt < ms) {
       throwIfBatchStopped(batchId);
       sendBatchHeartbeat(batchId);
-      await sleep(Math.min(200, ms - (Date.now() - startedAt)));
+      await sleep(Math.min(100, ms - (Date.now() - startedAt)));
     }
   }
 
@@ -2382,15 +2555,18 @@
       const hasShortReply = allowShortReply && Boolean(shortReplyText) && (hasNewRawText || hasNewElement);
       const hasNewReply = hasNewText || (hasNewElement && hasNewRawText) || hasShortReply;
       const hasUsableReply = hasNewReply && hasUsableAssistantReply(replyText, allowShortReply, minShortReplySignalLength);
-      const stableEnough = Date.now() - stableSince >= BATCH_REPLY_STABLE_MS;
+      const copyResponseReady = hasNewReply && currentSnapshot.hasCopyResponse;
+      const stableThreshold = copyResponseReady ? BATCH_REPLY_COPY_READY_STABLE_MS : BATCH_REPLY_STABLE_MS;
+      const stableEnough = Date.now() - stableSince >= stableThreshold;
       const timedOut = Date.now() - startedAt >= timeout;
       const currentlyGenerating = isGenerating();
+      const readyToRead = copyResponseReady || !currentlyGenerating;
 
       if (hasNewReply) {
         await reportProgress(replyText || latestText || latestRawText);
       }
 
-      if (hasUsableReply && !currentlyGenerating && stableEnough) {
+      if (hasUsableReply && readyToRead && stableEnough) {
         const confirmedReply = await confirmAssistantReplySettled(batchId, allowShortReply, minShortReplySignalLength);
         if (confirmedReply) {
           await reportProgress(confirmedReply, true);
@@ -2407,7 +2583,7 @@
         stableSince = Date.now();
       }
 
-      await sleepWithStopCheck(250, batchId);
+      await sleepWithStopCheck(120, batchId);
     }
   }
 
@@ -2640,6 +2816,7 @@
       .filter((anchor) => isElementVisible(anchor));
     const seenIds = new Set();
     let scanned = 0;
+    const items = [];
     const targets = [];
 
     for (const anchor of anchors) {
@@ -2649,6 +2826,7 @@
       const title = getProjectConversationTitleFromAnchor(anchor);
       if (!title) continue;
       scanned += 1;
+      items.push({ id, title });
       if (isProgressConversationTitle(title)) {
         targets.push({ id, title });
       }
@@ -2658,16 +2836,125 @@
       source: "project",
       scanned,
       matched: targets.length,
+      items,
       targets
     };
   }
 
+  function getProjectConversationScrollContainers() {
+    const containers = [];
+    const seen = new Set();
+    const addContainer = (element) => {
+      if (!element || seen.has(element)) return;
+      const canScroll = element.scrollHeight > element.clientHeight + 20;
+      if (!canScroll) return;
+      seen.add(element);
+      containers.push(element);
+    };
+
+    const listRoot = document.querySelector("main section ol") || document.querySelector("main");
+    let current = listRoot;
+    while (current && current !== document.body) {
+      addContainer(current);
+      current = current.parentElement;
+    }
+
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    addContainer(scrollingElement);
+    return containers;
+  }
+
+  function scrollProjectConversationContainersToTop() {
+    for (const container of getProjectConversationScrollContainers()) {
+      scrollContainerTo(container, 0);
+    }
+  }
+
+  function scrollProjectConversationContainersForward() {
+    let moved = false;
+    for (const container of getProjectConversationScrollContainers()) {
+      const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const currentTop = container.scrollTop || 0;
+      const step = Math.max(Math.floor(container.clientHeight * 0.75), 240);
+      const nextTop = Math.min(maxTop, currentTop + step);
+      if (nextTop > currentTop + 4) {
+        scrollContainerTo(container, nextTop);
+        moved = true;
+      }
+    }
+    return moved;
+  }
+
+  function getProjectShowMoreButton() {
+    const candidates = Array.from(document.querySelectorAll("button, a"))
+      .filter((element) => isElementVisible(element));
+    return candidates.find((element) => {
+      const label = [
+        element.getAttribute("aria-label") || "",
+        element.getAttribute("title") || "",
+        getTextFromNode(element)
+      ].join(" ").replace(/\s+/g, " ").trim();
+      return /^(?:show more|显示更多|查看更多|加载更多|載入更多)$/i.test(label);
+    }) || null;
+  }
+
+  async function revealMoreProjectConversations() {
+    const showMoreButton = getProjectShowMoreButton();
+    let moved = false;
+    if (showMoreButton) {
+      showMoreButton.click();
+      moved = true;
+      await sleep(300);
+    }
+
+    if (scrollProjectConversationContainersForward()) {
+      moved = true;
+      await sleep(500);
+    }
+
+    return moved;
+  }
+
   async function findProjectProgressTitleConversations() {
-    await reportDeleteProgress("开始读取项目页当前显示的对话列表。");
+    await reportDeleteProgress("开始读取项目页对话列表。");
     await until(() => readProjectConversationTargetsFromDom().scanned > 0, 8000, 200);
-    const result = readProjectConversationTargetsFromDom();
-    await reportDeleteProgress(`项目页列表读取完成：扫描 ${result.scanned} 个，匹配 ${result.targets.length} 个进度标题对话，等待确认。`);
-    return result;
+    scrollProjectConversationContainersToTop();
+    await sleep(300);
+
+    const seenItems = new Map();
+    let stagnantRounds = 0;
+
+    for (let round = 0; round < 40; round += 1) {
+      const result = readProjectConversationTargetsFromDom();
+      let newCount = 0;
+      for (const item of result.items || []) {
+        if (seenItems.has(item.id)) continue;
+        seenItems.set(item.id, item);
+        newCount += 1;
+      }
+
+      const targets = Array.from(seenItems.values()).filter((item) => isProgressConversationTitle(item.title));
+      if (round === 0 || newCount > 0 || round % 4 === 0) {
+        await reportDeleteProgress(`正在读取项目页对话列表：已扫描 ${seenItems.size} 个，匹配 ${targets.length} 个进度标题对话。`);
+      }
+
+      const moved = await revealMoreProjectConversations();
+      if (newCount === 0 && !moved) {
+        stagnantRounds += 1;
+      } else {
+        stagnantRounds = 0;
+      }
+      if (stagnantRounds >= 2) break;
+    }
+
+    const targets = Array.from(seenItems.values()).filter((item) => isProgressConversationTitle(item.title));
+    await reportDeleteProgress(`项目页列表读取完成：扫描 ${seenItems.size} 个，匹配 ${targets.length} 个进度标题对话，等待确认。`);
+    return {
+      source: "project",
+      scanned: seenItems.size,
+      matched: targets.length,
+      targets
+    };
   }
 
   async function fetchConversationListPage(offset, limit) {
@@ -2847,24 +3134,52 @@
       'form textarea',
       'main textarea',
       '[data-testid*="composer"] textarea',
+      '[data-testid*="composer"] [contenteditable]',
+      '[data-testid*="composer"] .ProseMirror',
       'form [contenteditable="true"][role="textbox"]',
       'form [contenteditable="true"]',
+      'form [contenteditable="plaintext-only"]',
+      'form .ProseMirror',
+      'form p[data-placeholder]',
       'main [contenteditable="true"][role="textbox"]',
-      'main [contenteditable="true"]'
+      'main [contenteditable="true"]',
+      'main [contenteditable="plaintext-only"]',
+      'main .ProseMirror',
+      'main p[data-placeholder]'
     ];
+
+    const toComposerMatch = (element) => {
+      if (!element || !isElementVisible(element)) return null;
+      if (element.getAttribute("role") === "presentation") return null;
+      if (!element.closest("form, main")) return null;
+
+      const form = element.closest("form");
+      const editable = (
+        element.matches('textarea, input, [contenteditable], .ProseMirror, [role="textbox"]')
+          ? element
+          : null
+      ) || element.closest('[contenteditable], .ProseMirror, [role="textbox"]') || (
+        form
+          ? Array.from(form.querySelectorAll('[contenteditable], .ProseMirror, [role="textbox"]'))
+            .find((candidate) => isElementVisible(candidate) && candidate.getAttribute("role") !== "presentation")
+          : null
+      ) || (
+        element.matches('p[data-placeholder]') && element.parentElement && isElementVisible(element.parentElement)
+          ? element.parentElement
+          : null
+      ) || element;
+
+      return {
+        type: editable.tagName === "TEXTAREA" || editable.tagName === "INPUT" ? "textarea" : "contenteditable",
+        element: editable
+      };
+    };
 
     for (const selector of explicitSelectors) {
       const elements = Array.from(searchRoot.querySelectorAll(selector));
-      const match = elements.find((element) => {
-        if (!isElementVisible(element)) return false;
-        if (element.getAttribute("role") === "presentation") return false;
-        return Boolean(element.closest("form, main"));
-      });
+      const match = elements.map(toComposerMatch).find(Boolean);
       if (match) {
-        return {
-          type: match.tagName === "TEXTAREA" ? "textarea" : "contenteditable",
-          element: match
-        };
+        return match;
       }
     }
 
@@ -2882,6 +3197,13 @@
         .find((element) => isElementVisible(element) && element.getAttribute("role") !== "presentation");
       if (editable) {
         return { type: "contenteditable", element: editable };
+      }
+
+      const proseMirror = Array.from(form.querySelectorAll('[contenteditable], .ProseMirror, p[data-placeholder]'))
+        .map(toComposerMatch)
+        .find(Boolean);
+      if (proseMirror) {
+        return proseMirror;
       }
     }
 
@@ -3264,6 +3586,7 @@
       completedOffset,
       newChat,
       newChatUrl,
+      batchModel,
       delaySeconds,
       directoryName,
       resumeIndex,
@@ -3286,6 +3609,7 @@
     const shouldNewChat = newChat !== false;
     const customNewChatUrl = typeof newChatUrl === "string" ? newChatUrl.trim() : "";
     const usesCustomNewChatUrl = shouldNewChat && Boolean(customNewChatUrl);
+    const normalizedBatchModel = normalizeBatchModel(batchModel);
     const normalizedDelaySeconds = Number.isFinite(Number(delaySeconds))
       ? Math.min(60, Math.max(0, Number(delaySeconds)))
       : 3;
@@ -3340,6 +3664,7 @@
     const renamedSegments = new Map();
     const renameAttemptsBySegment = new Map();
     let retryWatchdogTimer = null;
+    let batchModelSelected = false;
 
     const buildResumePayload = (index, retryAttempt, needsGlobalPrompt) => ({
       batchId,
@@ -3351,6 +3676,7 @@
       completedOffset: skippedCount,
       newChat,
       newChatUrl: customNewChatUrl,
+      batchModel: normalizedBatchModel,
       delaySeconds,
       directoryName,
       resumeIndex: index,
@@ -3374,6 +3700,52 @@
     if (batchItems.length) {
       updateStuckRefreshPayload(startIndex, initialRetryAttempt, shouldSendResumeGlobalPrompt);
     }
+
+    const selectRequestedBatchModel = async (currentIndex = skippedCount) => {
+      if (batchModelSelected || normalizedBatchModel === BATCH_MODEL_DEFAULT) return;
+      const modelLabel = getBatchModelLabel(normalizedBatchModel);
+      await sendRuntimeMessage("BATCH_PROGRESS", {
+        batchId,
+        running: true,
+        total: originalTotal,
+        currentIndex,
+        currentText: "",
+        sentText: "",
+        retryAttempt: isResume ? initialRetryAttempt : 0,
+        maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+        message: `正在切换模型：${modelLabel}……`
+      });
+      try {
+        await selectChatGptBatchModel(normalizedBatchModel, batchId);
+        batchModelSelected = true;
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex,
+          currentText: "",
+          sentText: "",
+          retryAttempt: isResume ? initialRetryAttempt : 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: `模型已准备：${modelLabel}。`
+        });
+      } catch (error) {
+        if (isBatchStoppedError(error)) throw error;
+        batchModelSelected = true;
+        const errorMessage = error && error.message ? error.message : String(error || "");
+        await sendRuntimeMessage("BATCH_PROGRESS", {
+          batchId,
+          running: true,
+          total: originalTotal,
+          currentIndex,
+          currentText: "",
+          sentText: "",
+          retryAttempt: isResume ? initialRetryAttempt : 0,
+          maxRefreshRetries: BATCH_MAX_REFRESH_RETRIES,
+          message: `模型切换未完成：${errorMessage} 将沿用当前模型继续。`
+        });
+      }
+    };
 
     const clearRetryStateForCurrentItem = (index) => {
       if (index === startIndex && initialRetryAttempt > 0) {
@@ -3597,6 +3969,7 @@
       }
 
       await prepareEditor(true, batchId);
+      await selectRequestedBatchModel(Math.max(skippedCount, displayIndex - 1));
       await sendRuntimeMessage("BATCH_PROGRESS", {
         batchId,
         running: true,
@@ -3709,28 +4082,110 @@
       location.reload();
     };
 
-    const getLatestPromptBeforeAssistantReply = () => {
-      const messages = getConversationMessages();
-      for (let index = messages.length - 1; index >= 0; index -= 1) {
-        if (messages[index].role !== "assistant") continue;
-        for (let userIndex = index - 1; userIndex >= 0; userIndex -= 1) {
-          if (messages[userIndex].role === "user") {
-            return messages[userIndex].text || "";
-          }
-        }
-      }
+    const normalizePromptMatchText = (text) => normalizeMessageKey(text).toLowerCase();
 
-      const users = getUserMessages();
-      const latestUser = users[users.length - 1] || null;
-      return latestUser ? getUserText(latestUser) : "";
+    const promptMatchesCurrentItem = (promptText, text) => {
+      const latestPrompt = normalizePromptMatchText(promptText);
+      const fullText = normalizePromptMatchText(composeFullText(text, prompt));
+      const itemText = normalizePromptMatchText(text);
+      if (!latestPrompt || !itemText) return false;
+      return Boolean((fullText && latestPrompt.includes(fullText)) || latestPrompt.includes(itemText));
     };
 
-    const currentItemWasAlreadySent = (text) => {
-      const latestPrompt = normalizeMessageKey(getLatestPromptBeforeAssistantReply());
-      const fullText = normalizeMessageKey(composeFullText(text, prompt));
-      const itemText = normalizeMessageKey(text);
-      if (!latestPrompt || !itemText) return false;
-      return latestPrompt.includes(fullText) || latestPrompt.includes(itemText);
+    const findExistingAnswerInMessages = (text, messages) => {
+      const items = Array.isArray(messages) ? messages : [];
+      for (let index = items.length - 1; index >= 0; index -= 1) {
+        const message = items[index];
+        if (message?.role !== "user" || !promptMatchesCurrentItem(message.text, text)) {
+          continue;
+        }
+
+        const answerParts = [];
+        for (let replyIndex = index + 1; replyIndex < items.length; replyIndex += 1) {
+          const reply = items[replyIndex];
+          if (reply?.role === "user") break;
+          if (reply?.role === "assistant" && reply.text) {
+            answerParts.push(reply.text);
+          }
+        }
+
+        return {
+          sent: true,
+          answer: answerParts.join("\n\n").trim()
+        };
+      }
+
+      return { sent: false, answer: "" };
+    };
+
+    const findExistingAnswerForSentText = async (text) => {
+      const domMatch = findExistingAnswerInMessages(text, getConversationMessages());
+      if (domMatch.sent && hasUsableAssistantReply(domMatch.answer, false, 1)) {
+        return { ...domMatch, source: "页面" };
+      }
+
+      const apiMessages = await getBatchConversationMessagesFromApi().catch(() => []);
+      const apiMatch = findExistingAnswerInMessages(text, apiMessages);
+      if (apiMatch.sent) {
+        return { ...apiMatch, source: "完整对话接口" };
+      }
+
+      return domMatch.sent
+        ? { ...domMatch, source: "页面" }
+        : { sent: false, answer: "", source: "" };
+    };
+
+    const waitForExistingAnswerForSentText = async (text) => {
+      const startedAt = Date.now();
+      let lastAnswer = "";
+      let stableSince = Date.now();
+      let lastApiCheckAt = 0;
+      let apiMatch = null;
+
+      while (true) {
+        throwIfBatchStopped(batchId);
+        throwIfChatGptTransientPageError();
+
+        const domMatch = findExistingAnswerInMessages(text, getConversationMessages());
+        const now = Date.now();
+        if ((!domMatch.answer || now - lastApiCheckAt >= 4000)) {
+          lastApiCheckAt = now;
+          const apiMessages = await getBatchConversationMessagesFromApi().catch(() => []);
+          apiMatch = findExistingAnswerInMessages(text, apiMessages);
+        }
+
+        const match = apiMatch?.answer
+          ? { ...apiMatch, source: "完整对话接口" }
+          : domMatch.sent
+            ? { ...domMatch, source: "页面" }
+            : apiMatch?.sent
+              ? { ...apiMatch, source: "完整对话接口" }
+              : { sent: false, answer: "", source: "" };
+
+        if (!match.sent) {
+          return match;
+        }
+
+        const answer = String(match.answer || "").trim();
+        if (answer !== lastAnswer) {
+          lastAnswer = answer;
+          stableSince = Date.now();
+        }
+
+        const snapshot = getAssistantSnapshot();
+        const stableThreshold = snapshot.hasCopyResponse ? BATCH_REPLY_COPY_READY_STABLE_MS : BATCH_REPLY_STABLE_MS;
+        const stableEnough = Date.now() - stableSince >= stableThreshold;
+        const readyToRead = snapshot.hasCopyResponse || !isGenerating();
+        if (hasUsableAssistantReply(answer, false, 1) && readyToRead && stableEnough) {
+          return { ...match, answer };
+        }
+
+        if (Date.now() - startedAt >= BATCH_REPLY_TIMEOUT_MS && !isGenerating() && stableEnough) {
+          return { ...match, answer: "" };
+        }
+
+        await sleepWithStopCheck(120, batchId);
+      }
     };
 
     const readCurrentSettledAssistantReply = async () => {
@@ -3752,9 +4207,11 @@
           stableSince = Date.now();
         }
 
-        const stableEnough = Date.now() - stableSince >= BATCH_REPLY_STABLE_MS;
+        const stableThreshold = snapshot.hasCopyResponse ? BATCH_REPLY_COPY_READY_STABLE_MS : BATCH_REPLY_STABLE_MS;
+        const stableEnough = Date.now() - stableSince >= stableThreshold;
         const timedOut = Date.now() - startedAt >= BATCH_REPLY_TIMEOUT_MS;
-        if (hasUsableAssistantReply(replyText, false, 1) && !isGenerating() && stableEnough) {
+        const readyToRead = snapshot.hasCopyResponse || !isGenerating();
+        if (hasUsableAssistantReply(replyText, false, 1) && readyToRead && stableEnough) {
           const confirmedReply = await confirmAssistantReplySettled(batchId, false, 1);
           if (confirmedReply) {
             return confirmedReply;
@@ -3766,7 +4223,7 @@
           return "";
         }
 
-        await sleepWithStopCheck(250, batchId);
+        await sleepWithStopCheck(120, batchId);
       }
     };
 
@@ -3777,11 +4234,16 @@
 
       const item = batchItems[startIndex];
       const sendText = item && (item.sendText || item.text);
-      if (!item || !currentItemWasAlreadySent(sendText)) {
+      if (!item) {
         return "";
       }
 
       const displayIndex = getDisplayIndexForBatchItem(startIndex);
+      const existingMatch = await findExistingAnswerForSentText(sendText);
+      if (!existingMatch.sent) {
+        return "";
+      }
+
       await sendRuntimeMessage("BATCH_PROGRESS", {
         batchId,
         running: true,
@@ -3797,7 +4259,8 @@
 
       let answer = "";
       try {
-        answer = await readCurrentSettledAssistantReply();
+        const settledMatch = await waitForExistingAnswerForSentText(sendText);
+        answer = settledMatch.answer || "";
       } catch (error) {
         if (isBatchStoppedError(error)) {
           throw error;
@@ -3813,7 +4276,15 @@
         return "retry";
       }
       if (!answer) {
-        return "";
+        await scheduleItemRetry({
+          index: startIndex,
+          retryAttempt: initialRetryAttempt,
+          displayIndex,
+          text: item.text,
+          sentText: sendText,
+          reason: "已找到上一轮提问，但没有读取到对应回答。"
+        });
+        return "retry";
       }
 
       await sendRuntimeMessage("BATCH_PROGRESS", {
@@ -3916,6 +4387,7 @@
             message: "正在新建对话……"
           });
           await prepareEditor(true, batchId, { skipNewChatClick: usesCustomNewChatUrl });
+          await selectRequestedBatchModel(skippedCount);
           await sendRuntimeMessage("BATCH_PROGRESS", {
             batchId,
             running: true,
@@ -3943,6 +4415,7 @@
           if (!editor) {
             throw new Error("没有找到输入框。");
           }
+          await selectRequestedBatchModel(skippedCount);
         }
       }
 

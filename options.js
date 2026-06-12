@@ -137,7 +137,7 @@ const SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接�
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
 相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+const SOCIOLOGY_TITLE_RULES_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
 
 # 内容要求：
 
@@ -156,11 +156,79 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
 相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const SOCIOLOGY_SUBJECT_TITLE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const SOCIOLOGY_STANDALONE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」。如果文章主题是人物、书、论文，请将标题写成以下形式：主题名+冒号+简短描述
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。每篇文章都将会被单独发表，不要引用前面有过的回答、用户的prompt等等。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」。如果文章主题是人物、书、论文，请将标题写成以下形式：主题名+冒号+简短描述
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关专业术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接。
+中文的书名要加书名号《》
+不要有代码框、编辑框`;
 const LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
 
 Content requirements:
 
-1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
 
 2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
 
@@ -174,12 +242,12 @@ Structure requirements:
 
 Format requirements:
 
-5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+5 When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 Content requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Use Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -193,12 +261,12 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 
 Format requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -211,13 +279,12 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 
 # Format Requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name.
-The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -231,13 +298,12 @@ Use sentence openings with "if" sparingly. Do not use "more like". Do not open a
 
 # Format Requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name.
-The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
 
-1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
 
 2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
 
@@ -251,25 +317,33 @@ Structure requirements:
 
 Format requirements:
 
-5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+5 When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_DEFAULT_PROMPT = "请介绍以下文本。前两项是学科地图中的位置，用来理解语境；最后一项是本次需要介绍的文本。";
-const BATCH_EN_PROMPT = "Please introduce:";
+const BATCH_EN_PROMPT = "Please introduce the following text. The first two items are positions in the discipline map, used to understand the context; the last item is the text to introduce.";
 const BATCH_DEFAULT_INPUTS = `├─ 1. 古典诗学时期（Classical Poetics）
 │  ├─ 1_1 Debates, Paradigm Shifts, and Contexts（论战、范式更新与时代背景）
 │  │  ├─ ◆ 1_1_1 Plato on Poetry in Republic Book X（柏拉图《理想国》第十卷中的诗歌问题）
 │  │  ├─ ◆ 1_1_2 Plato versus Aristotle on Mimesis（柏拉图与亚里士多德的模仿论之争）
 │  │  ├─ ◆ 1_1_3 Homeric Poetry and Civic Education（荷马史诗与城邦教育）`;
-const DISCIPLINE_MAP_PROMPT = `我想用obsidian梳理「社会学当前热门领域/议题」的思想地图，请帮我设计一个文件夹的架构。
+const DISCIPLINE_MAP_PROMPT = `# 核心任务
 
-用 综合索引（Integration Indexes）作为最后一个章节
-请搜索各培养计划和主流信息源、顶级刊物后回答
+我想用obsidian梳理「xxx当前热门领域/议题」的思想地图，请设计一个文件夹的架构。 不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。 
 
-包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。我的想法是：如果是初步了解，阅读「介绍」是最高效的。在读者希望深入了解时，可以再看其他部分。
+包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。搜索各培养计划、主流信息源、学科顶级刊物后回答。  
+我的设计思路是：如果是初步了解，阅读「介绍」是最高效的。在读者希望深入了解时，可以再看其他部分。 
+
+# 内容与结构要求
 
 各级标题使用中文（英文）格式
-作品名、文章名的中文需要加书名号
 
-不用解释原因，不用专门给我文字的回答。我只要一个详细的文件夹的架构。包括所有我应该了解的内容。用code框输出答案。
+作品/文章名的中文需要加书名号
+
+文本是「人名」、「书名」（或论文）、「概念名」时，取一个概括全文的标题，格式如下：
+《自我的根源》 1989 Sources of the Self：泰勒：现代身份与道德来源
+查尔斯 泰勒 1931– Charles Taylor：承认政治与现代自我理论
+
+标题偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题要求书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」
+# 架构规范
 
 框架分成三个等级：
 
@@ -280,10 +354,41 @@ const DISCIPLINE_MAP_PROMPT = `我想用obsidian梳理「社会学当前热门�
 三级标题： 1_2_1
 
 具体的正文内容： 最后一级标题+符号◆， 比如如果这个正文在三级标题下面，就写成 1_2_1 ◆ + 正文`;
+const DISCIPLINE_MAP_EN_PROMPT = `# Core Task
+
+I want to use Obsidian to organize a discipline map for "xxx current popular field/topic". Design a folder structure. Do not explain the reasons or give a separate prose answer. I only need a detailed folder structure that includes everything I should know. Output the answer in a code block.
+
+Include three parts: an introduction to the field/topic, important scholars, and important texts (the most influential introductions, textbooks, and papers). Search degree programs, mainstream information sources, and top journals in the discipline before answering.
+The design idea is this: when someone wants an initial overview, reading the "Introduction" section is the most efficient. When readers want to go deeper, they can then read the other sections.
+
+# Content and Structure Requirements
+
+Use English (Chinese) format for all heading levels.
+
+Chinese titles of works or articles should use book-title brackets 《》.
+
+When the text is a person name, book title (or paper), or concept name, create a title that summarizes the full entry. Use this format:
+Sources of the Self 1989 《自我的根源》: Taylor: Modern Identity and Moral Sources
+Charles Taylor 1931- 查尔斯·泰勒: Recognition Politics and Modern Self Theory
+
+Titles should lean toward academic status, theoretical contribution, research object, methodological contribution, or a concise summary of specific content. Titles should be written and concise. Avoid full conversational sentences, questions, or explanations. Especially avoid "how", "why", "how to", "turn into", "make...", "a field", "a kind of", and "not...but...".
+
+# Structure Rules
+
+The framework has three levels:
+
+Major sections: 1. 2. 3.
+
+Second-level sections: 1_1 1_2
+
+Third-level headings: 1_2_1
+
+Body items: final-level heading + symbol ◆. For example, if the body item is under a third-level heading, write 1_2_1 ◆ + body text`;
 const BATCH_PROMPT_LANGUAGE_CN = "cn";
 const BATCH_PROMPT_LANGUAGE_EN = "en";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
+const LEGACY_BATCH_EN_PROMPT = "Please introduce:";
 const RECENT_BATCH_DEFAULT_PROMPT = "请介绍：";
 const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
 const BATCH_DEFAULT_DELAY_SECONDS = 3;
@@ -291,6 +396,10 @@ const BATCH_CONVERSATION_MODE_NEW = "new";
 const BATCH_CONVERSATION_MODE_CURRENT = "current";
 const CHAT_EXPORT_MODE_SEPARATE = "separate";
 const CHAT_EXPORT_MODE_SINGLE = "single";
+const BATCH_MODEL_DEFAULT = "default";
+const BATCH_MODEL_INSTANT = "instant";
+const BATCH_MODEL_THINKING = "thinking";
+const BATCH_MODEL_PRO = "pro";
 const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
 const HOTKEY_DEFAULTS = {
   prefix1: HOTKEY_DEFAULT_PREFIX,
@@ -317,6 +426,7 @@ const BATCH_CONFIG_DEFAULTS = {
   batchInputs: BATCH_DEFAULT_INPUTS,
   batchConversationMode: BATCH_CONVERSATION_MODE_NEW,
   batchNewChatUrl: "",
+  batchModel: BATCH_MODEL_DEFAULT,
   batchIncludeNearestHeading: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   batchFocusWhenStuck: false,
@@ -347,7 +457,9 @@ const BATCH_STATE_DEFAULT = {
   focusWhenStuck: false,
   lastActivityAt: "",
   lastHeartbeatAt: "",
-  lastFocusAt: ""
+  lastFocusAt: "",
+  refreshRecoveryFailureCount: 0,
+  lastRefreshRecoveryFailureAt: ""
 };
 const CHAT_EXPORT_STATE_DEFAULT = {
   running: false,
@@ -494,6 +606,9 @@ function createBatchState(state) {
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
     : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
+  next.refreshRecoveryFailureCount = Number.isFinite(Number(next.refreshRecoveryFailureCount))
+    ? Math.max(0, Number(next.refreshRecoveryFailureCount))
+    : 0;
   return next;
 }
 
@@ -549,10 +664,18 @@ function updateBatchActionButtons() {
   const stopButton = document.getElementById("batchStop");
   const clearButton = document.getElementById("batchClearInputs");
   const deleteProgressButton = document.getElementById("deleteProgressChats");
+  const batchModelSelect = document.getElementById("batchModelSelect");
+  const batchModelButton = document.getElementById("batchModelSelectButton");
   if (!startButton || !stopButton || !clearButton) return;
   startButton.disabled = startPending || currentBatchState.running;
   stopButton.disabled = stopPending || !currentBatchState.running;
   clearButton.disabled = startPending || stopPending || currentBatchState.running;
+  if (batchModelSelect) {
+    batchModelSelect.disabled = startPending || currentBatchState.running;
+  }
+  if (batchModelButton) {
+    batchModelButton.disabled = startPending || currentBatchState.running;
+  }
   if (deleteProgressButton) {
     deleteProgressButton.disabled = deleteProgressPending || currentBatchState.running;
   }
@@ -610,11 +733,31 @@ const BATCH_UI_TEXT = {
     selectDirectoryTitle: "导出的 Markdown 文件会保存到这里。",
     required: "必选",
     requiredTitle: "请选择目录",
+    batchModelTitle: "选择批量发送前尝试切换的 ChatGPT 模型。",
+    batchModelDefault: "当前模型",
+    batchModelInstant: "Instant",
+    batchModelThinking: "Thinking",
+    batchModelPro: "Pro",
     start: "开始",
     stop: "停止",
     deleteProgressChats: "清理进度对话",
     deleteProgressChatsDesc: "删除标题里带有进度的 ChatGPT 对话。",
     deleteProgressChatsTitle: "删除所有标题里带有进度的 ChatGPT 对话，例如「CPTSD 4/70」或「当前进度 256/321」。",
+    deleteProgressReadingProject: "正在指定对话创建位置读取进度标题对话……",
+    deleteProgressReadingRecent: "正在读取最近 3 页进度标题对话……",
+    deleteProgressReadFailed: "读取进度标题对话失败。",
+    deleteProgressNoProject: "指定对话创建位置没有找到进度标题对话，扫描 {scanned} 个。",
+    deleteProgressNoRecent: "最近 3 页没有找到进度标题对话，扫描 {scanned} 个。",
+    deleteProgressCancelledProject: "已取消删除，指定对话创建位置匹配 {count} 个进度标题对话。",
+    deleteProgressCancelledRecent: "已取消删除，最近 3 页匹配 {count} 个进度标题对话。",
+    deleteProgressConfirmed: "已确认删除 {count} 个进度标题对话，正在执行……",
+    deleteProgressDeleteFailed: "删除进度标题对话失败。",
+    deleteProgressFailedCount: "，失败 {failed} 个",
+    deleteProgressDeleted: "已删除 {deleted} 个进度标题对话，确认 {matched} 个{failedText}。",
+    deleteProgressConfirmTitle: "清理 {count} 个进度标题对话",
+    deleteProgressConfirmDesc: "以下对话会从 ChatGPT 列表中隐藏。",
+    deleteProgressConfirmCancel: "取消",
+    deleteProgressConfirmDelete: "确定删除",
     focusWhenStuck: "保持网页焦点",
     focusWhenStuckDesc: "实验性功能。任务卡住时抢占屏幕焦点回到网页。",
     focusWhenStuckLabel: "",
@@ -624,6 +767,18 @@ const BATCH_UI_TEXT = {
     failureTitle: "保存失败",
     noBatchTask: "当前没有批量任务。",
     idleStatus: "等待任务开始。",
+    batchRunning: "任务执行中，共 {total} 条",
+    batchFinished: "任务已结束，共 {total} 条",
+    batchResultCompleted: "成功 {completed} 条",
+    batchResultSkipped: "跳过 {skipped} 条",
+    batchResultFailed: "失败 {failed} 条",
+    batchStartedAt: "开始时间：{time}",
+    batchFinishedAt: "结束时间：{time}",
+    batchProgress: "当前进度：{current}/{total}",
+    batchRefreshRetry: "刷新重试：{retry}/{max}",
+    batchRecoveryWarning: "刷新恢复连续失败：{count} 次。请查看 ChatGPT 标签页。",
+    batchCurrentText: "当前文本：{text}",
+    batchStopped: "任务已停止。",
     hotkeyGuideTitle: "快捷消息使用说明",
     openShortcutSettings: "快捷键设置",
     saveHotkeySettings: "",
@@ -679,7 +834,7 @@ const BATCH_UI_TEXT = {
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
     includeNearestHeadingTitle: "发送最近两级标题",
-    includeNearestHeadingDesc: "发送正文时附加最近两级上级标题。",
+    includeNearestHeadingDesc: "发送正文时附加最近两级上级标题，并用「—」连接。",
     includeNearestHeadingLabel: "",
     delayTitle: "等待时间",
     delayDesc: "两条任务之间的间隔时间。",
@@ -704,10 +859,10 @@ const BATCH_UI_TEXT = {
     pendingText: "Pending Text",
     pendingTextPlaceholder: "One item per line",
     pendingTextTip: "Paste the batch text structure here. Lines with ◆ become body items sent to ChatGPT; heading lines without ◆ are used as folder paths. When the task starts, the extension parses the hierarchy, sends ◆ items one by one, and saves each answer as a Markdown file. Heading lines without ◆ are not sent as tasks by default. When “Send Nearest Two Headings” is enabled, the nearest two headings are sent together with the item text; this can be turned off in Settings.",
-    copyDisciplineMapPrompt: "Generate Map Prompt",
+    copyDisciplineMapPrompt: "Generate Discipline Map Prompt",
     copyDisciplineMapPromptCopyAction: "Click to copy.",
-    copyDisciplineMapPromptCopyNote: "Paste it into an AI chat yourself. GPT Pro is recommended.",
-    copyDisciplineMapPromptTitle: "Click to copy. Paste it into an AI chat yourself. GPT Pro is recommended.",
+    copyDisciplineMapPromptCopyNote: "Paste it into an AI chat. GPT Pro is recommended.",
+    copyDisciplineMapPromptTitle: "Click to copy. Paste it into an AI chat. GPT Pro is recommended.",
     copyDisciplineMapPromptCopied: "Copied",
     copyDisciplineMapPromptCopyFailed: "Copy failed. Please copy it manually.",
     clearPendingText: "Clear pending text",
@@ -716,11 +871,31 @@ const BATCH_UI_TEXT = {
     selectDirectoryTitle: "Markdown files will be saved here.",
     required: "Required",
     requiredTitle: "Select a folder",
+    batchModelTitle: "Choose the ChatGPT model to switch to before batch sending.",
+    batchModelDefault: "Current Model",
+    batchModelInstant: "Instant",
+    batchModelThinking: "Thinking",
+    batchModelPro: "Pro",
     start: "Start",
     stop: "Stop",
     deleteProgressChats: "Clear Progress Chats",
     deleteProgressChatsDesc: "Delete ChatGPT conversations whose titles contain progress.",
-    deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles contain progress, for example “CPTSD 4/70” or “当前进度 256/321”.",
+    deleteProgressChatsTitle: "Delete ChatGPT conversations whose titles contain progress, for example “CPTSD 4/70” or “Current progress 256/321”.",
+    deleteProgressReadingProject: "Reading progress-title conversations in the configured chat location...",
+    deleteProgressReadingRecent: "Reading progress-title conversations from the most recent 3 pages...",
+    deleteProgressReadFailed: "Failed to read progress-title conversations.",
+    deleteProgressNoProject: "No progress-title conversations were found in the configured chat location. Scanned {scanned}.",
+    deleteProgressNoRecent: "No progress-title conversations were found in the most recent 3 pages. Scanned {scanned}.",
+    deleteProgressCancelledProject: "Deletion canceled. {count} progress-title conversations matched in the configured chat location.",
+    deleteProgressCancelledRecent: "Deletion canceled. {count} progress-title conversations matched in the most recent 3 pages.",
+    deleteProgressConfirmed: "Deletion confirmed for {count} progress-title conversations. Running...",
+    deleteProgressDeleteFailed: "Failed to delete progress-title conversations.",
+    deleteProgressFailedCount: ", {failed} failed",
+    deleteProgressDeleted: "Deleted {deleted} progress-title conversations. Confirmed {matched}{failedText}.",
+    deleteProgressConfirmTitle: "Clear {count} Progress Chats",
+    deleteProgressConfirmDesc: "These conversations will be hidden from the ChatGPT list.",
+    deleteProgressConfirmCancel: "Cancel",
+    deleteProgressConfirmDelete: "Delete",
     focusWhenStuck: "Keep Web Page Focus",
     focusWhenStuckDesc: "Experimental feature. Brings the web page back to the screen when a task stalls.",
     focusWhenStuckLabel: "",
@@ -730,6 +905,18 @@ const BATCH_UI_TEXT = {
     failureTitle: "Save Failed",
     noBatchTask: "No batch task is running.",
     idleStatus: "Waiting for task start.",
+    batchRunning: "Batch task running, {total} items",
+    batchFinished: "Batch task finished, {total} items",
+    batchResultCompleted: "{completed} succeeded",
+    batchResultSkipped: "{skipped} skipped",
+    batchResultFailed: "{failed} failed",
+    batchStartedAt: "Started: {time}",
+    batchFinishedAt: "Finished: {time}",
+    batchProgress: "Current progress: {current}/{total}",
+    batchRefreshRetry: "Refresh retry: {retry}/{max}",
+    batchRecoveryWarning: "Refresh recovery has failed {count} times in a row. Check the ChatGPT tab.",
+    batchCurrentText: "Current text: {text}",
+    batchStopped: "Task stopped.",
     hotkeyGuideTitle: "Quick Message Guide",
     openShortcutSettings: "Shortcut Settings",
     saveHotkeySettings: "",
@@ -785,7 +972,7 @@ const BATCH_UI_TEXT = {
     newChatUrlPlaceholder: "https://chatgpt.com/g/.../project",
     newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
     includeNearestHeadingTitle: "Send Nearest Two Headings",
-    includeNearestHeadingDesc: "Adds the nearest two parent headings before each item.",
+    includeNearestHeadingDesc: "Adds the nearest two parent headings before each item, joined with “—”.",
     includeNearestHeadingLabel: "",
     delayTitle: "Delay",
     delayDesc: "The interval between two batch items.",
@@ -899,6 +1086,7 @@ function applyBatchUiLanguage(language) {
   setElementText("#disciplineMapPromptTooltipAction", text.copyDisciplineMapPromptCopyAction);
   setElementText("#disciplineMapPromptTooltipNote", text.copyDisciplineMapPromptCopyNote);
   setElementAriaLabel("#copyDisciplineMapPrompt", text.copyDisciplineMapPromptTitle);
+  renderDisciplineMapPromptTooltip(language);
   const copyDisciplineMapPrompt = document.getElementById("copyDisciplineMapPrompt");
   if (copyDisciplineMapPrompt) copyDisciplineMapPrompt.removeAttribute("title");
   const pendingTextHelp = document.getElementById("batchInputsHelp");
@@ -916,6 +1104,16 @@ function applyBatchUiLanguage(language) {
   setElementText("#pickExportDirectory", text.selectDirectory);
   setElementTitle("#pickBatchDirectory", text.selectDirectoryTitle);
   setElementTitle("#pickExportDirectory", text.selectDirectoryTitle);
+  setElementTitle("#batchModelSelectButton", text.batchModelTitle);
+  setElementText("#batchModelDefault", text.batchModelDefault);
+  setElementText("#batchModelInstant", text.batchModelInstant);
+  setElementText("#batchModelThinking", text.batchModelThinking);
+  setElementText("#batchModelPro", text.batchModelPro);
+  setElementText("#batchModelMenuDefault", text.batchModelDefault);
+  setElementText("#batchModelMenuInstant", text.batchModelInstant);
+  setElementText("#batchModelMenuThinking", text.batchModelThinking);
+  setElementText("#batchModelMenuPro", text.batchModelPro);
+  updateBatchModelSelectText();
   setElementText("#batchStart", text.start);
   setElementText("#batchStop", text.stop);
   setElementText("#deleteProgressChats", text.deleteProgressChats);
@@ -1000,18 +1198,42 @@ function applyBatchUiLanguage(language) {
   setElementText("#delayDesc", text.delayDesc);
   setElementTitle("#batchDelaySeconds", text.delayInputTitle);
   setElementText("#delaySecondsUnit", text.delayUnit);
+  renderBatchState(currentBatchState);
   renderChatExportState(currentChatExportState);
   renderBatchDirectoryText();
 }
 
+function normalizeEnglishGlobalPromptFormatRule(value) {
+  const oldNumberedRule = /5 The first time a person appears, use English \(Chinese\)\. After that, use the English name\. The first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldInlineRule = /The first time a person appears, use English \(Chinese\)\. After that, use the English name\. The first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldSplitRule = /The first time a person appears, use English \(Chinese\)\. After that, use the English name\.\nThe first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldNumberedSourceRule = /1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Avoid Chinese sources\. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point\./g;
+  const oldUseSourceRule = /Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Use Chinese-language sources as little as possible\. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point\./g;
+  const oldSearchSourceRule = /Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Search Chinese-language sources as little as possible\. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point\./g;
+  const newRule = "When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.";
+  const newNumberedSourceRule = "1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.";
+  const newSourceRule = "Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.";
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(oldNumberedSourceRule, newNumberedSourceRule)
+    .replace(oldUseSourceRule, newSourceRule)
+    .replace(oldSearchSourceRule, newSourceRule)
+    .replace(oldNumberedRule, `5 ${newRule}`)
+    .replace(oldSplitRule, newRule)
+    .replace(oldInlineRule, newRule);
+}
+
 function normalizeKnownPromptText(value) {
-  return String(value || "").replace(/\r\n?/g, "\n").trim();
+  return normalizeEnglishGlobalPromptFormatRule(value).trim();
 }
 
 function isKnownBatchDefaultGlobalPrompt(value) {
   const normalizedValue = normalizeKnownPromptText(value);
   return [
     BATCH_DEFAULT_GLOBAL_PROMPT,
+    SOCIOLOGY_STANDALONE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
+    SOCIOLOGY_SUBJECT_TITLE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
+    SOCIOLOGY_TITLE_RULES_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
     BATCH_EN_GLOBAL_PROMPT,
     SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
     SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT,
@@ -1034,6 +1256,7 @@ function isKnownBatchDefaultPrompt(value) {
   return [
     BATCH_DEFAULT_PROMPT,
     BATCH_EN_PROMPT,
+    LEGACY_BATCH_EN_PROMPT,
     RECENT_BATCH_DEFAULT_PROMPT,
     LEGACY_BATCH_DEFAULT_PROMPT
   ].includes(value);
@@ -1094,6 +1317,46 @@ function setBatchConversationMode(mode) {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
   });
+}
+
+function normalizeBatchModel(value) {
+  const text = String(value || "").toLowerCase();
+  if (text === BATCH_MODEL_INSTANT) return BATCH_MODEL_INSTANT;
+  if (text === BATCH_MODEL_THINKING) return BATCH_MODEL_THINKING;
+  if (text === BATCH_MODEL_PRO) return BATCH_MODEL_PRO;
+  return BATCH_MODEL_DEFAULT;
+}
+
+function getSelectedBatchModel() {
+  return normalizeBatchModel(document.getElementById("batchModelSelect")?.value);
+}
+
+function updateBatchModelSelectText() {
+  const select = document.getElementById("batchModelSelect");
+  const label = document.getElementById("batchModelSelectText");
+  if (!select || !label) return;
+  label.textContent = select.selectedOptions?.[0]?.textContent || getBatchUiText().batchModelDefault;
+  document.querySelectorAll("[data-batch-model-option]").forEach((button) => {
+    const active = button.dataset.batchModelOption === select.value;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
+
+function closeBatchModelMenu() {
+  const menu = document.getElementById("batchModelMenu");
+  const button = document.getElementById("batchModelSelectButton");
+  if (menu) menu.hidden = true;
+  if (button) button.setAttribute("aria-expanded", "false");
+}
+
+function toggleBatchModelMenu() {
+  const menu = document.getElementById("batchModelMenu");
+  const button = document.getElementById("batchModelSelectButton");
+  if (!menu || !button || button.disabled) return;
+  const nextOpen = menu.hidden;
+  menu.hidden = !nextOpen;
+  button.setAttribute("aria-expanded", nextOpen ? "true" : "false");
 }
 
 function normalizeChatExportMode(value) {
@@ -1198,8 +1461,9 @@ function buildBatchSendText(text, stack, includeNearestHeading, inlineHeading = 
   const itemText = cleanBatchPromptPart(text) || String(text || "").trim();
   if (!includeNearestHeading) return itemText;
 
-  const headingText = getNearestBatchHeadings(stack, inlineHeading).join(" ");
-  return headingText && itemText ? `${headingText} ${itemText}` : itemText;
+  const parts = getNearestBatchHeadings(stack, inlineHeading);
+  if (itemText) parts.push(itemText);
+  return parts.join("—") || itemText;
 }
 
 function parseBatchTreeItems(rawText, includeNearestHeading) {
@@ -1361,11 +1625,50 @@ function setActivePage(page) {
   chrome.storage.local.set({ optionsActivePage: nextPage });
 }
 
-function formatTime(isoText) {
+function formatTime(isoText, language = getSelectedBatchPromptLanguage()) {
   if (!isoText) return "";
   const value = new Date(isoText);
   if (Number.isNaN(value.getTime())) return "";
-  return value.toLocaleString("zh-CN", { hour12: false });
+  const locale = normalizeBatchPromptLanguage(language) === BATCH_PROMPT_LANGUAGE_EN ? "en-US" : "zh-CN";
+  return value.toLocaleString(locale, { hour12: false });
+}
+
+function localizeBatchRuntimeMessage(message) {
+  const text = String(message || "");
+  if (normalizeBatchPromptLanguage(getSelectedBatchPromptLanguage()) !== BATCH_PROMPT_LANGUAGE_EN) {
+    return text;
+  }
+
+  const exactMessages = new Map([
+    ["等待任务开始。", "Waiting for task start."],
+    ["ChatGPT 页面已接收批量任务。", "ChatGPT page received the batch task."],
+    ["正在发送全局 Prompt……", "Sending Global Prompt..."],
+    ["全局 Prompt 已收到回答，正在进入批量文本处理……", "Global Prompt answered. Starting batch text processing..."],
+    ["全局 Prompt 已收到回答，正在准备第一条文本……", "Global Prompt answered. Preparing the first item..."],
+    ["新对话已打开，正在准备全局 Prompt……", "New chat opened. Preparing Global Prompt..."],
+    ["新对话已打开，正在准备第一条文本……", "New chat opened. Preparing the first item..."],
+    ["新对话已打开，正在准备本段第一条文本……", "New chat opened. Preparing the first item in this segment..."]
+  ]);
+  if (exactMessages.has(text)) return exactMessages.get(text);
+
+  const patterns = [
+    [/^正在发送第\s*(\d+)\/(\d+)\s*条[：:]\s*(.+)$/u, "Sending item $1/$2: $3"],
+    [/^第\s*(\d+)\/(\d+)\s*条回答已读取，正在保存[：:]\s*(.+)$/u, "Item $1/$2 answer read, saving: $3"],
+    [/^第\s*(\d+)\/(\d+)\s*条已有回答已读取，正在保存[：:]\s*(.+)$/u, "Existing answer for item $1/$2 read, saving: $3"],
+    [/^第\s*(\d+)\/(\d+)\s*条已保存[：:]\s*(.+)$/u, "Item $1/$2 saved: $3"],
+    [/^已发送[：:]\s*(.+)，正在等待回答……$/u, "Sent: $1, waiting for the answer..."],
+    [/^页面已刷新，正在读取第\s*(\d+)\/(\d+)\s*条已有回答……$/u, "Page refreshed. Reading existing answer for item $1/$2..."],
+    [/^第\s*(\d+)\/(\d+)\s*条刷新后回答仍在生成或更新，继续等待稳定后再判断。$/u, "After refresh, item $1/$2 is still generating or updating. Waiting for it to settle..."],
+    [/^第\s*(\d+)\/(\d+)\s*条已在新标签页继续重试。$/u, "Item $1/$2 continued retrying in a new tab."]
+  ];
+
+  for (const [pattern, replacement] of patterns) {
+    if (pattern.test(text)) {
+      return text.replace(pattern, replacement);
+    }
+  }
+
+  return text;
 }
 
 function extractFailedTitleFromLog(message) {
@@ -1429,42 +1732,64 @@ function renderBatchState(state) {
 
   const summary = [];
   if (currentBatchState.running) {
-    summary.push(`任务执行中，共 ${currentBatchState.total} 条`);
+    summary.push(formatUiText(uiText.batchRunning, { total: currentBatchState.total }));
   } else if (currentBatchState.total) {
-    summary.push(`任务已结束，共 ${currentBatchState.total} 条`);
+    summary.push(formatUiText(uiText.batchFinished, { total: currentBatchState.total }));
   } else {
     summary.push(uiText.noBatchTask);
   }
 
   if (currentBatchState.total) {
-    const resultParts = [`成功 ${currentBatchState.completed} 条`];
+    const resultParts = [formatUiText(uiText.batchResultCompleted, { completed: currentBatchState.completed })];
     if (currentBatchState.skipped) {
-      resultParts.push(`跳过 ${currentBatchState.skipped} 条`);
+      resultParts.push(formatUiText(uiText.batchResultSkipped, { skipped: currentBatchState.skipped }));
     }
-    resultParts.push(`失败 ${currentBatchState.failed} 条`);
-    summary.push(resultParts.join("，"));
+    resultParts.push(formatUiText(uiText.batchResultFailed, { failed: currentBatchState.failed }));
+    summary.push(resultParts.join(uiText.listSeparator));
   }
 
   const startedAt = formatTime(currentBatchState.startedAt);
   const finishedAt = formatTime(currentBatchState.finishedAt);
-  if (startedAt) summary.push(`开始时间：${startedAt}`);
-  if (finishedAt) summary.push(`结束时间：${finishedAt}`);
+  if (startedAt) summary.push(formatUiText(uiText.batchStartedAt, { time: startedAt }));
+  if (finishedAt) summary.push(formatUiText(uiText.batchFinishedAt, { time: finishedAt }));
 
-  document.getElementById("batchSummary").textContent = summary.join("，");
+  document.getElementById("batchSummary").textContent = summary.join(uiText.listSeparator);
 
   const lines = [];
-  lines.push(currentBatchState.message || uiText.idleStatus);
+  const knownIdleMessages = [
+    BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_CN].idleStatus,
+    BATCH_UI_TEXT[BATCH_PROMPT_LANGUAGE_EN].idleStatus
+  ];
+  lines.push(
+    !currentBatchState.message || knownIdleMessages.includes(currentBatchState.message)
+      ? uiText.idleStatus
+      : localizeBatchRuntimeMessage(currentBatchState.message)
+  );
   if (currentBatchState.total) {
-    lines.push(`当前进度：${currentBatchState.currentIndex}/${currentBatchState.total}`);
+    lines.push(formatUiText(uiText.batchProgress, {
+      current: currentBatchState.currentIndex,
+      total: currentBatchState.total
+    }));
   }
   if (currentBatchState.running && currentBatchState.retryAttempt > 0) {
-    lines.push(`刷新重试：${currentBatchState.retryAttempt}/${currentBatchState.maxRefreshRetries || BATCH_DEFAULT_MAX_REFRESH_RETRIES}`);
+    lines.push(formatUiText(uiText.batchRefreshRetry, {
+      retry: currentBatchState.retryAttempt,
+      max: currentBatchState.maxRefreshRetries || BATCH_DEFAULT_MAX_REFRESH_RETRIES
+    }));
+  }
+  const recoveryWarning = currentBatchState.running && currentBatchState.refreshRecoveryFailureCount >= 10;
+  if (recoveryWarning) {
+    lines.push(formatUiText(uiText.batchRecoveryWarning, {
+      count: currentBatchState.refreshRecoveryFailureCount
+    }));
   }
   const currentText = formatCurrentBatchText(currentBatchState);
   if (currentText) {
-    lines.push(`当前文本：${currentText}`);
+    lines.push(formatUiText(uiText.batchCurrentText, { text: currentText }));
   }
-  document.getElementById("batchStatus").textContent = lines.join("\n");
+  const batchStatus = document.getElementById("batchStatus");
+  batchStatus.textContent = lines.join("\n");
+  batchStatus.classList.toggle("is-recovery-warning", recoveryWarning);
 
   const failureGroup = document.getElementById("batchFailureGroup");
   const failureBox = document.getElementById("batchFailureBox");
@@ -1501,10 +1826,11 @@ function renderBatchState(state) {
     const li = document.createElement("li");
     li.className = "log-item";
     const timeText = formatTime(item.time);
+    const messageText = localizeBatchRuntimeMessage(item.message);
     if (timeText && item.level === "success" && String(item.message || "").includes("已保存：")) {
-      li.textContent = `${item.message} ${timeText}`;
+      li.textContent = `${messageText} ${timeText}`;
     } else {
-      li.textContent = timeText ? `［${timeText}］${item.message}` : item.message;
+      li.textContent = timeText ? `［${timeText}］${messageText}` : messageText;
     }
     logs.appendChild(li);
   }
@@ -1577,18 +1903,19 @@ function renderChatExportState(state) {
   }
 }
 
-async function forceStopBatchState(message = "任务已停止。") {
+async function forceStopBatchState(message = "") {
+  const nextMessage = message || getBatchUiText().batchStopped;
   const finishedAt = new Date().toISOString();
   const nextState = createBatchState({
     ...currentBatchState,
     running: false,
     batchId: "",
-    message,
+    message: nextMessage,
     finishedAt,
     logs: (currentBatchState.logs || []).concat({
       time: finishedAt,
       level: "info",
-      message
+      message: nextMessage
     }).slice(-60)
   });
   await setLocal({ [BATCH_STATE_KEY]: nextState });
@@ -1784,6 +2111,7 @@ async function persistBatchConfig(showTip = false) {
     batchInputs: document.getElementById("batchInputs").value,
     batchConversationMode: getSelectedBatchConversationMode(),
     batchNewChatUrl: document.getElementById("batchNewChatUrl").value.trim(),
+    batchModel: getSelectedBatchModel(),
     batchIncludeNearestHeading: Boolean(includeNearestHeading && includeNearestHeading.checked),
     batchDelaySeconds: delaySeconds,
     batchFocusWhenStuck: Boolean(focusWhenStuck && focusWhenStuck.checked),
@@ -1821,6 +2149,7 @@ async function loadBatchConfig() {
     : config.batchGlobalPrompt;
   const batchConversationMode = normalizeBatchConversationMode(config.batchConversationMode, config.batchNewChat);
   const chatExportMode = normalizeChatExportMode(config.chatExportMode);
+  const batchModel = normalizeBatchModel(config.batchModel);
   const batchIncludeNearestHeading = config.batchIncludeNearestHeading !== false;
   const batchPrompt = !config.batchPrompt || isKnownBatchDefaultPrompt(config.batchPrompt)
     ? languageDefaults.prompt
@@ -1834,6 +2163,8 @@ async function loadBatchConfig() {
   document.getElementById("batchInputs").value = config.batchInputs || "";
   setBatchConversationMode(batchConversationMode);
   setChatExportMode(chatExportMode);
+  document.getElementById("batchModelSelect").value = batchModel;
+  updateBatchModelSelectText();
   document.getElementById("batchNewChatUrl").value = typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "";
   document.getElementById("batchIncludeNearestHeading").checked = batchIncludeNearestHeading;
   document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
@@ -1848,6 +2179,7 @@ async function loadBatchConfig() {
     batchPromptLanguage !== config.batchPromptLanguage ||
     batchConversationMode !== config.batchConversationMode ||
     chatExportMode !== config.chatExportMode ||
+    config.batchModel !== batchModel ||
     typeof config.batchNewChatUrl !== "string" ||
     batchIncludeNearestHeading !== (config.batchIncludeNearestHeading !== false) ||
     batchPrompt !== config.batchPrompt ||
@@ -1859,6 +2191,7 @@ async function loadBatchConfig() {
       batchPromptLanguage,
       batchConversationMode,
       chatExportMode,
+      batchModel,
       batchNewChatUrl: typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "",
       batchIncludeNearestHeading,
       batchPrompt,
@@ -1952,6 +2285,7 @@ async function startBatch() {
   const globalPrompt = document.getElementById("batchGlobalPrompt").value.trim();
   const prompt = document.getElementById("batchPrompt").value.trim();
   const newChatUrl = document.getElementById("batchNewChatUrl").value.trim();
+  const batchModel = getSelectedBatchModel();
   const delaySeconds = normalizeBatchDelaySeconds(document.getElementById("batchDelaySeconds").value);
   const items = parseBatchItems(document.getElementById("batchInputs").value, includeNearestHeading);
 
@@ -1988,6 +2322,7 @@ async function startBatch() {
         items,
         newChat: conversationMode === BATCH_CONVERSATION_MODE_NEW,
         newChatUrl,
+        batchModel,
         delaySeconds,
         focusWhenStuck: Boolean(document.getElementById("batchFocusWhenStuck").checked),
         directoryName: currentBatchDirectoryName
@@ -2104,7 +2439,7 @@ async function stopBatch() {
   try {
     const response = await sendRuntimeMessage({ type: "STOP_BATCH_EXPORT" });
     if (!response || !response.ok) {
-      await forceStopBatchState("任务已停止。");
+      await forceStopBatchState();
       return;
     }
 
@@ -2112,7 +2447,7 @@ async function stopBatch() {
       renderBatchState(response.state);
     }
   } catch (error) {
-    await forceStopBatchState("任务已停止。");
+    await forceStopBatchState();
   } finally {
     stopPending = false;
     updateBatchActionButtons();
@@ -2123,6 +2458,7 @@ async function deleteProgressConversations() {
   if (deleteProgressPending || currentBatchState.running) return;
 
   const newChatUrl = document.getElementById("batchNewChatUrl")?.value.trim() || "";
+  const text = getBatchUiText();
   const closeDeleteProgressTab = async (response) => {
     if (!response?.closeMaintenanceTab || !response?.maintenanceTabId) return;
     await sendRuntimeMessage({
@@ -2135,8 +2471,8 @@ async function deleteProgressConversations() {
   renderBatchState({
     ...currentBatchState,
     message: newChatUrl
-      ? "正在指定对话创建位置读取进度标题对话……"
-      : "正在读取最近 3 页进度标题对话……"
+      ? text.deleteProgressReadingProject
+      : text.deleteProgressReadingRecent
   });
 
   try {
@@ -2145,7 +2481,7 @@ async function deleteProgressConversations() {
       payload: { mode: "list", newChatUrl }
     });
     if (!listResponse || !listResponse.ok) {
-      throw new Error(listResponse && listResponse.error ? listResponse.error : "读取进度标题对话失败。");
+      throw new Error(listResponse && listResponse.error ? listResponse.error : text.deleteProgressReadFailed);
     }
 
     const targets = Array.isArray(listResponse.targets) ? listResponse.targets : [];
@@ -2154,8 +2490,8 @@ async function deleteProgressConversations() {
       renderBatchState({
         ...currentBatchState,
         message: newChatUrl
-          ? `指定对话创建位置没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
-          : `最近 3 页没有找到进度标题对话，扫描 ${listResponse.scanned || 0} 个。`
+          ? formatUiText(text.deleteProgressNoProject, { scanned: listResponse.scanned || 0 })
+          : formatUiText(text.deleteProgressNoRecent, { scanned: listResponse.scanned || 0 })
       });
       return;
     }
@@ -2166,15 +2502,15 @@ async function deleteProgressConversations() {
       renderBatchState({
         ...currentBatchState,
         message: newChatUrl
-          ? `已取消删除，指定对话创建位置匹配 ${targets.length} 个进度标题对话。`
-          : `已取消删除，最近 3 页匹配 ${targets.length} 个进度标题对话。`
+          ? formatUiText(text.deleteProgressCancelledProject, { count: targets.length })
+          : formatUiText(text.deleteProgressCancelledRecent, { count: targets.length })
       });
       return;
     }
 
     renderBatchState({
       ...currentBatchState,
-      message: `已确认删除 ${targets.length} 个进度标题对话，正在执行……`
+      message: formatUiText(text.deleteProgressConfirmed, { count: targets.length })
     });
 
     const response = await sendRuntimeMessage({
@@ -2190,18 +2526,24 @@ async function deleteProgressConversations() {
       }
     });
     if (!response || !response.ok) {
-      throw new Error(response && response.error ? response.error : "删除进度标题对话失败。");
+      throw new Error(response && response.error ? response.error : text.deleteProgressDeleteFailed);
     }
 
-    const failedText = response.failed ? `，失败 ${response.failed} 个` : "";
+    const failedText = response.failed
+      ? formatUiText(text.deleteProgressFailedCount, { failed: response.failed })
+      : "";
     renderBatchState({
       ...currentBatchState,
-      message: `已删除 ${response.deleted || 0} 个进度标题对话，确认 ${response.matched || 0} 个${failedText}。`
+      message: formatUiText(text.deleteProgressDeleted, {
+        deleted: response.deleted || 0,
+        matched: response.matched || 0,
+        failedText
+      })
     });
   } catch (error) {
     renderBatchState({
       ...currentBatchState,
-      message: error && error.message ? error.message : "删除进度标题对话失败。"
+      message: error && error.message ? error.message : text.deleteProgressDeleteFailed
     });
   } finally {
     deleteProgressPending = false;
@@ -2241,6 +2583,7 @@ function copyTextToClipboard(text) {
 
 function showDeleteProgressConfirmDialog(targets) {
   const items = Array.isArray(targets) ? targets : [];
+  const text = getBatchUiText();
   const dialog = document.createElement("dialog");
   dialog.className = "filter-dialog delete-progress-dialog";
 
@@ -2249,10 +2592,10 @@ function showDeleteProgressConfirmDialog(targets) {
   const titleGroup = document.createElement("div");
   const title = document.createElement("div");
   title.className = "filter-dialog-title";
-  title.textContent = `清理 ${items.length} 个进度标题对话`;
+  title.textContent = formatUiText(text.deleteProgressConfirmTitle, { count: items.length });
   const desc = document.createElement("div");
   desc.className = "filter-dialog-desc";
-  desc.textContent = "以下对话会从 ChatGPT 列表中隐藏。";
+  desc.textContent = text.deleteProgressConfirmDesc;
   titleGroup.append(title, desc);
   head.appendChild(titleGroup);
 
@@ -2264,11 +2607,11 @@ function showDeleteProgressConfirmDialog(targets) {
   actions.className = "confirm-dialog-actions";
   const cancelButton = document.createElement("button");
   cancelButton.type = "button";
-  cancelButton.textContent = "取消";
+  cancelButton.textContent = text.deleteProgressConfirmCancel;
   const confirmButton = document.createElement("button");
   confirmButton.type = "button";
   confirmButton.className = "primary";
-  confirmButton.textContent = "确定删除";
+  confirmButton.textContent = text.deleteProgressConfirmDelete;
   actions.append(cancelButton, confirmButton);
 
   dialog.append(head, body, actions);
@@ -2321,45 +2664,94 @@ function showDisciplineMapPromptCopyState(success) {
   }, 1500);
 }
 
-function bindDisciplineMapPromptButton() {
-  const button = document.getElementById("copyDisciplineMapPrompt");
-  const tooltipBody = document.getElementById("disciplineMapPromptTooltipBody");
-  if (tooltipBody) {
-    tooltipBody.innerHTML = `
+function getDisciplineMapPrompt(language = getSelectedBatchPromptLanguage()) {
+  return normalizeBatchPromptLanguage(language) === BATCH_PROMPT_LANGUAGE_EN
+    ? DISCIPLINE_MAP_EN_PROMPT
+    : DISCIPLINE_MAP_PROMPT;
+}
+
+function getDisciplineMapPromptTooltipHtml(language = getSelectedBatchPromptLanguage()) {
+  if (normalizeBatchPromptLanguage(language) === BATCH_PROMPT_LANGUAGE_EN) {
+    return `
       <div class="discipline-prompt-section">
-        <div class="discipline-prompt-title">核心任务</div>
-        <div class="discipline-prompt-content">我想用 Obsidian 梳理「社会学当前热门领域/议题」的思想地图，请帮我设计一个文件夹的架构。</div>
+        <div class="discipline-prompt-title">Core Task</div>
+        <div class="discipline-prompt-content">Design an Obsidian folder structure for a discipline map about "xxx current popular field/topic". Output only a detailed folder structure in a code block.</div>
       </div>
       <div class="discipline-prompt-section">
-        <div class="discipline-prompt-title">数据来源</div>
-        <div class="discipline-prompt-content">请搜索各培养计划和主流信息源、顶级刊物后回答。</div>
+        <div class="discipline-prompt-title">Content and Structure Requirements</div>
+        <div class="discipline-prompt-content">
+          Include an introduction to the field/topic, important scholars, and important texts. Search degree programs, mainstream information sources, and top journals before answering.
+        </div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">Format and Naming Rules</div>
+        <div class="discipline-prompt-content">
+          Use the "<strong>English</strong> (<strong>Chinese</strong>)" format for headings. Chinese titles of works or articles should use book-title brackets.<br>
+          Person names, book titles, papers, and concept names need titles that summarize the full entry and lean toward academic status, theoretical contribution, research object, method, or content.
+        </div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">Title Examples</div>
+        <div class="discipline-hierarchy-box">Sources of the Self 1989 《自我的根源》: Taylor: Modern Identity and Moral Sources
+Charles Taylor 1931- 查尔斯·泰勒: Recognition Politics and Modern Self Theory</div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">Structure Rules</div>
+        <div class="discipline-hierarchy-box">1. Major Section (English (Chinese))
+└─ 1_1 Second-Level Section (English (Chinese))
+   └─ 1_2_1 Third-Level Heading (English (Chinese))
+      └─ 1_2_1 ◆ Body item</div>
+      </div>
+    `;
+  }
+
+  return `
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">核心任务</div>
+        <div class="discipline-prompt-content">我想用 obsidian 梳理「xxx当前热门领域/议题」的思想地图，请设计一个文件夹的架构。只需要详细的文件夹架构，用 code 框输出。</div>
       </div>
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">内容与结构要求</div>
         <div class="discipline-prompt-content">
-          包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。初步了解时阅读「介绍」是最高效的；希望深入了解时，再看其他部分。另外，使用「综合索引（Integration Indexes）」作为最后一个章节。
+          包含领域/议题介绍、重要学者、重要文本（影响力最大的导论/教科书/论文）三个部分。搜索各培养计划、主流信息源、学科顶级刊物后回答。初步了解时阅读「介绍」；深入了解时再看其他部分。
         </div>
       </div>
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">格式与命名规范</div>
         <div class="discipline-prompt-content">
-          各级标题使用「<strong>中文</strong>（<strong>英文</strong>）」格式。作品名、文章名的中文需要加书名号。<br>
-          <em>不用解释原因，不用专门进行文字回答，仅输出详细的文件夹架构。使用 code 框输出答案。</em>
+          各级标题使用「<strong>中文</strong>（<strong>英文</strong>）」格式。作品/文章名的中文需要加书名号。<br>
+          人名、书名（或论文）、概念名需要取概括全文的标题，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。
         </div>
       </div>
       <div class="discipline-prompt-section">
-        <div class="discipline-prompt-title">三级架构规范</div>
+        <div class="discipline-prompt-title">标题示例</div>
+        <div class="discipline-hierarchy-box">《自我的根源》 1989 Sources of the Self：泰勒：现代身份与道德来源
+查尔斯 泰勒 1931– Charles Taylor：承认政治与现代自我理论</div>
+      </div>
+      <div class="discipline-prompt-section">
+        <div class="discipline-prompt-title">架构规范</div>
         <div class="discipline-hierarchy-box">1. 大章节 (中文(英文))
 └─ 1_1 二级章节 (英文(中文))
    └─ 1_2_1 三级标题 (英文(中文))
       └─ 1_2_1 ◆ 正文内容</div>
       </div>
     `;
+}
+
+function renderDisciplineMapPromptTooltip(language = getSelectedBatchPromptLanguage()) {
+  const tooltipBody = document.getElementById("disciplineMapPromptTooltipBody");
+  if (tooltipBody) {
+    tooltipBody.innerHTML = getDisciplineMapPromptTooltipHtml(language);
   }
+}
+
+function bindDisciplineMapPromptButton() {
+  const button = document.getElementById("copyDisciplineMapPrompt");
+  renderDisciplineMapPromptTooltip();
   if (!button) return;
 
   button.addEventListener("click", () => {
-    copyTextToClipboard(DISCIPLINE_MAP_PROMPT.trim())
+    copyTextToClipboard(getDisciplineMapPrompt().trim())
       .then(() => showDisciplineMapPromptCopyState(true))
       .catch(() => showDisciplineMapPromptCopyState(false));
   });
@@ -2377,6 +2769,8 @@ function bindBatchEvents() {
   const inputs = document.getElementById("batchInputs");
   const conversationMode = document.getElementById("batchConversationMode");
   const newChatUrl = document.getElementById("batchNewChatUrl");
+  const batchModelSelect = document.getElementById("batchModelSelect");
+  const batchModelButton = document.getElementById("batchModelSelectButton");
   const includeNearestHeading = document.getElementById("batchIncludeNearestHeading");
   const delaySeconds = document.getElementById("batchDelaySeconds");
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
@@ -2386,6 +2780,28 @@ function bindBatchEvents() {
   bindElementEvent(inputs, "input", scheduleBatchConfigSave);
   bindElementEvent(delaySeconds, "input", scheduleBatchConfigSave);
   bindElementEvent(newChatUrl, "input", scheduleBatchConfigSave);
+  bindElementEvent(batchModelSelect, "change", () => {
+    updateBatchModelSelectText();
+    persistBatchConfig(true).catch(() => {});
+  });
+  bindElementEvent(batchModelButton, "click", (event) => {
+    event.stopPropagation();
+    toggleBatchModelMenu();
+  });
+  document.querySelectorAll("[data-batch-model-option]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const select = document.getElementById("batchModelSelect");
+      if (select) select.value = normalizeBatchModel(button.dataset.batchModelOption);
+      updateBatchModelSelectText();
+      closeBatchModelMenu();
+      persistBatchConfig(true).catch(() => {});
+    });
+  });
+  document.addEventListener("click", closeBatchModelMenu);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeBatchModelMenu();
+  });
   bindElementEvent(focusWhenStuck, "change", () => persistBatchConfig(true));
   conversationMode?.querySelectorAll("[data-batch-conversation-mode]").forEach((button) => {
     button.addEventListener("click", () => {

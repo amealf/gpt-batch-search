@@ -163,7 +163,7 @@ const SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接�
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
 相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
-const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+const SOCIOLOGY_TITLE_RULES_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
 
 # 内容要求：
 
@@ -182,11 +182,79 @@ const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的�
 
 人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
 相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const SOCIOLOGY_SUBJECT_TITLE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const SOCIOLOGY_STANDALONE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」。如果文章主题是人物、书、论文，请将标题写成以下形式：主题名+冒号+简短描述
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接`;
+const BATCH_DEFAULT_GLOBAL_PROMPT = `请搜索并介绍用户接下来发送的「与社会学相关的」文本。要求如下：
+
+# 内容要求：
+
+优先搜索Stanford Encyclopedia of Philosophy、Wikipedia、Britannica、该文本的原文的相关信息。尽量减少搜索中文资料。在写作时不要注明网站信息来源，可以注明观点的具体文本、学者的来源。
+
+考虑该文本在整个学科地图中的位置和重要性；考虑当代学者/后续学者的看法和学界最新的进展。这并非硬性要求。
+
+# 写作要求：
+
+使用一整篇完整的中文文章介绍该文本的相关信息，以「可直接发表」为目标，使用博客文章的写作风格，加入一些写作风格，避免翻译腔和AI腔。注重文本流畅性和整体阅读体验作.优先考虑使用短句。每篇文章都将会被单独发表，不要引用前面有过的回答、用户的prompt等等。
+
+在文章开头写一个一级标题概括全文，偏向学术地位、理论贡献、研究对象、方法贡献、具体内容概括。标题表达书面、简洁，避免完整口语句、疑问句、讲解。尤其避免「如何」「怎样」「为什么」「把」「了」「一门」「一种」「不是……而是……」「写成」「让……」。如果文章主题是人物、书、论文，请将标题写成以下形式：主题名+冒号+简短描述
+
+考虑开头通过背景逐渐引入主题、结尾不要有延展问题和编辑建议。不要总是使用「总得来说」等结构词开启最后一段，以一篇可发表的文章的结尾进行收尾。
+不要使用「不是..而是」「并非..而是」和类似的否定先行的句子结构。
+减少使用「如果」来开启句子。禁止使用「更像」。不要用结论+冒号作为句子的开头，比如「...的意思很明确：」，很明确在这里就是一个结论。这种情况你应该直接进入内容，不需要判断它是否明确。
+
+# 格式要求：
+
+人名第一次出现时，使用英文（中文）这样的格式，第二次以后就用英文名即可。
+相关专业术语第一次出现时，在中文后面用括号注明英文原文。不要使用脚注，可以在段末附带链接。
+中文的书名要加书名号《》
+不要有代码框、编辑框`;
 const LITERARY_THEORY_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "literary theory-related" text the user sends next. Requirements:
 
 Content requirements:
 
-1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
 
 2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
 
@@ -200,12 +268,12 @@ Structure requirements:
 
 Format requirements:
 
-5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+5 When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const SOCIOLOGY_PREVIOUS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 Content requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Use Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -219,12 +287,12 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 
 Format requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -237,13 +305,12 @@ Avoid "not...but...", "not so much...as...", and similar negative-first sentence
 
 # Format Requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name.
-The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the sociology-related text the user sends next. Requirements:
 
 # Content Requirements:
 
-Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Search Chinese-language sources as little as possible. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
+Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.
 
 Consider the text's place and importance in the wider disciplinary map; consider contemporary scholars' or later scholars' views and the latest developments in the field. This is not a hard requirement.
 
@@ -257,13 +324,12 @@ Use sentence openings with "if" sparingly. Do not use "more like". Do not open a
 
 # Format Requirements:
 
-The first time a person appears, use English (Chinese). After that, use the English name.
-The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const ETHICS_BATCH_EN_GLOBAL_PROMPT = `Please search for and introduce the "ethics-related" text the user sends next. Requirements:
 
 Content requirements:
 
-1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Avoid Chinese sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
+1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.
 
 2 These are not hard requirements: consider the text's place and importance in the wider disciplinary map; consider how later scholars and contemporary scholarship have discussed it.
 
@@ -277,19 +343,25 @@ Structure requirements:
 
 Format requirements:
 
-5 The first time a person appears, use English (Chinese). After that, use the English name. The first time a relevant term appears, include the Chinese translation in parentheses. Do not use footnotes; links may be included at the end of paragraphs.`;
+5 When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.`;
 const BATCH_DEFAULT_PROMPT = "请介绍以下文本。前两项是学科地图中的位置，用来理解语境；最后一项是本次需要介绍的文本。";
-const BATCH_EN_PROMPT = "Please introduce:";
+const BATCH_EN_PROMPT = "Please introduce the following text. The first two items are positions in the discipline map, used to understand the context; the last item is the text to introduce.";
 const LEGACY_BATCH_DEFAULT_GLOBAL_PROMPT = "接下来会逐条发送一些词条标题。请每次只围绕当前这一条进行介绍，使用中文回答，不要重复说明规则。";
 const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
+const LEGACY_BATCH_EN_PROMPT = "Please introduce:";
 const RECENT_BATCH_DEFAULT_PROMPT = "请介绍：";
 const CHAT_EXPORT_MODE_SEPARATE = "separate";
 const CHAT_EXPORT_MODE_SINGLE = "single";
+const BATCH_MODEL_DEFAULT = "default";
+const BATCH_MODEL_INSTANT = "instant";
+const BATCH_MODEL_THINKING = "thinking";
+const BATCH_MODEL_PRO = "pro";
 const BATCH_CONFIG_DEFAULTS = {
   batchGlobalPrompt: BATCH_DEFAULT_GLOBAL_PROMPT,
   batchPrompt: BATCH_DEFAULT_PROMPT,
   batchPromptLanguage: "cn",
-  batchNewChatUrl: ""
+  batchNewChatUrl: "",
+  batchModel: BATCH_MODEL_DEFAULT
 };
 const BATCH_STATE_KEY = "batchRunState";
 const CHAT_EXPORT_STATE_KEY = "chatExportRunState";
@@ -336,7 +408,9 @@ const EMPTY_BATCH_STATE = {
   lastHeartbeatAt: "",
   lastStuckRefreshAt: "",
   lastStuckRefreshProgressKey: "",
-  lastFocusAt: ""
+  lastFocusAt: "",
+  refreshRecoveryFailureCount: 0,
+  lastRefreshRecoveryFailureAt: ""
 };
 const EMPTY_CHAT_EXPORT_STATE = {
   running: false,
@@ -412,6 +486,9 @@ function createBatchState(state) {
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
     : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
+  next.refreshRecoveryFailureCount = Number.isFinite(Number(next.refreshRecoveryFailureCount))
+    ? Math.max(0, Number(next.refreshRecoveryFailureCount))
+    : 0;
   return next;
 }
 
@@ -716,6 +793,14 @@ function normalizeChatLaunchUrl(value) {
   }
 }
 
+function normalizeBatchModel(value) {
+  const text = String(value || "").toLowerCase();
+  if (text === BATCH_MODEL_INSTANT) return BATCH_MODEL_INSTANT;
+  if (text === BATCH_MODEL_THINKING) return BATCH_MODEL_THINKING;
+  if (text === BATCH_MODEL_PRO) return BATCH_MODEL_PRO;
+  return BATCH_MODEL_DEFAULT;
+}
+
 function isChatTabUrl(url) {
   const text = String(url || "");
   return text.startsWith("https://chatgpt.com/") || text.startsWith("https://chat.openai.com/");
@@ -829,7 +914,9 @@ async function handleBatchFocusAlarm() {
       await saveBatchState({
         ...current,
         lastStuckRefreshAt: "",
-        lastStuckRefreshProgressKey: ""
+        lastStuckRefreshProgressKey: "",
+        refreshRecoveryFailureCount: 0,
+        lastRefreshRecoveryFailureAt: ""
       });
       return;
     }
@@ -857,6 +944,7 @@ async function handleBatchFocusAlarm() {
 
   if (!latestSignalAt || now - latestSignalAt < BATCH_FOCUS_STUCK_MS) return;
 
+  let refreshError = null;
   try {
     await sendMessageToChatTabSafely(chatTab.id, "EXT_REFRESH_STUCK_BATCH", {
       batchId: current.batchId
@@ -868,6 +956,8 @@ async function handleBatchFocusAlarm() {
       message: "任务心跳长时间没有更新，已刷新 ChatGPT 网页恢复任务。",
       lastStuckRefreshAt: new Date().toISOString(),
       lastStuckRefreshProgressKey: getBatchProgressKey(latest),
+      refreshRecoveryFailureCount: 0,
+      lastRefreshRecoveryFailureAt: "",
       logs: latest.logs.concat({
         time: new Date().toISOString(),
         level: "info",
@@ -875,18 +965,29 @@ async function handleBatchFocusAlarm() {
       }).slice(-60)
     });
     return;
-  } catch {}
+  } catch (error) {
+    refreshError = error;
+  }
 
   if (!current.focusWhenStuck) {
     const latest = await getBatchState();
     if (!isCurrentBatchMessage(latest, current.batchId)) return;
+    const failureCount = (Number(latest.refreshRecoveryFailureCount) || 0) + 1;
+    const failureTime = new Date().toISOString();
+    const refreshErrorText = refreshError && refreshError.message ? refreshError.message : String(refreshError || "");
+    const refreshErrorSuffix = refreshErrorText ? ` 错误：${refreshErrorText}` : "";
+    const message = failureCount >= 10
+      ? `刷新恢复请求连续失败 ${failureCount} 次。保持网页焦点未开启，未激活 ChatGPT 网页。请查看 ChatGPT 标签页。${refreshErrorSuffix}`
+      : `刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。${refreshErrorSuffix}`;
     await saveBatchState({
       ...latest,
-      message: "刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。",
+      message,
+      refreshRecoveryFailureCount: failureCount,
+      lastRefreshRecoveryFailureAt: failureTime,
       logs: latest.logs.concat({
-        time: new Date().toISOString(),
+        time: failureTime,
         level: "error",
-        message: "刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。"
+        message
       }).slice(-60)
     });
     return;
@@ -901,6 +1002,8 @@ async function handleBatchFocusAlarm() {
     ...latest,
     message: "刷新恢复请求失败，已激活 ChatGPT 网页。",
     lastFocusAt: new Date().toISOString(),
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs: latest.logs.concat({
       time: new Date().toISOString(),
       level: "info",
@@ -982,9 +1085,9 @@ async function getChatMaintenanceTab(newChatUrl = "", options = {}) {
     return { tab: existing, temporary: false };
   }
 
-  const created = await chrome.tabs.create({ url: launchUrl, active: false });
-  await waitForTabComplete(created.id, 20000);
-  return { tab: created, temporary: true };
+  throw new Error(newChatUrl
+    ? "没有找到指定对话创建位置对应的 ChatGPT 标签页。请打开或刷新这个项目页后再清理。"
+    : "没有找到可用的 ChatGPT 标签页。请打开需要清理的 ChatGPT 页面后再清理。");
 }
 
 async function closeTabIfExists(tabId) {
@@ -1040,7 +1143,7 @@ async function ensureChatContentScript(tabId) {
 async function sendMessageToChatTabSafely(tabId, type, payload) {
   let lastError = null;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       return await sendMessageToChatTab(tabId, type, payload);
     } catch (error) {
@@ -1156,9 +1259,28 @@ async function handleSelectionQuickMessage(payload, sender) {
   }
 }
 
-function normalizePromptText(text) {
-  return String(text || "")
+function normalizeEnglishGlobalPromptFormatRule(value) {
+  const oldNumberedRule = /5 The first time a person appears, use English \(Chinese\)\. After that, use the English name\. The first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldInlineRule = /The first time a person appears, use English \(Chinese\)\. After that, use the English name\. The first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldSplitRule = /The first time a person appears, use English \(Chinese\)\. After that, use the English name\.\nThe first time a relevant term appears, include the Chinese translation in parentheses\. Do not use footnotes; links may be included at the end of paragraphs\./g;
+  const oldNumberedSourceRule = /1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Avoid Chinese sources\. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point\./g;
+  const oldUseSourceRule = /Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Use Chinese-language sources as little as possible\. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point\./g;
+  const oldSearchSourceRule = /Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text\. Search Chinese-language sources as little as possible\. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point\./g;
+  const newRule = "When a relevant term has an established original-language name, include that original name in parentheses the first time the term appears. Do not use footnotes; links may be included at the end of paragraphs.";
+  const newNumberedSourceRule = "1 Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not explicitly name website sources while writing; you may name the specific texts, scholars, or arguments that support a point.";
+  const newSourceRule = "Prioritize Stanford Encyclopedia of Philosophy, Wikipedia, Britannica, and information related to the original text. Prefer English-language sources and reliable original-language sources. Do not name websites as sources while writing; you may name the specific texts, scholars, or viewpoints that support a point.";
+  return String(value || "")
     .replace(/\r\n?/g, "\n")
+    .replace(oldNumberedSourceRule, newNumberedSourceRule)
+    .replace(oldUseSourceRule, newSourceRule)
+    .replace(oldSearchSourceRule, newSourceRule)
+    .replace(oldNumberedRule, `5 ${newRule}`)
+    .replace(oldSplitRule, newRule)
+    .replace(oldInlineRule, newRule);
+}
+
+function normalizePromptText(text) {
+  return normalizeEnglishGlobalPromptFormatRule(text)
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -1196,6 +1318,9 @@ async function getBatchPromptConfig() {
       items.batchGlobalPrompt,
       BATCH_DEFAULT_GLOBAL_PROMPT,
       BATCH_EN_GLOBAL_PROMPT,
+      SOCIOLOGY_STANDALONE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
+      SOCIOLOGY_SUBJECT_TITLE_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
+      SOCIOLOGY_TITLE_RULES_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
       SOCIOLOGY_LAST_BATCH_DEFAULT_GLOBAL_PROMPT,
       SOCIOLOGY_LAST_BATCH_EN_GLOBAL_PROMPT,
       SOCIOLOGY_PREVIOUS_BATCH_DEFAULT_GLOBAL_PROMPT,
@@ -1215,6 +1340,7 @@ async function getBatchPromptConfig() {
       items.batchPrompt,
       BATCH_DEFAULT_PROMPT,
       BATCH_EN_PROMPT,
+      LEGACY_BATCH_EN_PROMPT,
       RECENT_BATCH_DEFAULT_PROMPT,
       LEGACY_BATCH_DEFAULT_PROMPT
     ].map(normalizePromptText).filter(Boolean)
@@ -2170,6 +2296,7 @@ async function handleStartBatch(payload) {
     : [];
   const newChat = payload?.newChat !== false;
   const newChatUrl = normalizeChatLaunchUrl(payload?.newChatUrl);
+  const batchModel = normalizeBatchModel(payload?.batchModel);
   const delaySeconds = Number.isFinite(Number(payload?.delaySeconds))
     ? Math.min(60, Math.max(0, Number(payload.delaySeconds)))
     : 3;
@@ -2235,6 +2362,8 @@ async function handleStartBatch(payload) {
     lastStuckRefreshAt: "",
     lastStuckRefreshProgressKey: "",
     lastFocusAt: "",
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs: [
       {
         time: startedAt,
@@ -2264,6 +2393,7 @@ async function handleStartBatch(payload) {
         completedOffset: skippedItems.length,
         newChat,
         newChatUrl: newChat ? newChatUrl : "",
+        batchModel,
         delaySeconds,
         directoryName
       });
@@ -2583,7 +2713,12 @@ async function handleBatchProgress(payload) {
   return saveBatchState({
     ...current,
     ...patch,
-    ...(progressMoved ? { lastStuckRefreshAt: "", lastStuckRefreshProgressKey: "" } : {})
+    ...(progressMoved ? {
+      lastStuckRefreshAt: "",
+      lastStuckRefreshProgressKey: "",
+      refreshRecoveryFailureCount: 0,
+      lastRefreshRecoveryFailureAt: ""
+    } : {})
   });
 }
 
@@ -2702,6 +2837,8 @@ async function handleBatchItemResult(payload) {
     lastActivityAt: new Date().toISOString(),
     lastStuckRefreshAt: "",
     lastStuckRefreshProgressKey: "",
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs,
     failedItems
   });
@@ -2847,27 +2984,19 @@ async function handleDeleteProgressConversations(payload) {
   const mode = payload?.mode === "delete" ? "delete" : "list";
   const actionText = mode === "delete" ? "删除已确认的进度标题对话" : "读取进度标题对话列表";
   const launchUrl = normalizeChatLaunchUrl(payload?.newChatUrl);
-  const locationText = launchUrl ? "指定位置" : "新的 ChatGPT";
+  const locationText = launchUrl ? "指定位置已有" : "已有 ChatGPT";
 
   try {
-    await handleDeleteProgressConversationsProgress({ message: `正在打开${locationText}标签页，用于${actionText}……` });
+    await handleDeleteProgressConversationsProgress({ message: `正在使用${locationText}标签页，用于${actionText}……` });
     const maintenance = await getChatMaintenanceTab(launchUrl, {
       tabId: payload?.maintenanceTabId
     });
     maintenanceTab = maintenance.tab;
-    closeMaintenanceTab = maintenance.temporary || payload?.closeMaintenanceTab === true;
-    await handleDeleteProgressConversationsProgress({ message: `${locationText}标签页已打开，正在注入脚本……` });
+    closeMaintenanceTab = false;
+    await handleDeleteProgressConversationsProgress({ message: `${locationText}标签页已找到，正在注入脚本……` });
     await ensureChatContentScript(maintenanceTab.id);
     await handleDeleteProgressConversationsProgress({ message: `脚本已注入，正在${actionText}……` });
     const result = await sendMessageToChatTabSafely(maintenanceTab.id, "EXT_DELETE_PROGRESS_CONVERSATIONS", payload || {});
-    if (mode === "list" && maintenance.temporary && result?.ok) {
-      closeMaintenanceTab = false;
-      return {
-        ...result,
-        maintenanceTabId: maintenanceTab.id,
-        closeMaintenanceTab: true
-      };
-    }
     return result;
   } finally {
     if (maintenanceTab?.id && closeMaintenanceTab) {
@@ -2899,6 +3028,8 @@ async function handleBatchFinished(payload) {
     retryAttempt: 0,
     message,
     finishedAt,
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs
   });
 }
@@ -2932,6 +3063,8 @@ async function handleBatchFailed(payload) {
     retryAttempt: 0,
     message: errorMessage,
     finishedAt,
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs,
     failedItems
   });
@@ -2958,6 +3091,8 @@ async function handleStopBatch() {
     retryAttempt: 0,
     message: "任务已停止。",
     finishedAt,
+    refreshRecoveryFailureCount: 0,
+    lastRefreshRecoveryFailureAt: "",
     logs
   });
 

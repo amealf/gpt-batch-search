@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GPT Batch Search",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "快捷消息、批量消息和对话导出工具。",
   "icons": {
     "16": "icons/icon16.png",
@@ -20,6 +20,28 @@
     "type": "module"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["visibility-spoof-main-safe.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["visibility-spoof-isolated.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": true,
+      "match_about_blank": true
+    },
     {
       "matches": [
         "https://chatgpt.com/*",

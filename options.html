@@ -61,6 +61,7 @@
 
       --select-option-bg: #ffffff;
       --select-option-text: #111827;
+      --model-menu-bg: rgba(255, 255, 255, 0.92);
 
       --status-bg: #f9fafb;
       --toolbar-bg: #fafafa;
@@ -85,12 +86,12 @@
        Dark theme
        ═══════════════════════════════════════ */
     [data-theme="dark"] {
-      --bg-base: rgb(25, 25, 25);
-      --bg-surface: rgba(255, 255, 255, 0.04);
-      --bg-surface-hover: rgba(255, 255, 255, 0.07);
-      --bg-elevated: rgba(255, 255, 255, 0.06);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-default: rgba(255, 255, 255, 0.12);
+      --bg-base: rgb(14, 14, 14);
+      --bg-surface: rgba(255, 255, 255, 0.025);
+      --bg-surface-hover: rgba(255, 255, 255, 0.052);
+      --bg-elevated: rgba(255, 255, 255, 0.04);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.095);
       --text-primary: #e8eaed;
       --text-secondary: #9aa0a6;
       --text-muted: #6b7280;
@@ -130,10 +131,11 @@
 
       --select-option-bg: #1a1c2a;
       --select-option-text: #e8eaed;
+      --model-menu-bg: rgba(20, 20, 20, 0.72);
 
-      --status-bg: rgba(255, 255, 255, 0.06);
-      --toolbar-bg: rgba(255, 255, 255, 0.06);
-      --chip-bg: rgba(255, 255, 255, 0.06);
+      --status-bg: rgba(255, 255, 255, 0.04);
+      --toolbar-bg: rgba(255, 255, 255, 0.035);
+      --chip-bg: rgba(255, 255, 255, 0.045);
       --chip-text: #9aa0a6;
 
       --scrollbar-thumb: rgba(255,255,255,0.12);
@@ -604,9 +606,12 @@
        Batch layout
        ═══════════════════════════════════════ */
     .batch-workspace {
+      position: relative;
+      z-index: 20;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      overflow: visible;
     }
 
     .batch-grid {
@@ -844,7 +849,7 @@
     }
 
     [data-theme="dark"] .delete-progress-dialog {
-      background: rgb(35, 35, 35);
+      background: rgb(22, 22, 22);
     }
 
     .filter-dialog-head {
@@ -1307,11 +1312,14 @@
        Toolbar
        ═══════════════════════════════════════ */
     .batch-toolbar {
+      position: relative;
+      z-index: 20;
       display: flex;
       flex-direction: column;
       gap: 10px;
       padding-top: 14px;
       border-top: 1px solid var(--border-subtle);
+      overflow: visible;
     }
 
     .batch-pre-toolbar {
@@ -1452,6 +1460,120 @@
       min-width: 320px;
     }
 
+    .model-select-shell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      height: calc(var(--control-height) + 14px);
+      min-height: calc(var(--control-height) + 14px);
+    }
+
+    .model-select-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 0;
+      height: calc(var(--control-height) + 14px);
+      padding: 0 6px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .model-select-trigger:hover,
+    .model-select-trigger:focus-visible {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .model-select-trigger:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .model-select-text {
+      font-size: var(--control-font-size);
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .model-select-arrow {
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      transform: translateY(1px);
+    }
+
+    .model-select-value {
+      display: none;
+    }
+
+    .model-select-menu {
+      position: absolute;
+      z-index: 200;
+      left: 0;
+      top: calc(100% + 6px);
+      width: 160px;
+      padding: 6px;
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      background: var(--model-menu-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .model-select-menu[hidden] {
+      display: none;
+    }
+
+    .model-select-option {
+      width: 100%;
+      justify-content: flex-start;
+      min-height: 34px;
+      height: 34px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      box-shadow: none;
+      color: var(--text-primary);
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .model-select-option:hover,
+    .model-select-option.is-active {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+
+    .toolbar-actions .model-select-trigger {
+      height: calc(var(--control-height) + 14px);
+      min-height: calc(var(--control-height) + 14px);
+      padding: 0 6px;
+      border: 0;
+      background: transparent;
+    }
+
+    .toolbar-actions .model-select-option {
+      height: 34px;
+      min-height: 34px;
+      padding: 0 10px;
+      border: 0;
+      background: transparent;
+    }
+
+    .toolbar-actions .model-select-option:hover,
+    .toolbar-actions .model-select-option.is-active {
+      background: var(--bg-surface-hover);
+    }
+
     .directory-button.is-required {
       background: var(--danger-dim);
       border-color: var(--danger-border);
@@ -1571,6 +1693,23 @@
       color: var(--text-secondary);
       font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
       transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    @keyframes recoveryWarningPulse {
+      0%, 100% {
+        border-color: var(--danger-border);
+        box-shadow: 0 0 0 rgba(248, 113, 113, 0);
+      }
+      50% {
+        border-color: var(--danger-text);
+        box-shadow: 0 0 18px rgba(248, 113, 113, 0.22);
+      }
+    }
+
+    .status-box.is-recovery-warning {
+      border-color: var(--danger-border);
+      color: var(--text-primary);
+      animation: recoveryWarningPulse 1.2s ease-in-out infinite;
     }
 
     .failure-group {
@@ -1716,6 +1855,26 @@
             <span id="batchDirectoryText" class="directory-chip required-hint">必选</span>
           </div>
           <div class="toolbar-actions toolbar-main-actions">
+            <span class="model-select-shell">
+              <button id="batchModelSelectButton" class="model-select-trigger" type="button" title="选择批量发送前尝试切换的 ChatGPT 模型。" aria-haspopup="listbox" aria-expanded="false">
+                <span id="batchModelSelectText" class="model-select-text">当前模型</span>
+                <svg class="model-select-arrow" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </button>
+              <select id="batchModelSelect" class="model-select-value" tabindex="-1" aria-hidden="true">
+                <option id="batchModelDefault" value="default">当前模型</option>
+                <option id="batchModelInstant" value="instant">Instant</option>
+                <option id="batchModelThinking" value="thinking">Thinking</option>
+                <option id="batchModelPro" value="pro">Pro</option>
+              </select>
+              <div id="batchModelMenu" class="model-select-menu" role="listbox" hidden>
+                <button id="batchModelMenuDefault" class="model-select-option" type="button" data-batch-model-option="default">当前模型</button>
+                <button id="batchModelMenuInstant" class="model-select-option" type="button" data-batch-model-option="instant">Instant</button>
+                <button id="batchModelMenuThinking" class="model-select-option" type="button" data-batch-model-option="thinking">Thinking</button>
+                <button id="batchModelMenuPro" class="model-select-option" type="button" data-batch-model-option="pro">Pro</button>
+              </div>
+            </span>
             <button id="batchStart" class="primary">开始</button>
             <button id="batchStop" type="button">停止</button>
             <span id="batchSaved" class="hint" style="display: none;">已保存</span>
