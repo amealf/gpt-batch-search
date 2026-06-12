@@ -370,10 +370,12 @@ const DIRECTORY_STORE_NAME = "handles";
 const DIRECTORY_HANDLE_KEY = "output-directory";
 const BATCH_DEFAULT_MAX_REFRESH_RETRIES = 5;
 const BATCH_NEW_TAB_RETRY_AFTER = 2;
+const BATCH_DEFAULT_DELAY_SECONDS = 1;
 const BATCH_FOCUS_ALARM_NAME = "batch-focus-when-stuck";
 const BATCH_FOCUS_STUCK_MS = 5 * 60 * 1000;
 const BATCH_FOCUS_AFTER_REFRESH_MS = 2 * 60 * 1000;
 const BATCH_FOCUS_COOLDOWN_MS = 10 * 60 * 1000;
+const BATCH_CONTROL_FOCUS_INTERVAL_MS = 60 * 1000;
 
 if (chrome.action?.onClicked) {
   chrome.action.onClicked.addListener(() => {
@@ -401,14 +403,17 @@ const EMPTY_BATCH_STATE = {
   failedItems: [],
   retryAttempt: 0,
   maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
-  delaySeconds: 3,
+  delaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   directoryName: "",
   focusWhenStuck: false,
+  controlMode: false,
+  batchTabId: 0,
   lastActivityAt: "",
   lastHeartbeatAt: "",
   lastStuckRefreshAt: "",
   lastStuckRefreshProgressKey: "",
   lastFocusAt: "",
+  lastControlFocusAt: "",
   refreshRecoveryFailureCount: 0,
   lastRefreshRecoveryFailureAt: ""
 };
@@ -486,6 +491,7 @@ function createBatchState(state) {
   next.maxRefreshRetries = Number.isFinite(Number(next.maxRefreshRetries))
     ? Math.max(0, Number(next.maxRefreshRetries))
     : BATCH_DEFAULT_MAX_REFRESH_RETRIES;
+  next.batchTabId = Number.isFinite(Number(next.batchTabId)) ? Math.max(0, Number(next.batchTabId)) : 0;
   next.refreshRecoveryFailureCount = Number.isFinite(Number(next.refreshRecoveryFailureCount))
     ? Math.max(0, Number(next.refreshRecoveryFailureCount))
     : 0;
@@ -779,6 +785,52 @@ async function findChatTab() {
   return activeTab || tabs[0];
 }
 
+async function getChatTabById(tabId) {
+  const id = Number(tabId) || 0;
+  if (id <= 0) return null;
+  try {
+    const tab = await chrome.tabs.get(id);
+    return tab && isChatTabUrl(tab.url) ? tab : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getBatchStatusFromChatTab(tabId, batchId) {
+  const id = Number(tabId) || 0;
+  const currentBatchId = typeof batchId === "string" ? batchId : "";
+  if (id <= 0 || !currentBatchId) return null;
+  try {
+    const response = await sendMessageToTab(id, {
+      type: "EXT_GET_BATCH_STATUS",
+      payload: { batchId: currentBatchId }
+    });
+    return response?.ok ? response : null;
+  } catch {
+    return null;
+  }
+}
+
+async function findBatchChatTab(batchId, preferredTabId = 0) {
+  const currentBatchId = typeof batchId === "string" ? batchId : "";
+  if (!currentBatchId) return null;
+
+  const preferred = await getChatTabById(preferredTabId);
+  if (preferred?.id) {
+    const status = await getBatchStatusFromChatTab(preferred.id, currentBatchId);
+    if (status?.matchesBatch) return preferred;
+  }
+
+  const tabs = await chrome.tabs.query({ url: ["https://chatgpt.com/*", "https://chat.openai.com/*"] });
+  for (const tab of tabs) {
+    if (!tab?.id || tab.id === preferred?.id) continue;
+    const status = await getBatchStatusFromChatTab(tab.id, currentBatchId);
+    if (status?.matchesBatch) return tab;
+  }
+
+  return null;
+}
+
 function normalizeChatLaunchUrl(value) {
   const text = typeof value === "string" ? value.trim() : "";
   if (!text) return "";
@@ -906,13 +958,33 @@ async function handleBatchFocusAlarm() {
   const stuckRefreshProgressKey = String(current.lastStuckRefreshProgressKey || "");
   const lastFocusAt = parseStateTime(current.lastFocusAt);
 
-  const chatTab = await findChatTab();
+  const chatTab = await findBatchChatTab(current.batchId, current.batchTabId);
+  const controlTab = chatTab || (current.controlMode ? await getChatTabById(current.batchTabId) : null);
+
+  if (current.controlMode && controlTab?.id) {
+    const lastControlFocusAt = parseStateTime(current.lastControlFocusAt);
+    if (!lastControlFocusAt || now - lastControlFocusAt >= BATCH_CONTROL_FOCUS_INTERVAL_MS) {
+      await bringToFront(controlTab.id);
+      const latest = await getBatchState();
+      if (!isCurrentBatchMessage(latest, current.batchId)) return;
+      await saveBatchState({
+        ...latest,
+        batchTabId: controlTab.id,
+        lastControlFocusAt: new Date().toISOString()
+      });
+      if (getBatchProgressKey(latest) !== currentProgressKey || getLatestBatchSignalTime(latest) !== latestSignalAt) {
+        return;
+      }
+    }
+  }
+
   if (!chatTab?.id) return;
 
   if (lastStuckRefreshAt && stuckRefreshProgressKey) {
     if (currentProgressKey !== stuckRefreshProgressKey) {
       await saveBatchState({
         ...current,
+        batchTabId: chatTab.id,
         lastStuckRefreshAt: "",
         lastStuckRefreshProgressKey: "",
         refreshRecoveryFailureCount: 0,
@@ -932,6 +1004,7 @@ async function handleBatchFocusAlarm() {
     await saveBatchState({
       ...latest,
       message: "刷新后任务仍没有推进，已激活 ChatGPT 网页。",
+      batchTabId: chatTab.id,
       lastFocusAt: new Date().toISOString(),
       logs: latest.logs.concat({
         time: new Date().toISOString(),
@@ -954,6 +1027,7 @@ async function handleBatchFocusAlarm() {
     await saveBatchState({
       ...latest,
       message: "任务心跳长时间没有更新，已刷新 ChatGPT 网页恢复任务。",
+      batchTabId: chatTab.id,
       lastStuckRefreshAt: new Date().toISOString(),
       lastStuckRefreshProgressKey: getBatchProgressKey(latest),
       refreshRecoveryFailureCount: 0,
@@ -976,12 +1050,16 @@ async function handleBatchFocusAlarm() {
     const failureTime = new Date().toISOString();
     const refreshErrorText = refreshError && refreshError.message ? refreshError.message : String(refreshError || "");
     const refreshErrorSuffix = refreshErrorText ? ` 错误：${refreshErrorText}` : "";
+    const focusMessage = current.controlMode
+      ? "调控模式已启用，会按间隔激活当前批量标签页。请查看 ChatGPT 标签页。"
+      : "保持网页焦点未开启，未激活 ChatGPT 网页。请查看 ChatGPT 标签页。";
     const message = failureCount >= 10
-      ? `刷新恢复请求连续失败 ${failureCount} 次。保持网页焦点未开启，未激活 ChatGPT 网页。请查看 ChatGPT 标签页。${refreshErrorSuffix}`
-      : `刷新恢复请求失败。保持网页焦点未开启，未激活 ChatGPT 网页。${refreshErrorSuffix}`;
+      ? `刷新恢复请求连续失败 ${failureCount} 次。${focusMessage}${refreshErrorSuffix}`
+      : `刷新恢复请求失败。${focusMessage}${refreshErrorSuffix}`;
     await saveBatchState({
       ...latest,
       message,
+      batchTabId: chatTab.id,
       refreshRecoveryFailureCount: failureCount,
       lastRefreshRecoveryFailureAt: failureTime,
       logs: latest.logs.concat({
@@ -1001,6 +1079,7 @@ async function handleBatchFocusAlarm() {
   await saveBatchState({
     ...latest,
     message: "刷新恢复请求失败，已激活 ChatGPT 网页。",
+    batchTabId: chatTab.id,
     lastFocusAt: new Date().toISOString(),
     refreshRecoveryFailureCount: 0,
     lastRefreshRecoveryFailureAt: "",
@@ -2297,10 +2376,9 @@ async function handleStartBatch(payload) {
   const newChat = payload?.newChat !== false;
   const newChatUrl = normalizeChatLaunchUrl(payload?.newChatUrl);
   const batchModel = normalizeBatchModel(payload?.batchModel);
-  const delaySeconds = Number.isFinite(Number(payload?.delaySeconds))
-    ? Math.min(60, Math.max(0, Number(payload.delaySeconds)))
-    : 3;
+  const delaySeconds = BATCH_DEFAULT_DELAY_SECONDS;
   const focusWhenStuck = payload?.focusWhenStuck === true;
+  const controlMode = payload?.controlMode === true;
   const directoryName = typeof payload?.directoryName === "string" ? payload.directoryName : "";
   const currentState = await getBatchState();
   const batchId = crypto.randomUUID();
@@ -2357,11 +2435,14 @@ async function handleStartBatch(payload) {
     retryAttempt: 0,
     maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
     focusWhenStuck,
+    controlMode,
+    batchTabId: 0,
     lastActivityAt,
     lastHeartbeatAt: lastActivityAt,
     lastStuckRefreshAt: "",
     lastStuckRefreshProgressKey: "",
     lastFocusAt: "",
+    lastControlFocusAt: "",
     refreshRecoveryFailureCount: 0,
     lastRefreshRecoveryFailureAt: "",
     logs: [
@@ -2383,6 +2464,14 @@ async function handleStartBatch(payload) {
     try {
       const chatTab = await ensureChatTab(newChat, newChat ? newChatUrl : "");
       await bringToFront(chatTab.id);
+      const latest = await getBatchState();
+      if (isCurrentBatchMessage(latest, batchId)) {
+        await saveBatchState({
+          ...latest,
+          batchTabId: chatTab.id,
+          lastControlFocusAt: controlMode ? new Date().toISOString() : latest.lastControlFocusAt
+        });
+      }
       await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
         batchId,
         globalPrompt,
@@ -2395,6 +2484,7 @@ async function handleStartBatch(payload) {
         newChatUrl: newChat ? newChatUrl : "",
         batchModel,
         delaySeconds,
+        controlMode,
         directoryName
       });
 
@@ -2685,13 +2775,14 @@ async function handleStartChatExport(payload) {
   return { ok: true, state: initialState };
 }
 
-async function handleBatchProgress(payload) {
+async function handleBatchProgress(payload, senderTabId = 0) {
   const current = await getBatchState();
   if (!isCurrentBatchMessage(current, payload?.batchId)) {
     return current;
   }
 
   const patch = {};
+  const progressTabId = Number(senderTabId) || 0;
 
   if (typeof payload?.running === "boolean") patch.running = payload.running;
   if (typeof payload?.total === "number") patch.total = payload.total;
@@ -2707,6 +2798,7 @@ async function handleBatchProgress(payload) {
   if (Number.isFinite(Number(payload?.maxRefreshRetries))) {
     patch.maxRefreshRetries = Math.max(0, Number(payload.maxRefreshRetries));
   }
+  if (progressTabId > 0) patch.batchTabId = progressTabId;
   patch.lastActivityAt = new Date().toISOString();
 
   const progressMoved = typeof patch.currentIndex === "number" && patch.currentIndex > current.currentIndex;
@@ -2722,14 +2814,16 @@ async function handleBatchProgress(payload) {
   });
 }
 
-async function handleBatchHeartbeat(payload) {
+async function handleBatchHeartbeat(payload, senderTabId = 0) {
   const current = await getBatchState();
   if (!isCurrentBatchMessage(current, payload?.batchId)) {
     return current;
   }
 
+  const heartbeatTabId = Number(senderTabId) || 0;
   return saveBatchState({
     ...current,
+    ...(heartbeatTabId > 0 ? { batchTabId: heartbeatTabId } : {}),
     lastHeartbeatAt: new Date().toISOString()
   });
 }
@@ -2895,6 +2989,14 @@ async function handleBatchRetryInNewTab(payload, sourceTabId) {
   const chatTab = await chrome.tabs.create({ url: launchUrl, active: true });
   await waitForTabComplete(chatTab.id, 20000);
   await ensureChatContentScript(chatTab.id);
+  const latest = await getBatchState();
+  if (isCurrentBatchMessage(latest, batchId)) {
+    await saveBatchState({
+      ...latest,
+      batchTabId: chatTab.id,
+      lastControlFocusAt: latest.controlMode ? new Date().toISOString() : latest.lastControlFocusAt
+    });
+  }
   await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
     ...retryPayload,
     batchId,
@@ -2943,6 +3045,14 @@ async function handleBatchContinueInNewTab(payload, sourceTabId) {
   const chatTab = await chrome.tabs.create({ url: launchUrl, active: true });
   await waitForTabComplete(chatTab.id, 20000);
   await ensureChatContentScript(chatTab.id);
+  const latest = await getBatchState();
+  if (isCurrentBatchMessage(latest, batchId)) {
+    await saveBatchState({
+      ...latest,
+      batchTabId: chatTab.id,
+      lastControlFocusAt: latest.controlMode ? new Date().toISOString() : latest.lastControlFocusAt
+    });
+  }
   await sendMessageToChatTabSafely(chatTab.id, "EXT_START_BATCH_EXPORT", {
     ...resumePayload,
     batchId,
@@ -3197,14 +3307,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "BATCH_PROGRESS") {
-    handleBatchProgress(message.payload)
+    handleBatchProgress(message.payload, _sender?.tab?.id)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;
   }
 
   if (message.type === "BATCH_HEARTBEAT") {
-    handleBatchHeartbeat(message.payload)
+    handleBatchHeartbeat(message.payload, _sender?.tab?.id)
       .then((state) => sendResponse({ ok: true, state }))
       .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));
     return true;

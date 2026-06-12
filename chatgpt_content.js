@@ -4764,6 +4764,17 @@
       return;
     }
 
+    if (message.type === "EXT_GET_BATCH_STATUS") {
+      const batchId = typeof message.payload?.batchId === "string" ? message.payload.batchId : "";
+      sendResponse({
+        ok: true,
+        batchRunning,
+        currentBatchId,
+        matchesBatch: Boolean(batchId && batchRunning && currentBatchId === batchId)
+      });
+      return;
+    }
+
     if (message.type === "EXT_REFRESH_STUCK_BATCH") {
       const batchId = typeof message.payload?.batchId === "string" ? message.payload.batchId : "";
       sendResponse(refreshCurrentBatchAfterStuck(batchId));

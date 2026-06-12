@@ -363,13 +363,13 @@ The design idea is this: when someone wants an initial overview, reading the "In
 
 # Content and Structure Requirements
 
-Use English (Chinese) format for all heading levels.
+Use English for all heading levels. When a relevant non-English original name matters, include the original name in parentheses on first appearance.
 
-Chinese titles of works or articles should use book-title brackets 《》.
+Works originally written in a non-English language may include the original title in parentheses.
 
 When the text is a person name, book title (or paper), or concept name, create a title that summarizes the full entry. Use this format:
-Sources of the Self 1989 《自我的根源》: Taylor: Modern Identity and Moral Sources
-Charles Taylor 1931- 查尔斯·泰勒: Recognition Politics and Modern Self Theory
+The Protestant Ethic and the Spirit of Capitalism 1905 (Die protestantische Ethik und der Geist des Kapitalismus): Weber: Religion and the Formation of Modern Capitalism
+Max Weber 1864-1920: Interpretive Sociology and Rationalization Theory
 
 Titles should lean toward academic status, theoretical contribution, research object, methodological contribution, or a concise summary of specific content. Titles should be written and concise. Avoid full conversational sentences, questions, or explanations. Especially avoid "how", "why", "how to", "turn into", "make...", "a field", "a kind of", and "not...but...".
 
@@ -391,7 +391,7 @@ const LEGACY_BATCH_DEFAULT_PROMPT = "解释下列名词的概念：";
 const LEGACY_BATCH_EN_PROMPT = "Please introduce:";
 const RECENT_BATCH_DEFAULT_PROMPT = "请介绍：";
 const LEGACY_BATCH_DEFAULT_DELAY_SECONDS = 2;
-const BATCH_DEFAULT_DELAY_SECONDS = 3;
+const BATCH_DEFAULT_DELAY_SECONDS = 1;
 const BATCH_CONVERSATION_MODE_NEW = "new";
 const BATCH_CONVERSATION_MODE_CURRENT = "current";
 const CHAT_EXPORT_MODE_SEPARATE = "separate";
@@ -430,6 +430,7 @@ const BATCH_CONFIG_DEFAULTS = {
   batchIncludeNearestHeading: true,
   batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
   batchFocusWhenStuck: false,
+  batchControlMode: false,
   chatExportMode: CHAT_EXPORT_MODE_SEPARATE,
   batchDirectoryName: "",
   optionsActivePage: "batch"
@@ -455,9 +456,12 @@ const BATCH_STATE_DEFAULT = {
   retryAttempt: 0,
   maxRefreshRetries: BATCH_DEFAULT_MAX_REFRESH_RETRIES,
   focusWhenStuck: false,
+  controlMode: false,
+  batchTabId: 0,
   lastActivityAt: "",
   lastHeartbeatAt: "",
   lastFocusAt: "",
+  lastControlFocusAt: "",
   refreshRecoveryFailureCount: 0,
   lastRefreshRecoveryFailureAt: ""
 };
@@ -762,6 +766,10 @@ const BATCH_UI_TEXT = {
     focusWhenStuckDesc: "实验性功能。任务卡住时抢占屏幕焦点回到网页。",
     focusWhenStuckLabel: "",
     focusWhenStuckTip: "实验性功能。任务卡住时抢占屏幕焦点回到网页。自动刷新会始终进行，不需要开启这个选项。",
+    controlMode: "调控模式",
+    controlModeDesc: "任务运行期间定期激活正在执行批量任务的 ChatGPT 标签页，帮助 Chrome/Edge 保持焦点。",
+    controlModeLabel: "",
+    controlModeTip: "开启后会在批量任务运行期间定期激活当前批量标签页。适合浏览器容易降低后台页面活动时使用。",
     saved: "已保存",
     runStatus: "运行状态",
     failureTitle: "保存失败",
@@ -835,11 +843,7 @@ const BATCH_UI_TEXT = {
     newChatUrlInputTitle: "这个链接决定新建对话在哪里创建。留空时默认在 GPT 主页面新建对话。",
     includeNearestHeadingTitle: "发送最近两级标题",
     includeNearestHeadingDesc: "发送正文时附加最近两级上级标题，并用「—」连接。",
-    includeNearestHeadingLabel: "",
-    delayTitle: "等待时间",
-    delayDesc: "两条任务之间的间隔时间。",
-    delayInputTitle: "每条文本之间的等待时长。",
-    delayUnit: "秒"
+    includeNearestHeadingLabel: ""
   },
   [BATCH_PROMPT_LANGUAGE_EN]: {
     languageCn: "中文",
@@ -900,6 +904,10 @@ const BATCH_UI_TEXT = {
     focusWhenStuckDesc: "Experimental feature. Brings the web page back to the screen when a task stalls.",
     focusWhenStuckLabel: "",
     focusWhenStuckTip: "Experimental feature. Brings the web page back to the screen when a task stalls. Auto-refresh always runs without enabling this option.",
+    controlMode: "Control Mode",
+    controlModeDesc: "Periodically activates the ChatGPT tab that is running the batch task to help Chrome/Edge keep focus.",
+    controlModeLabel: "",
+    controlModeTip: "When enabled, the extension periodically activates the current batch tab while the task is running. Use this when the browser reduces background page activity.",
     saved: "Saved",
     runStatus: "Run Status",
     failureTitle: "Save Failed",
@@ -973,11 +981,7 @@ const BATCH_UI_TEXT = {
     newChatUrlInputTitle: "This link controls where new chats are created. Leave it blank to use the main GPT page.",
     includeNearestHeadingTitle: "Send Nearest Two Headings",
     includeNearestHeadingDesc: "Adds the nearest two parent headings before each item, joined with “—”.",
-    includeNearestHeadingLabel: "",
-    delayTitle: "Delay",
-    delayDesc: "The interval between two batch items.",
-    delayInputTitle: "Delay between items.",
-    delayUnit: "sec"
+    includeNearestHeadingLabel: ""
   }
 };
 
@@ -1123,6 +1127,11 @@ function applyBatchUiLanguage(language) {
   setElementText("#batchFocusWhenStuckLabel", text.focusWhenStuckLabel);
   const focusWhenStuckHelp = document.getElementById("batchFocusWhenStuckHelp");
   setHelpTip(focusWhenStuckHelp, text.focusWhenStuckTip);
+  setElementText("#controlModeTitle", text.controlMode);
+  setElementText("#controlModeDesc", text.controlModeDesc);
+  setElementText("#batchControlModeLabel", text.controlModeLabel);
+  const controlModeHelp = document.getElementById("batchControlModeHelp");
+  setHelpTip(controlModeHelp, text.controlModeTip);
   setElementText("#batchSaved", text.saved);
   setElementText("#batchFailureTitle", text.failureTitle);
   setElementText("#page-batch > .group:nth-of-type(2) .row strong", text.runStatus);
@@ -1194,10 +1203,6 @@ function applyBatchUiLanguage(language) {
   setElementText("#includeNearestHeadingTitle", text.includeNearestHeadingTitle);
   setElementText("#includeNearestHeadingDesc", text.includeNearestHeadingDesc);
   setElementText("#batchIncludeNearestHeadingLabel", text.includeNearestHeadingLabel);
-  setElementText("#delayTitle", text.delayTitle);
-  setElementText("#delayDesc", text.delayDesc);
-  setElementTitle("#batchDelaySeconds", text.delayInputTitle);
-  setElementText("#delaySecondsUnit", text.delayUnit);
   renderBatchState(currentBatchState);
   renderChatExportState(currentChatExportState);
   renderBatchDirectoryText();
@@ -1641,17 +1646,66 @@ function localizeBatchRuntimeMessage(message) {
 
   const exactMessages = new Map([
     ["等待任务开始。", "Waiting for task start."],
+    ["正在打开 ChatGPT 页面……", "Opening ChatGPT page..."],
+    ["所有标题都已经保存过，本次没有发送新消息。", "All titles have already been saved. No new messages were sent."],
     ["ChatGPT 页面已接收批量任务。", "ChatGPT page received the batch task."],
+    ["任务心跳长时间没有更新，已刷新 ChatGPT 网页恢复任务。", "Task heartbeat did not update for a long time. ChatGPT page was refreshed to recover the task."],
+    ["刷新后任务仍没有推进，已激活 ChatGPT 网页。", "The task still did not progress after refresh. ChatGPT page was activated."],
+    ["刷新恢复请求失败，已激活 ChatGPT 网页。", "Refresh recovery request failed. ChatGPT page was activated."],
+    ["正在检查当前页面输入框和回答状态……", "Checking the current page input box and answer status..."],
+    ["正在新建对话……", "Creating a new chat..."],
     ["正在发送全局 Prompt……", "Sending Global Prompt..."],
     ["全局 Prompt 已收到回答，正在进入批量文本处理……", "Global Prompt answered. Starting batch text processing..."],
     ["全局 Prompt 已收到回答，正在准备第一条文本……", "Global Prompt answered. Preparing the first item..."],
     ["新对话已打开，正在准备全局 Prompt……", "New chat opened. Preparing Global Prompt..."],
     ["新对话已打开，正在准备第一条文本……", "New chat opened. Preparing the first item..."],
-    ["新对话已打开，正在准备本段第一条文本……", "New chat opened. Preparing the first item in this segment..."]
+    ["新对话已打开，正在准备本段第一条文本……", "New chat opened. Preparing the first item in this segment..."],
+    ["刷新后仍未继续。", "Still did not continue after refresh."],
+    ["已找到上一轮提问，但没有读取到对应回答。", "Previous prompt was found, but the matching answer could not be read."],
+    ["刷新重试状态保存失败，任务已停止。", "Refresh retry state could not be saved. Task stopped."],
+    ["重试状态保存失败。", "Retry state could not be saved."],
+    ["回答内容为空。", "Answer content is empty."],
+    ["ChatGPT 返回临时错误，请刷新页面后重试。", "ChatGPT returned a temporary error. Refresh the page and try again."],
+    ["没有找到输入框。", "Input box was not found."],
+    ["当前页面没有对应的批量任务。", "Current page does not have the matching batch task."],
+    ["当前批量任务没有可恢复的续跑状态。", "Current batch task has no recoverable resume state."],
+    ["续跑状态保存失败。", "Resume state could not be saved."],
+    ["正在读取当前对话……", "Reading the current chat..."],
+    ["当前对话导出已开始：同一个 MD。", "Current chat export started: single Markdown file."],
+    ["当前对话导出已开始：逐条 MD。", "Current chat export started: separate Markdown files."],
+    ["Deep Research 正文已提取，正在保存……", "Deep Research body extracted, saving..."],
+    ["已采用 Deep Research 正文导出。", "Deep Research body was used for export."],
+    ["对话导出已停止。", "Chat export stopped."],
+    ["当前对话没有可导出的问答内容。", "The current chat has no exportable question-answer pairs."]
   ]);
   if (exactMessages.has(text)) return exactMessages.get(text);
 
+  const localizeFragment = (value) => {
+    const fragment = String(value || "").trim();
+    return exactMessages.get(fragment) || fragment;
+  };
+  const retryMethodText = (value) => (
+    String(value || "") === "新标签页重试" ? "new-tab retry" : "refresh retry"
+  );
+
   const patterns = [
+    [/^已跳过\s*(\d+)\s*条已存在标题。$/u, "Skipped $1 existing titles."],
+    [/^已选目录[：:]\s*(.+)$/u, "Selected folder: $1"],
+    [/^已选目录$/u, "Selected folder"],
+    [/^批量任务已开始，共\s*(\d+)\s*条。$/u, "Batch task started, $1 items."],
+    [/^批量任务开始执行，共\s*(\d+)\s*条。$/u, "Batch task started, $1 items."],
+    [/^批量任务开始执行，共\s*(\d+)\s*条，已跳过\s*(\d+)\s*条。$/u, "Batch task started, $1 items, $2 skipped."],
+    [/^页面已刷新，正在第\s*(\d+)\/(\d+)\s*次重试第\s*(\d+)\/(\d+)\s*条……$/u, "Page refreshed. Retry $1/$2 for item $3/$4..."],
+    [/^页面已刷新，正在继续第\s*(\d+)\/(\d+)\s*条……$/u, "Page refreshed. Continuing item $1/$2..."],
+    [/^正在切换模型[：:]\s*(.+)……$/u, "Switching model: $1..."],
+    [/^模型已准备[：:]\s*(.+)。$/u, "Model ready: $1."],
+    [/^模型切换未完成[：:]\s*(.+)\s+将沿用当前模型继续。$/u, "Model switch did not finish: $1 Continuing with the current model."],
+    [/^正在修改对话标题[：:]\s*(.+)$/u, "Updating chat title: $1"],
+    [/^对话标题已改为[：:]\s*(.+)$/u, "Chat title updated to: $1"],
+    [/^对话标题暂未改成[：:]\s*(.+)，稍后会再次尝试。$/u, "Chat title has not changed to: $1. Will try again later."],
+    [/^已处理\s*(\d+)\s*条，正在新建对话……$/u, "$1 items processed. Creating a new chat..."],
+    [/^已处理\s*(\d+)\s*条，正在打开新的项目对话……$/u, "$1 items processed. Opening a new project chat..."],
+    [/^正在准备第\s*(\d+)\/(\d+)\s*条[：:]\s*(.+)$/u, "Preparing item $1/$2: $3"],
     [/^正在发送第\s*(\d+)\/(\d+)\s*条[：:]\s*(.+)$/u, "Sending item $1/$2: $3"],
     [/^第\s*(\d+)\/(\d+)\s*条回答已读取，正在保存[：:]\s*(.+)$/u, "Item $1/$2 answer read, saving: $3"],
     [/^第\s*(\d+)\/(\d+)\s*条已有回答已读取，正在保存[：:]\s*(.+)$/u, "Existing answer for item $1/$2 read, saving: $3"],
@@ -1659,7 +1713,72 @@ function localizeBatchRuntimeMessage(message) {
     [/^已发送[：:]\s*(.+)，正在等待回答……$/u, "Sent: $1, waiting for the answer..."],
     [/^页面已刷新，正在读取第\s*(\d+)\/(\d+)\s*条已有回答……$/u, "Page refreshed. Reading existing answer for item $1/$2..."],
     [/^第\s*(\d+)\/(\d+)\s*条刷新后回答仍在生成或更新，继续等待稳定后再判断。$/u, "After refresh, item $1/$2 is still generating or updating. Waiting for it to settle..."],
-    [/^第\s*(\d+)\/(\d+)\s*条已在新标签页继续重试。$/u, "Item $1/$2 continued retrying in a new tab."]
+    [/^第\s*(\d+)\/(\d+)\s*条刷新重试已达到\s*(\d+)\s*次，任务已停止。?(.*)$/u, (_match, item, total, retries, reason) => {
+      const suffix = localizeFragment(reason);
+      return `Item ${item}/${total} reached ${retries} refresh retries. Task stopped.${suffix ? ` ${suffix}` : ""}`;
+    }],
+    [/^第\s*(\d+)\/(\d+)\s*条刷新后仍未继续，正在第\s*(\d+)\/(\d+)\s*次刷新重试。$/u, "Item $1/$2 still did not continue after refresh. Running refresh retry $3/$4."],
+    [/^第\s*(\d+)\/(\d+)\s*条保存失败，正在第\s*(\d+)\/(\d+)\s*次(新标签页重试|刷新重试)。?(.*)$/u, (_match, item, total, retry, max, method, reason) => {
+      const suffix = localizeFragment(reason);
+      return `Item ${item}/${total} save failed. Running ${retryMethodText(method)} ${retry}/${max}.${suffix ? ` ${suffix}` : ""}`;
+    }],
+    [/^第\s*(\d+)\/(\d+)\s*条保存失败，准备第\s*(\d+)\/(\d+)\s*次重试[：:]\s*(.+?)。(.+)$/u, (_match, item, total, retry, max, title, reason) => (
+      `Item ${item}/${total} save failed. Preparing retry ${retry}/${max}: ${title}. ${localizeFragment(reason)}`
+    )],
+    [/^第\s*(\d+)\/(\d+)\s*条保存失败[：:]\s*(.+?)。(.+)$/u, (_match, item, total, title, reason) => (
+      `Item ${item}/${total} save failed: ${title}. ${localizeFragment(reason)}`
+    )],
+    [/^第\s*(\d+)\/(\d+)\s*条失败[：:]\s*(.+?)。(.+)$/u, (_match, item, total, title, reason) => (
+      `Item ${item}/${total} failed: ${title}. ${localizeFragment(reason)}`
+    )],
+    [/^第\s*(\d+)\/(\d+)\s*条发送、读取或保存前处理失败，正在记录结果[：:]\s*(.+)$/u, "Item $1/$2 failed before sending, reading, or saving. Recording result: $3"],
+    [/^第\s*(\d+)\/(\d+)\s*条已在新标签页继续重试。$/u, "Item $1/$2 continued retrying in a new tab."],
+    [/^第\s*(\d+)\/(\d+)\s*条已在新项目对话继续。$/u, "Item $1/$2 continued in a new project chat."],
+    [/^任务结束，跳过\s*(\d+)\s*条，成功\s*(\d+)\s*条，失败\s*(\d+)\s*条。$/u, "Task finished, $1 skipped, $2 succeeded, $3 failed."],
+    [/^任务结束，跳过\s*(\d+)\s*条，成功\s*(\d+)\s*条。$/u, "Task finished, $1 skipped, $2 succeeded."],
+    [/^任务结束，成功\s*(\d+)\s*条，失败\s*(\d+)\s*条。$/u, "Task finished, $1 succeeded, $2 failed."],
+    [/^任务结束，成功\s*(\d+)\s*条。$/u, "Task finished, $1 succeeded."],
+    [/^刷新恢复请求连续失败\s*(\d+)\s*次。(.+)$/u, (_match, count, rest) => (
+      `Refresh recovery request failed ${count} times in a row. ${localizeBatchRuntimeMessage(rest)}`
+    )],
+    [/^刷新恢复请求失败。(.+)$/u, (_match, rest) => (
+      `Refresh recovery request failed. ${localizeBatchRuntimeMessage(rest)}`
+    )],
+    [/^调控模式已启用，会按间隔激活当前批量标签页。请查看 ChatGPT 标签页。?(.*)$/u, (_match, suffix) => {
+      const errorText = String(suffix || "").trim().replace(/^错误[：:]\s*/u, "").trim();
+      const localizedError = localizeFragment(errorText);
+      return `Control Mode is enabled and will activate the current batch tab at intervals. Check the ChatGPT tab.${localizedError ? ` Error: ${localizedError}` : ""}`;
+    }],
+    [/^保持网页焦点未开启，未激活 ChatGPT 网页。请查看 ChatGPT 标签页。?(.*)$/u, (_match, suffix) => {
+      const errorText = String(suffix || "").trim().replace(/^错误[：:]\s*/u, "").trim();
+      const localizedError = localizeFragment(errorText);
+      return `Keep Web Page Focus is off, so the ChatGPT page was not activated. Check the ChatGPT tab.${localizedError ? ` Error: ${localizedError}` : ""}`;
+    }],
+    [/^已识别标题[：:]\s*(.+)$/u, "Recognized titles: $1"],
+    [/^完整对话接口已整理出\s*(\d+)\s*组问答，正在保存……$/u, "Full chat API parsed $1 question-answer pairs, saving..."],
+    [/^已读取\s*(\d+)\s*组问答，正在保存……$/u, "$1 question-answer pairs read, saving..."],
+    [/^已保存同一个 MD 文件，共\s*(\d+)\s*组问答。?(.*)$/u, (_match, count, suffix) => (
+      `Saved one Markdown file with ${count} question-answer pairs.${suffix ? ` ${localizeBatchRuntimeMessage(suffix)}` : ""}`
+    )],
+    [/^同一个 MD 文件保存失败[：:]\s*(.+)$/u, "Single Markdown file save failed: $1"],
+    [/^当前对话导出结束，成功\s*(\d+)\s*组，失败\s*(\d+)\s*组。$/u, "Current chat export finished, $1 succeeded, $2 failed."],
+    [/^当前对话导出结束，已保存同一个 MD 文件，共\s*(\d+)\s*组问答。$/u, "Current chat export finished. Saved one Markdown file with $1 question-answer pairs."],
+    [/^当前对话导出结束，共保存\s*(\d+)\s*组问答。$/u, "Current chat export finished. Saved $1 question-answer pairs."],
+    [/^已记录词条清单，共\s*(\d+)\s*条。?(.*)$/u, (_match, count, suffix) => (
+      `Term index recorded, ${count} entries.${suffix ? ` ${localizeBatchRuntimeMessage(suffix)}` : ""}`
+    )],
+    [/^第\s*(\d+)\/(\d+)\s*组已保存[：:]\s*(.+?)。?(.*)$/u, (_match, item, total, title, suffix) => (
+      `Pair ${item}/${total} saved: ${title}.${suffix ? ` ${localizeBatchRuntimeMessage(suffix)}` : ""}`
+    )],
+    [/^第\s*(\d+)\/(\d+)\s*组保存失败[：:]\s*(.+?)。(.+)$/u, "Pair $1/$2 save failed: $3. $4"],
+    [/^第\s*(\d+)\/(\d+)\s*组失败[：:]\s*问答内容不完整。$/u, "Pair $1/$2 failed: question or answer is incomplete."],
+    [/^正在导出第\s*(\d+)\/(\d+)\s*组问答……$/u, "Exporting pair $1/$2..."],
+    [/^正在读取项目页对话列表[：:]\s*已扫描\s*(\d+)\s*个，匹配\s*(\d+)\s*个进度标题对话。$/u, "Reading project chat list: $1 scanned, $2 progress-title chats matched."],
+    [/^项目页列表读取完成[：:]\s*扫描\s*(\d+)\s*个，匹配\s*(\d+)\s*个进度标题对话，等待确认。$/u, "Project list read: $1 scanned, $2 progress-title chats matched. Waiting for confirmation."],
+    [/^已读取第\s*(\d+)\/3\s*页，累计扫描\s*(\d+)\s*个，匹配\s*(\d+)\s*个进度标题对话。$/u, "Read page $1/3, $2 scanned, $3 progress-title chats matched."],
+    [/^列表读取完成[：:]\s*扫描\s*(\d+)\s*个，匹配\s*(\d+)\s*个进度标题对话，等待确认。$/u, "List read: $1 scanned, $2 progress-title chats matched. Waiting for confirmation."],
+    [/^用户已确认，开始删除\s*(\d+)\s*个进度标题对话。$/u, "Confirmed. Deleting $1 progress-title chats."],
+    [/^清理进度标题对话失败[：:]\s*(.+)$/u, "Failed to clear progress-title chats: $1"]
   ];
 
   for (const [pattern, replacement] of patterns) {
@@ -1874,7 +1993,7 @@ function renderChatExportState(state) {
   lines.push(
     !currentChatExportState.message || knownIdleMessages.includes(currentChatExportState.message)
       ? text.exportIdleStatus
-      : currentChatExportState.message
+      : localizeBatchRuntimeMessage(currentChatExportState.message)
   );
   if (currentChatExportState.total) {
     const savedCount = Math.min(
@@ -1898,7 +2017,8 @@ function renderChatExportState(state) {
     const li = document.createElement("li");
     li.className = "log-item";
     const timeText = formatTime(item.time);
-    li.textContent = timeText ? `［${timeText}］${item.message}` : item.message;
+    const messageText = localizeBatchRuntimeMessage(item.message);
+    li.textContent = timeText ? `［${timeText}］${messageText}` : messageText;
     logs.appendChild(li);
   }
 }
@@ -2099,10 +2219,8 @@ function addSelectionFilterUrl() {
 }
 
 async function persistBatchConfig(showTip = false) {
-  const delayInput = document.getElementById("batchDelaySeconds");
-  const delaySeconds = normalizeBatchDelaySeconds(delayInput.value);
-  delayInput.value = String(delaySeconds);
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
+  const controlMode = document.getElementById("batchControlMode");
   const includeNearestHeading = document.getElementById("batchIncludeNearestHeading");
   const payload = {
     batchGlobalPrompt: document.getElementById("batchGlobalPrompt").value,
@@ -2113,8 +2231,9 @@ async function persistBatchConfig(showTip = false) {
     batchNewChatUrl: document.getElementById("batchNewChatUrl").value.trim(),
     batchModel: getSelectedBatchModel(),
     batchIncludeNearestHeading: Boolean(includeNearestHeading && includeNearestHeading.checked),
-    batchDelaySeconds: delaySeconds,
+    batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
     batchFocusWhenStuck: Boolean(focusWhenStuck && focusWhenStuck.checked),
+    batchControlMode: Boolean(controlMode && controlMode.checked),
     chatExportMode: getSelectedChatExportMode(),
     batchDirectoryName: currentBatchDirectoryName
   };
@@ -2154,9 +2273,6 @@ async function loadBatchConfig() {
   const batchPrompt = !config.batchPrompt || isKnownBatchDefaultPrompt(config.batchPrompt)
     ? languageDefaults.prompt
     : config.batchPrompt;
-  const batchDelaySeconds = config.batchDelaySeconds == null || Number(config.batchDelaySeconds) === LEGACY_BATCH_DEFAULT_DELAY_SECONDS
-    ? BATCH_DEFAULT_DELAY_SECONDS
-    : normalizeBatchDelaySeconds(config.batchDelaySeconds);
   document.getElementById("batchGlobalPrompt").value = batchGlobalPrompt;
   document.getElementById("batchPrompt").value = batchPrompt;
   setBatchPromptLanguage(batchPromptLanguage);
@@ -2167,9 +2283,10 @@ async function loadBatchConfig() {
   updateBatchModelSelectText();
   document.getElementById("batchNewChatUrl").value = typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "";
   document.getElementById("batchIncludeNearestHeading").checked = batchIncludeNearestHeading;
-  document.getElementById("batchDelaySeconds").value = String(batchDelaySeconds);
   const batchFocusWhenStuck = config.batchFocusWhenStuck === true;
   document.getElementById("batchFocusWhenStuck").checked = batchFocusWhenStuck;
+  const batchControlMode = config.batchControlMode === true;
+  document.getElementById("batchControlMode").checked = batchControlMode;
   currentBatchDirectoryName = config.batchDirectoryName || "";
   renderBatchDirectoryText();
   setActivePage("batch");
@@ -2183,8 +2300,9 @@ async function loadBatchConfig() {
     typeof config.batchNewChatUrl !== "string" ||
     batchIncludeNearestHeading !== (config.batchIncludeNearestHeading !== false) ||
     batchPrompt !== config.batchPrompt ||
-    batchDelaySeconds !== Number(config.batchDelaySeconds) ||
-    config.batchFocusWhenStuck !== batchFocusWhenStuck
+    Number(config.batchDelaySeconds) !== BATCH_DEFAULT_DELAY_SECONDS ||
+    config.batchFocusWhenStuck !== batchFocusWhenStuck ||
+    config.batchControlMode !== batchControlMode
   ) {
     await setLocal({
       batchGlobalPrompt,
@@ -2195,8 +2313,9 @@ async function loadBatchConfig() {
       batchNewChatUrl: typeof config.batchNewChatUrl === "string" ? config.batchNewChatUrl : "",
       batchIncludeNearestHeading,
       batchPrompt,
-      batchDelaySeconds,
-      batchFocusWhenStuck
+      batchDelaySeconds: BATCH_DEFAULT_DELAY_SECONDS,
+      batchFocusWhenStuck,
+      batchControlMode
     });
   }
 }
@@ -2286,7 +2405,7 @@ async function startBatch() {
   const prompt = document.getElementById("batchPrompt").value.trim();
   const newChatUrl = document.getElementById("batchNewChatUrl").value.trim();
   const batchModel = getSelectedBatchModel();
-  const delaySeconds = normalizeBatchDelaySeconds(document.getElementById("batchDelaySeconds").value);
+  const delaySeconds = BATCH_DEFAULT_DELAY_SECONDS;
   const items = parseBatchItems(document.getElementById("batchInputs").value, includeNearestHeading);
 
   if (!items.length) {
@@ -2325,6 +2444,7 @@ async function startBatch() {
         batchModel,
         delaySeconds,
         focusWhenStuck: Boolean(document.getElementById("batchFocusWhenStuck").checked),
+        controlMode: Boolean(document.getElementById("batchControlMode").checked),
         directoryName: currentBatchDirectoryName
       }
     });
@@ -2686,20 +2806,20 @@ function getDisciplineMapPromptTooltipHtml(language = getSelectedBatchPromptLang
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">Format and Naming Rules</div>
         <div class="discipline-prompt-content">
-          Use the "<strong>English</strong> (<strong>Chinese</strong>)" format for headings. Chinese titles of works or articles should use book-title brackets.<br>
+          Use English for headings. When a relevant non-English original name matters, include the original name in parentheses on first appearance.<br>
           Person names, book titles, papers, and concept names need titles that summarize the full entry and lean toward academic status, theoretical contribution, research object, method, or content.
         </div>
       </div>
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">Title Examples</div>
-        <div class="discipline-hierarchy-box">Sources of the Self 1989 《自我的根源》: Taylor: Modern Identity and Moral Sources
-Charles Taylor 1931- 查尔斯·泰勒: Recognition Politics and Modern Self Theory</div>
+        <div class="discipline-hierarchy-box">The Protestant Ethic and the Spirit of Capitalism 1905 (Die protestantische Ethik und der Geist des Kapitalismus): Weber: Religion and the Formation of Modern Capitalism
+Max Weber 1864-1920: Interpretive Sociology and Rationalization Theory</div>
       </div>
       <div class="discipline-prompt-section">
         <div class="discipline-prompt-title">Structure Rules</div>
-        <div class="discipline-hierarchy-box">1. Major Section (English (Chinese))
-└─ 1_1 Second-Level Section (English (Chinese))
-   └─ 1_2_1 Third-Level Heading (English (Chinese))
+        <div class="discipline-hierarchy-box">1. Major Section
+└─ 1_1 Second-Level Section
+   └─ 1_2_1 Third-Level Heading
       └─ 1_2_1 ◆ Body item</div>
       </div>
     `;
@@ -2772,13 +2892,12 @@ function bindBatchEvents() {
   const batchModelSelect = document.getElementById("batchModelSelect");
   const batchModelButton = document.getElementById("batchModelSelectButton");
   const includeNearestHeading = document.getElementById("batchIncludeNearestHeading");
-  const delaySeconds = document.getElementById("batchDelaySeconds");
   const focusWhenStuck = document.getElementById("batchFocusWhenStuck");
+  const controlMode = document.getElementById("batchControlMode");
 
   bindElementEvent(globalPrompt, "input", scheduleBatchConfigSave);
   bindElementEvent(prompt, "input", scheduleBatchConfigSave);
   bindElementEvent(inputs, "input", scheduleBatchConfigSave);
-  bindElementEvent(delaySeconds, "input", scheduleBatchConfigSave);
   bindElementEvent(newChatUrl, "input", scheduleBatchConfigSave);
   bindElementEvent(batchModelSelect, "change", () => {
     updateBatchModelSelectText();
@@ -2803,6 +2922,7 @@ function bindBatchEvents() {
     if (event.key === "Escape") closeBatchModelMenu();
   });
   bindElementEvent(focusWhenStuck, "change", () => persistBatchConfig(true));
+  bindElementEvent(controlMode, "change", () => persistBatchConfig(true));
   conversationMode?.querySelectorAll("[data-batch-conversation-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       setBatchConversationMode(button.dataset.batchConversationMode);
@@ -2820,7 +2940,6 @@ function bindBatchEvents() {
   bindElementEvent(prompt, "change", () => persistBatchConfig(true));
   bindElementEvent(inputs, "change", () => persistBatchConfig(true));
   bindElementEvent(newChatUrl, "change", () => persistBatchConfig(true));
-  bindElementEvent(delaySeconds, "change", () => persistBatchConfig(true));
   bindElementEvent(document.getElementById("batchStart"), "click", startBatch);
   bindElementEvent(document.getElementById("batchStop"), "click", stopBatch);
   bindElementEvent(document.getElementById("deleteProgressChats"), "click", () => {

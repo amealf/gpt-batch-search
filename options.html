@@ -2040,12 +2040,17 @@
 
         <div class="settings-item">
           <div class="settings-main">
-            <div id="delayTitle" class="settings-title">等待时间</div>
-            <div id="delayDesc" class="settings-desc">两条任务之间的间隔时间。</div>
+            <div class="settings-title-row">
+              <div id="controlModeTitle" class="settings-title">调控模式</div>
+              <button id="batchControlModeHelp" type="button" class="help-button" data-tip="开启后会在批量任务运行期间定期激活当前批量标签页。适合浏览器容易降低后台页面活动时使用。">?</button>
+            </div>
+            <div id="controlModeDesc" class="settings-desc">任务运行期间定期激活正在执行批量任务的 ChatGPT 标签页，帮助 Chrome/Edge 保持焦点。</div>
           </div>
           <div class="settings-control">
-            <input id="batchDelaySeconds" class="compact-number" type="number" min="0" max="60" step="0.5" title="每条文本之间的等待时长。">
-            <span id="delaySecondsUnit" class="toolbar-unit">秒</span>
+            <label class="toggle-label" for="batchControlMode">
+              <input id="batchControlMode" type="checkbox">
+              <span id="batchControlModeLabel"></span>
+            </label>
           </div>
         </div>
 
